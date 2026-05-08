@@ -18,7 +18,6 @@ import {
   Globe,
   Phone,
   MessageCircle,
-  X
 } from "lucide-react";
 import { useTranslation } from '@/hooks/useTranslation';
 import { Language, LANGUAGE_NAMES } from '@/lib/i18n';
@@ -264,64 +263,6 @@ function SuccessToast({ show, message }: { show: boolean; message: string }) {
   );
 }
 
-// Contact Modal Component — Dark Indigo Theme
-function ContactModal({ 
-  show, 
-  onClose, 
-  onWhatsApp, 
-  onPhone,
-  t 
-}: { 
-  show: boolean; 
-  onClose: () => void; 
-  onWhatsApp: () => void;
-  onPhone: () => void;
-  t: (key: string) => string;
-}) {
-  if (!show) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-indigo-900 border border-indigo-700 rounded-xl p-6 w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-lg text-slate-100">{t('finder.contact_owner')}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <p className="text-slate-400 text-center text-sm mb-6">
-          {t('finder.choose_method')}
-        </p>
-        
-        {/* WhatsApp Button */}
-        <button 
-          onClick={onWhatsApp}
-          className="w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl mb-3 flex items-center justify-center gap-3 font-semibold transition-colors"
-        >
-          <MessageCircle className="w-5 h-5" />
-          {t('finder.by_whatsapp')}
-        </button>
-        
-        {/* Phone Button */}
-        <button 
-          onClick={onPhone}
-          className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl flex items-center justify-center gap-3 font-semibold transition-colors"
-        >
-          <Phone className="w-5 h-5" />
-          {t('finder.by_phone')}
-        </button>
-        
-        <button 
-          onClick={onClose} 
-          className="mt-4 text-slate-500 w-full text-center text-sm hover:text-slate-300 transition-colors"
-        >
-          {t('common.cancel')}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // Main Scan Page
 export default function ScanPage() {
   const params = useParams();
@@ -343,14 +284,10 @@ export default function ScanPage() {
   
   // UI State
   const [showForm, setShowForm] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [locationText, setLocationText] = useState('');
   const [geoError, setGeoError] = useState<string | null>(null);
   const [showManualLocation, setShowManualLocation] = useState(false);
-
-  const hasLocation = sharedPosition !== null || otherLocation.trim().length > 0;
-  const isFormComplete = finderName.trim().length > 0 && finderPhone.trim().length > 0 && hasLocation;
 
   useEffect(() => {
     const fetchBaggage = async () => {
@@ -441,7 +378,6 @@ export default function ScanPage() {
   // Handle WhatsApp contact
   const handleWhatsApp = useCallback(async () => {
     setIsSubmitting(true);
-    setShowContactModal(false);
 
     try {
       // Log the scan
@@ -492,8 +428,6 @@ export default function ScanPage() {
 
   // Handle phone call
   const handlePhoneCall = useCallback(async () => {
-    setShowContactModal(false);
-
     // Log the scan before calling (same as WhatsApp)
     try {
       await fetch(`/api/scan/${reference}`, {
@@ -822,14 +756,7 @@ export default function ScanPage() {
         </div>
       </div>
 
-      {/* Contact Modal — Dark Theme */}
-      <ContactModal
-        show={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        onWhatsApp={handleWhatsApp}
-        onPhone={handlePhoneCall}
-        t={t}
-      />
+
     </main>
   );
 }

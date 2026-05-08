@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { motion, useInView } from 'framer-motion';
@@ -8,7 +8,6 @@ import {
   Plane,
   Luggage,
   QrCode,
-  Shield,
   Smartphone,
   BatteryMedium,
   MapPin,
@@ -18,7 +17,6 @@ import {
   Menu,
   X,
   Mail,
-  Phone,
   ArrowRight,
   Facebook,
   Twitter,
@@ -58,9 +56,11 @@ function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('scroll', () => setScrolled(window.scrollY > 20));
-  }
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const navLinks = [
     { label: 'Solutions', href: '/#solutions' },
@@ -344,39 +344,21 @@ function SolutionsSection() {
     },
   ];
 
-  const colorMap: Record<string, { bg: string; border: string; iconBg: string; iconColor: string; badge: string; badgeText: string; btn: string; btnHover: string; btnText: string }> = {
+  const colorMap: Record<string, { iconBg: string; iconColor: string; hoverBtn: string }> = {
     emerald: {
-      bg: 'bg-emerald-600',
-      border: 'border-emerald-600',
       iconBg: 'bg-emerald-100',
       iconColor: 'text-emerald-700',
-      badge: 'bg-emerald-50 border-emerald-100',
-      badgeText: 'text-emerald-700',
-      btn: 'bg-emerald-600',
-      btnHover: 'hover:bg-emerald-700',
-      btnText: 'text-white',
+      hoverBtn: 'hover:bg-emerald-600 hover:text-white hover:border-emerald-600',
     },
     orange: {
-      bg: 'bg-orange-500',
-      border: 'border-orange-500',
       iconBg: 'bg-orange-100',
       iconColor: 'text-orange-600',
-      badge: 'bg-orange-50 border-orange-100',
-      badgeText: 'text-orange-700',
-      btn: 'bg-orange-500',
-      btnHover: 'hover:bg-orange-600',
-      btnText: 'text-white',
+      hoverBtn: 'hover:bg-orange-500 hover:text-white hover:border-orange-500',
     },
     purple: {
-      bg: 'bg-purple-700',
-      border: 'border-purple-700',
       iconBg: 'bg-purple-100',
       iconColor: 'text-purple-700',
-      badge: 'bg-purple-50 border-purple-100',
-      badgeText: 'text-purple-700',
-      btn: 'bg-purple-700',
-      btnHover: 'hover:bg-purple-800',
-      btnText: 'text-white',
+      hoverBtn: 'hover:bg-purple-700 hover:text-white hover:border-purple-700',
     },
   };
 
@@ -413,7 +395,7 @@ function SolutionsSection() {
 
                   {/* Button */}
                   <Link href={sol.href}>
-                    <Button variant="ghost" className={`w-full ${c.iconColor} hover:${c.bg} hover:${c.btnText} font-medium text-sm rounded-full border border-slate-200 hover:border-transparent transition-all gap-2 group/btn`}>
+                    <Button variant="ghost" className={`w-full ${c.iconColor} ${c.hoverBtn} font-medium text-sm rounded-full border border-slate-200 transition-all gap-2 group/btn`}>
                       En savoir plus
                       <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" />
                     </Button>
