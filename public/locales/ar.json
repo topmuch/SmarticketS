@@ -9,7 +9,8 @@
     "auto_redirect": "إعادة التوجيه التلقائي خلال",
     "start_activation": "ابدأ التفعيل",
     "back_home": "العودة إلى الصفحة الرئيسية",
-    "powered_by": "QRBag © 2026 by MMASOLUTION"
+    "powered_by": "QRBag © 2026 by MMASOLUTION",
+    "cancel": "إلغاء"
   },
   "errors": {
     "qr_not_valid": "رمز QR غير صالح",

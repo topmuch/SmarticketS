@@ -11,7 +11,7 @@ const activateSchema = z.object({
   whatsappOwner: z.string().min(1, 'WhatsApp number is required'),
   flightNumber: z.string().optional(),
   destination: z.string().optional(),
-  departureDate: z.string().optional(),
+  departureDate: z.string().date().optional(),
   departureTime: z.string().optional(),
 });
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         whatsappOwner: validatedData.whatsappOwner,
         flightNumber: validatedData.flightNumber || null,
         destination: validatedData.destination || null,
-        departureDate: validatedData.departureDate ? new Date(validatedData.departureDate) : null,
+        departureDate: validatedData.departureDate ? new Date(validatedData.departureDate + 'T00:00:00') : null,
         departureTime: validatedData.departureTime || null,
         status: 'active',
         expiresAt,
@@ -84,8 +84,10 @@ export async function POST(request: NextRequest) {
               travelerFirstName: validatedData.travelerFirstName,
               travelerLastName: validatedData.travelerLastName,
               whatsappOwner: validatedData.whatsappOwner,
-              departureDate: validatedData.departureDate ? new Date(validatedData.departureDate) : null,
+              departureDate: validatedData.departureDate ? new Date(validatedData.departureDate + 'T00:00:00') : null,
               departureTime: validatedData.departureTime || null,
+              flightNumber: validatedData.flightNumber || null,
+              destination: validatedData.destination || null,
               status: 'active',
               expiresAt,
               createdAt: new Date(),
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

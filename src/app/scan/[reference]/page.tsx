@@ -14,7 +14,6 @@ import {
   Plane,
   ArrowRight,
   Sparkles,
-  Send,
   AlertTriangle,
   Globe,
   Phone,
@@ -24,11 +23,15 @@ import {
 import { useTranslation } from '@/hooks/useTranslation';
 import { Language, LANGUAGE_NAMES } from '@/lib/i18n';
 
+const FALLBACK_PHONE = '33745349339';
+
 interface BaggageData {
   status: string;
   message?: string;
   theme?: string;
   type?: string;
+  expiredAt?: string;
+  agency?: string;
   baggage?: {
     reference: string;
     type: string;
@@ -40,7 +43,6 @@ interface BaggageData {
     destination?: string;
     agency?: string;
     whatsappOwner?: string;
-    phone?: string;
     declaredLostAt?: string | null;
     foundAt?: string | null;
     createdAt?: string | null;
@@ -123,7 +125,7 @@ function ActivationRedirect({ type, reference, t, lang, setLang }: {
 
   return (
     <main className={`min-h-screen bg-gradient-to-b ${bgGradient} flex items-center justify-center p-4`}>
-      <div className="max-w-md w-full bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center border border-white/20">
+      <div className="relative max-w-md w-full bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center border border-white/20">
         <div className="absolute top-4 right-4">
           <LanguageSelector lang={lang} setLang={setLang} />
         </div>
@@ -462,7 +464,7 @@ export default function ScanPage() {
         : "Localisation non partagée";
 
       const message = generateWhatsAppMessage(finderName, finderPhone, finalLocationText, mapLink);
-      const ownerNumber = baggageData?.baggage?.whatsappOwner?.replace(/\D/g, '') || '33745349339';
+      const ownerNumber = baggageData?.baggage?.whatsappOwner?.replace(/\D/g, '') || FALLBACK_PHONE;
       const url = `https://wa.me/${ownerNumber}?text=${message}`;
 
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -489,11 +491,30 @@ export default function ScanPage() {
   }, [reference, otherLocation, locationText, finderName, finderPhone, sharedPosition, baggageData, t, generateWhatsAppMessage]);
 
   // Handle phone call
-  const handlePhoneCall = useCallback(() => {
+  const handlePhoneCall = useCallback(async () => {
     setShowContactModal(false);
-    const phoneNumber = baggageData?.baggage?.phone || baggageData?.baggage?.whatsappOwner || '33745349339';
+
+    // Log the scan before calling (same as WhatsApp)
+    try {
+      await fetch(`/api/scan/${reference}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: otherLocation.trim() || locationText || "Non précisé",
+          finderName: finderName.trim(),
+          finderPhone: finderPhone.trim(),
+          message: '',
+          latitude: sharedPosition?.lat,
+          longitude: sharedPosition?.lng,
+        }),
+      });
+    } catch (e) {
+      // Continue with call even if logging fails
+    }
+
+    const phoneNumber = baggageData?.baggage?.whatsappOwner || FALLBACK_PHONE;
     window.location.href = `tel:${phoneNumber}`;
-  }, [baggageData]);
+  }, [reference, otherLocation, locationText, finderName, finderPhone, sharedPosition, baggageData]);
 
   // Format date for display
   const formatDate = (dateStr?: string | null) => {
@@ -547,8 +568,8 @@ export default function ScanPage() {
   }
 
   if (baggageData?.status === 'expired') {
-    const expiredAt = (baggageData as any).expiredAt || '';
-    const agencyName = (baggageData as any).agency || '';
+    const expiredAt = baggageData.expiredAt || '';
+    const agencyName = baggageData.agency || '';
     const urlParams = new URLSearchParams({
       ref: reference,
       ...(expiredAt && { expired: expiredAt }),
@@ -564,7 +585,6 @@ export default function ScanPage() {
 
   // Lost baggage alert
   const isDeclaredLost = baggage?.declaredLostAt && !baggage?.foundAt;
-  const isVoyageur = baggage?.type === 'voyageur';
 
   // ─── Main Render — Dark Violet Night Theme ───
   return (
