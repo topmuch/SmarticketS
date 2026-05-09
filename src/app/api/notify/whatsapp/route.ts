@@ -76,7 +76,7 @@ function validateBody(body: unknown): { valid: true; data: WhatsAppRequestBody }
     data: {
       to: data.to as string,
       template: data.template as string,
-      variables: (data.variables as Record<string, string>) || {},
+      variables: (data.variables as Record<string, string>) ?? {},
       baggageId: data.baggageId as string | undefined,
     },
   };
@@ -148,7 +148,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // ─── Appel Wakit ───
-    const result = await sendWakitMessage({ to, template, variables });
+    const result = await sendWakitMessage({ to, template, variables: variables ?? {} });
 
     // ─── Log résultat ───
     if (result.success) {

@@ -155,6 +155,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const { messages, model, temperature, max_tokens } = validation.data;
+    const resolvedModel = model ?? 'llama3-8b-8192';
 
     // ─── Log structuré ───
     const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
@@ -176,7 +177,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // ─── Appel Groq ───
     const result = await callGroqAI({
       messages,
-      model,
+      model: resolvedModel,
       temperature,
       max_tokens,
     });

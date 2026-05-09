@@ -111,7 +111,8 @@ export async function callGroqAI(request: GroqRequest): Promise<GroqResult> {
     const data = result.data as Record<string, unknown>;
     const choices = data?.choices as Array<Record<string, unknown>> | undefined;
     const usage = data?.usage as Record<string, number> | undefined;
-    const content = choices?.[0]?.message?.content as string | undefined;
+    const message = choices?.[0]?.message as Record<string, unknown> | undefined;
+    const content = message?.content as string | undefined;
 
     if (content) {
       console.log(`[Groq] ✓ Réponse obtenue en ${latencyMs}ms — ${content.length} caractères`);

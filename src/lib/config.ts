@@ -212,7 +212,11 @@ export async function getServiceConfig(service: 'wakit' | 'groq'): Promise<Wakit
  * Check DB en premier, puis env vars.
  */
 export async function isServiceEnabledAsync(service: 'wakit' | 'groq'): Promise<boolean> {
-  const config = await getServiceConfig(service);
+  if (service === 'wakit') {
+    const config = await getServiceConfig('wakit');
+    return config.enabled;
+  }
+  const config = await getServiceConfig('groq');
   return config.enabled;
 }
 
