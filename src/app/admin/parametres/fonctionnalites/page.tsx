@@ -518,39 +518,42 @@ export default function FonctionnalitesPage() {
 
     return (
       <Card className={`
-        transition-all duration-300 rounded-2xl
+        transition-all duration-300 rounded-xl
         ${feature.enabled
           ? 'bg-white dark:bg-slate-800 border-emerald-200 dark:border-emerald-800 shadow-sm'
           : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
         }
       `}>
-        <CardContent className="p-5">
-          {/* Top row: Icon + Label + Toggle */}
-          <div className="flex items-center gap-3">
+        <CardContent className="p-4">
+          {/* Single row: Icon + Label + Description + Badges + Toggle */}
+          <div className="flex items-center gap-4">
+            {/* Icon */}
             <div className={`
-              w-10 h-10 rounded-xl flex items-center justify-center shrink-0
+              w-9 h-9 rounded-lg flex items-center justify-center shrink-0
               ${feature.enabled
                 ? 'bg-emerald-100 dark:bg-emerald-900/30'
                 : 'bg-slate-100 dark:bg-slate-700'
               }
             `}>
-              <IconComponent 
-                className={`w-5 h-5 ${feature.enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`} 
+              <IconComponent
+                className={`w-4 h-4 ${feature.enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}
                 aria-hidden="true"
               />
             </div>
+
+            {/* Label + Description + Badges */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-slate-800 dark:text-white font-semibold text-sm truncate">
-                {feature.label}
-              </h3>
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-slate-800 dark:text-white font-semibold text-sm">
+                  {feature.label}
+                </h3>
                 {feature.enabled ? (
-                  <span className="flex items-center gap-1 text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1 text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">
                     <CheckCircle className="w-2.5 h-2.5" />
                     Activé
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full">
                     <AlertCircle className="w-2.5 h-2.5" />
                     Désactivé
                   </span>
@@ -558,44 +561,26 @@ export default function FonctionnalitesPage() {
                 {showConfigWarning && (
                   <button
                     onClick={() => openConfigModal(feature.key)}
-                    className="flex items-center gap-1 text-[11px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full hover:bg-amber-200 cursor-pointer"
+                    className="flex items-center gap-1 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full hover:bg-amber-200 cursor-pointer"
                   >
                     <AlertTriangle className="w-2.5 h-2.5" />
                     Configurer
                   </button>
                 )}
                 {feature.enabled && needsConfig && status?.configured && (
-                  <span className="flex items-center gap-1 text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1 text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">
                     <CheckCircle className="w-2.5 h-2.5" />
                     Configuré
                   </span>
                 )}
               </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 truncate">
+                {feature.description}
+              </p>
             </div>
-            {isUpdating ? (
-              <RefreshCw className="w-5 h-5 text-emerald-500 animate-spin shrink-0" />
-            ) : (
-              <ToggleSwitch
-                enabled={feature.enabled}
-                onChange={() => toggleFeature(feature.key, feature.enabled)}
-                disabled={isUpdating}
-              />
-            )}
-          </div>
 
-          {/* Description */}
-          <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed mt-3">
-            {feature.description}
-          </p>
-
-          {/* Bottom row: Date + Actions */}
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-            <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              {new Date(feature.updatedAt).toLocaleDateString('fr-FR', {
-                day: 'numeric', month: 'short', year: 'numeric'
-              })}
-            </span>
-            <div className="flex items-center gap-2">
+            {/* Actions */}
+            <div className="flex items-center gap-2 shrink-0">
               {feature.enabled && needsConfig && (
                 <Button
                   onClick={() => openConfigModal(feature.key)}
@@ -622,6 +607,15 @@ export default function FonctionnalitesPage() {
                   )}
                   Tester
                 </Button>
+              )}
+              {isUpdating ? (
+                <RefreshCw className="w-5 h-5 text-emerald-500 animate-spin shrink-0" />
+              ) : (
+                <ToggleSwitch
+                  enabled={feature.enabled}
+                  onChange={() => toggleFeature(feature.key, feature.enabled)}
+                  disabled={isUpdating}
+                />
               )}
             </div>
           </div>
@@ -741,7 +735,7 @@ export default function FonctionnalitesPage() {
                 {data.categoryLabels?.[category] || category}
                 <span className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-3">
                 {features.map((feature) => (
                   <FeatureCard key={feature.id} feature={feature} />
                 ))}
