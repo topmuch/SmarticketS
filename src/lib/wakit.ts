@@ -17,9 +17,9 @@ import {
   WAKIT_BASE_URL,
   WAKIT_TIMEOUT_MS,
   API_RETRY_COUNT,
-  API_RETRY_DELAY_MS,
   FALLBACK_MESSAGES,
 } from './config';
+import { fetchWithRetry } from './fetch-util';
 
 // ═══════════════════════════════════════════════════════
 //  HELPERS
@@ -41,68 +41,6 @@ function isValidPhone(phone: string): boolean {
  */
 function normalizePhone(phone: string): string {
   return phone.replace(/[\s\-().]/g, '');
-}
-
-/**
- * Attend un délai donné (ms).
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// ═══════════════════════════════════════════════════════
-//  FETCH AVEC TIMEOUT & RETRY
-// ═══════════════════════════════════════════════════════
-
-/**
- * Effectue un fetch avec timeout et retry.
- * Ne propage jamais l'erreur — retourne toujours un objet { success, ... }.
- */
-async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  timeoutMs: number,
-  retries: number
-): Promise<{ ok: boolean; data: unknown; status?: number }> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      if (attempt > 0) {
-        console.warn(`[Wakit] Retry ${attempt}/${retries} après ${API_RETRY_DELAY_MS}ms...`);
-        await sleep(API_RETRY_DELAY_MS);
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        console.warn(
-          `[Wakit] HTTP ${response.status} — ${text.substring(0, 200)}`
-        );
-        lastError = new Error(`HTTP ${response.status}`);
-        continue; // retry
-      }
-
-      const data = await response.json();
-      return { ok: true, data, status: response.status };
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Erreur inconnue';
-      console.warn(`[Wakit] Tentative ${attempt + 1} échouée: ${message}`);
-      lastError = err instanceof Error ? err : new Error(message);
-    }
-  }
-
-  return { ok: false, data: null, status: lastError ? 500 : undefined };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -136,7 +74,7 @@ export async function sendWakitMessage(payload: WakitPayload): Promise<WakitResu
       success: false,
       status: 'failed',
       error: FALLBACK_MESSAGES.wakit.invalidPhone,
-      fallback: false, // pas de fallback pour une erreur de validation
+      fallback: false,
       latencyMs: Date.now() - startTime,
     };
   }
@@ -176,7 +114,8 @@ export async function sendWakitMessage(payload: WakitPayload): Promise<WakitResu
       body: JSON.stringify(body),
     },
     WAKIT_TIMEOUT_MS,
-    API_RETRY_COUNT
+    API_RETRY_COUNT,
+    'Wakit'
   );
 
   const latencyMs = Date.now() - startTime;

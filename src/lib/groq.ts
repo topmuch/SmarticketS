@@ -20,69 +20,10 @@ import {
   GROQ_BASE_URL,
   GROQ_TIMEOUT_MS,
   API_RETRY_COUNT,
-  API_RETRY_DELAY_MS,
   GROQ_MODEL_CHAT,
   FALLBACK_MESSAGES,
 } from './config';
-
-// ═══════════════════════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════════════════════
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// ═══════════════════════════════════════════════════════
-//  FETCH AVEC TIMEOUT & RETRY
-// ═══════════════════════════════════════════════════════
-
-async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  timeoutMs: number,
-  retries: number
-): Promise<{ ok: boolean; data: unknown; status?: number }> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      if (attempt > 0) {
-        console.warn(`[Groq] Retry ${attempt}/${retries} après ${API_RETRY_DELAY_MS}ms...`);
-        await sleep(API_RETRY_DELAY_MS);
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        console.warn(
-          `[Groq] HTTP ${response.status} — ${text.substring(0, 200)}`
-        );
-        lastError = new Error(`HTTP ${response.status}`);
-        continue; // retry
-      }
-
-      const data = await response.json();
-      return { ok: true, data, status: response.status };
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Erreur inconnue';
-      console.warn(`[Groq] Tentative ${attempt + 1} échouée: ${message}`);
-      lastError = err instanceof Error ? err : new Error(message);
-    }
-  }
-
-  return { ok: false, data: null, status: lastError ? 500 : undefined };
-}
+import { fetchWithRetry } from './fetch-util';
 
 // ═══════════════════════════════════════════════════════
 //  FONCTION PRINCIPALE
@@ -114,7 +55,7 @@ export async function callGroqAI(request: GroqRequest): Promise<GroqResult> {
     return {
       success: false,
       error: FALLBACK_MESSAGES.groq.invalidRequest,
-      fallback: false, // pas de fallback pour erreur de validation
+      fallback: false,
       latencyMs: Date.now() - startTime,
     };
   }
@@ -144,7 +85,8 @@ export async function callGroqAI(request: GroqRequest): Promise<GroqResult> {
       body: JSON.stringify(body),
     },
     GROQ_TIMEOUT_MS,
-    API_RETRY_COUNT
+    API_RETRY_COUNT,
+    'Groq'
   );
 
   const latencyMs = Date.now() - startTime;
