@@ -421,8 +421,8 @@ export default function AgencyDashboardPage() {
   const [commandSuccess, setCommandSuccess] = useState(false);
 
   useEffect(() => {
-    fetchBaggages();
-  }, []);
+    if (agencyId) fetchBaggages();
+  }, [agencyId]);
 
   // Listen for openCommandModal event from header
   useEffect(() => {

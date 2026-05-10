@@ -390,7 +390,7 @@ export default function AgencyRootLayout({
     
     const fetchUnreadCount = async () => {
       try {
-        const currentAgencyId = user?.agencyId || user?.agency?.id || DEMO_AGENCY.id;
+        const currentAgencyId = user?.agencyId || user?.agency?.id;
         const res = await fetch(`/api/agency/messages?agencyId=${currentAgencyId}&count=true`);
         const data = await res.json();
         if (data.unreadCount !== undefined) {
@@ -413,8 +413,8 @@ export default function AgencyRootLayout({
     router.replace('/agence/connexion');
   };
 
-  // Get the actual agency ID from user data or use demo agency
-  const agencyId = user?.agencyId || user?.agency?.id || DEMO_AGENCY.id;
+  // Get the actual agency ID from user data — no hardcoded fallback
+  const agencyId = user?.agencyId || user?.agency?.id || '';
   const agencyName = user?.agency?.name || user?.name || DEMO_AGENCY.name;
   const agencySlug = user?.agency?.slug || DEMO_AGENCY.slug;
   const agencyData = user?.agency ? {

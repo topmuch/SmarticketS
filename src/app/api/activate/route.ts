@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
         busLineNumber: validatedData.busLineNumber || null,
         status: 'active',
         expiresAt,
-        createdAt: new Date(),
       }
     });
 
@@ -117,7 +116,6 @@ export async function POST(request: NextRequest) {
               busLineNumber: null,
               status: 'active',
               expiresAt,
-              createdAt: new Date(),
             }
           });
         }
