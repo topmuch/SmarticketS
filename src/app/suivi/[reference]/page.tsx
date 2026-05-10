@@ -460,7 +460,7 @@ export default function SuiviPage() {
             {isDeclaredLost
               ? `🚨 ${t('tracking.badge_lost')}`
               : isFound
-              ? `✅ ${t('tracking.badge_active')}`
+              ? `✅ ${t('tracking.badge_found')}`
               : `${t('tracking.badge_active')} ✈️`}
           </span>
           <p className="mt-3 text-blue-900 text-base md:text-lg leading-relaxed max-w-md mx-auto">

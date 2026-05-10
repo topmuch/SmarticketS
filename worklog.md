@@ -33,3 +33,26 @@ Stage Summary:
 - Google Maps iframe with lat/lon priority, address fallback, placeholder for unavailable
 - i18n complete: FR, EN, AR with all tracking.* keys
 - WhatsApp pre-filled message: 4 contextual scenarios, <400 chars, emoji formatting
+
+---
+Task ID: 2
+Agent: Main Agent (Self-Critique Round)
+Task: Comprehensive audit and bug fix of /suivi feature
+
+Work Log:
+- Read and audited all 10 files: prisma schema, scan-context.ts, whatsapp-message.ts, suivi API route, suivi page, scan API route, logger.ts, fr/en/ar locales, scan page
+- Ran `npx tsc --noEmit` — zero new errors (only pre-existing errors in admin/agence/success files)
+- Ran `bun run lint` — zero errors
+- Found BUG #1: Context dropdown missing from finder form (i18n keys existed but no <select> UI element)
+- Found BUG #2: `selectedContext` missing from `handleWhatsApp` useCallback dependency array (stale closure)
+- Found BUG #3: `selectedContext` missing from `handlePhoneCall` useCallback dependency array (stale closure)
+- Found UX BUG #4: Found badge showed "VOTRE BAGAGE EST PROTÉGÉ" instead of "BAGAGE RETROUVÉ" — missing `badge_found` i18n key
+- Fixed all 4 bugs
+
+Stage Summary:
+- Context dropdown now visible in finder form between WhatsApp input and Contact Buttons
+- Both `handleWhatsApp` and `handlePhoneCall` now correctly send `context` in POST body
+- `selectedContext` added to both dependency arrays (no stale closures)
+- Added `tracking.badge_found` key to FR ("BAGAGE RETROUVÉ"), EN ("BAGGAGE FOUND"), AR ("تم العثور على الأمتعة")
+- Badge logic now shows: lost → 🚨 badge_lost, found → ✅ badge_found, active → badge_active ✈️
+- All pre-existing TS errors documented as out-of-scope (admin routes, agence layout, success page, etc.)

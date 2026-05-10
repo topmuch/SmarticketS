@@ -299,6 +299,7 @@ export default function ScanPage() {
   const [sharedPosition, setSharedPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedContext, setSelectedContext] = useState('');
 
   // UI State
   const [showForm, setShowForm] = useState(false);
@@ -409,6 +410,7 @@ export default function ScanPage() {
           message: '',
           latitude: sharedPosition?.lat,
           longitude: sharedPosition?.lng,
+          context: selectedContext || undefined,
         }),
       });
 
@@ -442,7 +444,7 @@ export default function ScanPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [reference, otherLocation, locationText, finderName, finderPhone, sharedPosition, baggageData, t, generateWhatsAppMessage]);
+  }, [reference, otherLocation, locationText, finderName, finderPhone, sharedPosition, baggageData, t, generateWhatsAppMessage, selectedContext]);
 
   // Handle phone call
   const handlePhoneCall = useCallback(async () => {
@@ -458,6 +460,7 @@ export default function ScanPage() {
           message: '',
           latitude: sharedPosition?.lat,
           longitude: sharedPosition?.lng,
+          context: selectedContext || undefined,
         }),
       });
     } catch (e) {
@@ -466,7 +469,7 @@ export default function ScanPage() {
 
     const phoneNumber = baggageData?.baggage?.whatsappOwner || FALLBACK_PHONE;
     window.location.href = `tel:${phoneNumber}`;
-  }, [reference, otherLocation, locationText, finderName, finderPhone, sharedPosition, baggageData, t]);
+  }, [reference, otherLocation, locationText, finderName, finderPhone, sharedPosition, baggageData, t, selectedContext]);
 
   // Format date for display
   const formatDate = (dateStr?: string | null) => {
@@ -789,6 +792,24 @@ export default function ScanPage() {
               onChange={(e) => setFinderPhone(e.target.value)}
               className="w-full px-4 py-3.5 bg-white border-2 border-blue-200 rounded-xl text-blue-900 text-base md:text-lg placeholder:text-blue-900/40 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all min-h-[52px]"
             />
+
+            {/* Context Dropdown — optional manual override */}
+            <div>
+              <label className="text-sm font-semibold text-blue-700 mb-1.5 block">
+                {t('finder.context_label')}
+              </label>
+              <select
+                value={selectedContext}
+                onChange={(e) => setSelectedContext(e.target.value)}
+                className="w-full px-4 py-3.5 bg-white border-2 border-blue-200 rounded-xl text-blue-900 text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all min-h-[52px] appearance-none cursor-pointer"
+              >
+                <option value="">{t('finder.context_placeholder')}</option>
+                <option value="departure_airport_urgent">{t('finder.context_airport_departure')}</option>
+                <option value="arrival_airport">{t('finder.context_airport_arrival')}</option>
+                <option value="in_transit">{t('finder.context_taxi')}</option>
+                <option value="static_location">{t('finder.context_static')}</option>
+              </select>
+            </div>
 
             {/* ─── Contact Buttons ─── */}
             <div className="pt-2">
