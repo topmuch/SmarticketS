@@ -86,6 +86,7 @@
     "location_not_shared": "Localisation non partagée",
     "found_by": "👤 *Trouvé par* :",
     "contact": "📱 *Contact* :",
+    "tracking_link": "🔗 *Suivre votre bagage en temps réel* :",
     "pickup_message": "👉 Merci de le récupérer rapidement.",
     "signature": "*QRBag – Protégez vos bagages, en toute sérénité.*",
     "title_departure_urgent": "URGENT — Bagage à {place} !",

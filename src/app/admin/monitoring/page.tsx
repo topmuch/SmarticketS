@@ -32,9 +32,11 @@ interface SystemLog {
 export default function MonitoringPage() {
   const { t } = useTranslation();
   const [diagnostic, setDiagnostic] = useState<DiagnosticResult | null>(null);
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [filterLevel, setFilterLevel] = useState<string>('');
   const [filterSource, setFilterSource] = useState<string>('');
@@ -42,14 +44,25 @@ export default function MonitoringPage() {
 
   const runDiagnostic = useCallback(async () => {
     setLoading(true);
+    setDiagnosticError(null);
     try {
       const res = await fetch('/api/admin/diagnostic');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setDiagnosticError(err.error || `Erreur HTTP ${res.status}`);
+        return;
+      }
       const data = await res.json();
-      setDiagnostic(data);
-    } catch {
-      // ignore
+      if (data.status && data.checks) {
+        setDiagnostic(data);
+      } else {
+        setDiagnosticError('Réponse inattendue du serveur.');
+      }
+    } catch (err) {
+      setDiagnosticError(err instanceof Error ? err.message : 'Erreur réseau');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const fetchLogs = useCallback(async () => {
@@ -83,10 +96,14 @@ export default function MonitoringPage() {
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      runDiagnostic();
-      fetchLogs();
-    }, 30000);
+    const tick = async () => {
+      setRefreshing(true);
+      await Promise.all([runDiagnostic(), fetchLogs()]);
+      setRefreshing(false);
+    };
+    // Run immediately on toggle
+    tick();
+    const interval = setInterval(tick, 30000);
     return () => clearInterval(interval);
   }, [autoRefresh, runDiagnostic, fetchLogs]);
 
@@ -124,15 +141,28 @@ export default function MonitoringPage() {
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
           >
-            <RefreshCw className={`w-4 h-4 mr-1 ${autoRefresh ? 'animate-spin' : ''}`} />
-            Auto-refresh
+            <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+            {autoRefresh ? `Auto-refresh ON (30s)` : 'Auto-refresh'}
           </Button>
           <Button onClick={runDiagnostic} disabled={loading} size="sm">
-            <Search className="w-4 h-4 mr-1" />
-            {loading ? 'Diagnostic...' : 'Diagnostic'}
+            <Activity className={`w-4 h-4 mr-1 ${loading ? 'animate-pulse' : ''}`} />
+            {loading ? 'Analyse...' : 'Lancer diagnostic'}
           </Button>
         </div>
       </div>
+
+      {/* Diagnostic Error */}
+      {diagnosticError && (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+              <AlertTriangle className="w-5 h-5" />
+              <p className="font-medium">Erreur de diagnostic</p>
+            </div>
+            <p className="text-sm text-red-600 dark:text-red-400 mt-1">{diagnosticError}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Diagnostic Result */}
       {diagnostic && (

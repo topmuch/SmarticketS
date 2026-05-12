@@ -440,10 +440,24 @@ function SuccessContent() {
               <p className="text-sm text-white/90 font-medium mb-2">
                 🔗 Votre lien de suivi unique :
               </p>
+              <a
+                href={`/suivi/${activationData.reference}`}
+                className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-lg border border-white/10 hover:bg-white/20 transition-colors group mb-2"
+              >
+                <span className="flex-1 text-sm text-orange-300 truncate font-mono">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/suivi/${activationData.reference}` : `/suivi/${activationData.reference}`}
+                </span>
+                <span className="text-xs text-white/50 group-hover:text-white transition-colors flex-shrink-0">
+                  Ouvrir ↗
+                </span>
+              </a>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm bg-white/10 px-3 py-2 rounded-lg border border-white/10 truncate text-orange-300">
-                  {typeof window !== 'undefined' ? `${window.location.origin}/suivi/${activationData.reference}` : ''}
-                </code>
+                <a
+                  href={`/suivi/${activationData.reference}`}
+                  className="flex-1 text-center px-3 py-2 text-sm bg-white hover:bg-white/90 text-[#0d5e34] rounded-lg transition-colors font-semibold"
+                >
+                  📍 Suivre mon bagage
+                </a>
                 <button 
                   onClick={() => {
                     const link = `${window.location.origin}/suivi/${activationData.reference}`;
@@ -451,13 +465,13 @@ function SuccessContent() {
                     setCopyFeedback(true);
                     setTimeout(() => setCopyFeedback(false), 2000);
                   }}
-                  className="px-3 py-2 text-sm bg-white hover:bg-white/90 text-[#0d5e34] rounded-lg transition-colors font-medium flex-shrink-0"
+                  className="px-3 py-2 text-sm bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors font-medium flex-shrink-0 border border-white/20"
                 >
                   {copyFeedback ? '✅ Copié !' : '📋 Copier'}
                 </button>
               </div>
               <p className="text-xs text-white/60 mt-2">
-                Conservez ce lien. En cas de perte, cliquez dessus pour suivre votre bagage en temps réel.
+                En cas de perte, cliquez sur le lien pour suivre votre bagage en temps réel.
               </p>
             </div>
 
