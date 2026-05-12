@@ -667,7 +667,7 @@ function SolutionsSection() {
         <div className="grid md:grid-cols-3 gap-5 lg:gap-6">
           {solutions.map((sol, i) => (
             <FadeIn key={sol.title} delay={i * 0.12}>
-              <div className="group h-full bg-white border border-slate-200 rounded-2xl p-7 lg:p-8 shadow-sm hover:shadow-xl hover:shadow-slate-200/60 transition-all duration-500 hover:-translate-y-1 flex flex-col">
+              <div className="group relative h-full bg-white border border-slate-200 rounded-2xl p-7 lg:p-8 shadow-sm hover:shadow-xl hover:shadow-slate-200/60 transition-all duration-500 hover:-translate-y-1 flex flex-col">
                 {/* Orange corner accent */}
                 <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden rounded-tr-2xl">
                   <div className="absolute top-0 right-0 w-[1px] h-8 bg-gradient-to-b from-[#FF6B35]/40 to-transparent" />

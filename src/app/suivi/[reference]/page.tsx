@@ -22,7 +22,7 @@ import type { ScanContext } from '@/lib/scan-context';
 import { CONTEXT_ICONS, CONTEXT_COLORS } from '@/lib/scan-context';
 import { generatePreFilledMessage, buildWhatsAppUrl } from '@/lib/whatsapp-message';
 // TRANSPORT-FEATURE: Multi-transport support
-import { safeTransportMode, getTransportIcon, getTransportBlockHeader } from '@/lib/transport';
+import { safeTransportMode, getTransportIcon } from '@/lib/transport';
 import type { TransportMode } from '@/lib/transport';
 
 // ═══════════════════════════════════════════════════════

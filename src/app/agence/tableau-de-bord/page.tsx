@@ -26,7 +26,7 @@ import {
   Plus
 } from "lucide-react";
 import { useAgency } from '../layout';
-import { isActive, isPending, isLost } from '@/lib/status';
+import { isActive, isPending, isLost, isFound, normalizeStatus } from '@/lib/status';
 import LatestNewsWidget from '@/components/LatestNewsWidget';
 
 interface Baggage {
@@ -480,7 +480,7 @@ export default function AgencyDashboardPage() {
   // TEST: Search filters across both sections simultaneously
   // FIX: Include lost/found/blocked in activated so NO baggage vanishes from UI
   const activatedBaggages = filteredBaggages.filter(b =>
-    isActive(b.status) || b.travelerFirstName !== null || b.status === 'lost' || b.status === 'found' || b.status === 'blocked'
+    isActive(b.status) || b.travelerFirstName !== null || isLost(b.status) || isFound(b.status) || normalizeStatus(b.status) === 'blocked'
   );
   // FIX: Check BOTH travelerFirstName AND travelerLastName for null
   const pendingBaggages = filteredBaggages.filter(b =>
