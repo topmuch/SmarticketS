@@ -798,3 +798,36 @@ Stage Summary:
 - 5 files touched: 1 created, 4 modified
 - TrackingWidget is a standalone client component, zero fetch, zero dependencies
 - Positioned between Hero and WhyQRBag sections with FadeIn animation
+---
+Task ID: 1
+Agent: Main Agent
+Task: Deep verification of entire qrbags project — 100% functional code test
+
+Work Log:
+- Built project with `bun run build` → 0 errors, all pages and API routes compile
+- Read and verified all critical files:
+  - `src/app/page.tsx` (1205 lines) — full landing page with 12 sections
+  - `src/app/success/page.tsx` — registration confirmation with tracking link
+  - `src/app/scan/[reference]/page.tsx` — scan page with WhatsApp + transport modes
+  - `src/app/suivi/[reference]/page.tsx` — tracking page
+  - `src/app/admin/monitoring/page.tsx` — monitoring with auto-refresh
+  - `src/app/agence/tableau-de-bord/page.tsx` — agency dashboard
+  - `src/components/home/TrackingWidget.tsx` — tracking widget
+  - `src/lib/qr.ts` — QR validation/generation
+  - `src/lib/status.ts` — status normalization
+  - `src/hooks/useTranslation.ts` — i18n hook
+  - `src/app/api/scan/[reference]/route.ts` — scan API
+  - `src/app/api/scan/notify/route.ts` — WhatsApp notify API
+
+Stage Summary:
+- **3 bugs found and fixed** (commit 768a16c):
+  1. `page.tsx` line 670: SolutionsSection card missing `relative` class → absolute corner accent was mispositioned
+  2. `agence/tableau-de-bord` line 483: `activatedBaggages` filter used raw `=== 'lost'/'found'/'blocked'` instead of `isLost()/isFound()/normalizeStatus()` → French DB statuses (PERDU, TROUVÉ, BLOQUÉ) caused baggages to vanish from dashboard
+  3. `suivi/[reference]/page.tsx` line 25: dead import `getTransportBlockHeader` removed
+- **All previous fixes verified still correct**:
+  - Agency dashboard: `baggage.status` (not `b.status`) ✅
+  - Monitoring auto-refresh: defensive `cancelled` flag + `try/catch/finally` ✅
+  - Registration tracking link: `/suivi/${activationData.reference}` ✅
+  - WhatsApp wame: includes tracking URL ✅
+- Build passes with 0 errors after all fixes
+- Pushed to GitHub: commit 768a16c

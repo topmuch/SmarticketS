@@ -275,15 +275,15 @@ function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0">
         <Image
-          src="/images/landing-v2/hero.jpg"
-          alt="Voyageurs avec bagages à l'aéroport"
+          src="/hero-qrbags.png"
+          alt="Voyageuse scannant un bagage QRBag à l'aéroport"
           fill
           className="object-cover scale-105"
           priority
           quality={90}
         />
-        {/* Light gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/50 to-white" />
+        {/* Strong overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/80 to-white" />
       </div>
 
       {/* Floating particles */}
