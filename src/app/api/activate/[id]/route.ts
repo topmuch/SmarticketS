@@ -107,8 +107,9 @@ export async function POST(
       where: { id: colis.id },
       data: {
         status: 'in_transit',
-        transportMode: 'bus',
+        transportMode: data.transport_type === 'GP' ? 'bus' : 'bus',
         busCompany: data.company_name,
+        departureCity: data.departure_city,
         destination: data.arrival_city,
         departureDate: depDateTime,
         departureTime: depTime,

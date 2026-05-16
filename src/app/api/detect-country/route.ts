@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
 
     // For localhost development, use a test IP
     if (!clientIp || clientIp === '::1' || clientIp === '127.0.0.1' || clientIp.startsWith('192.168.')) {
-      // Return a default country for development
+      // Return Senegal as default country (main target market)
       return NextResponse.json({
-        countryCode: 'FR',
-        country: 'France',
+        countryCode: 'SN',
+        country: 'Senegal',
         ip: 'localhost',
         isDevelopment: true
       });
@@ -45,18 +45,18 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      countryCode: data.country_code || 'FR',
-      country: data.country || 'Unknown',
+      countryCode: data.country_code || 'SN',
+      country: data.country || 'Senegal',
       ip: clientIp
     });
 
   } catch (error) {
     console.error('Country detection error:', error);
 
-    // Return default French on error
+    // Return default Senegal on error
     return NextResponse.json({
-      countryCode: 'FR',
-      country: 'France',
+      countryCode: 'SN',
+      country: 'Senegal',
       ip: 'unknown',
       error: true
     });

@@ -106,6 +106,7 @@ model Baggage {
 
   // Universal fields (all modes)
   destination       String?
+  departureCity     String?   // Ville de départ (ex: "Dakar")
   departureDate     DateTime? // Date de départ saisie lors de l'activation
   departureTime     String?   // Heure de départ saisie lors de l'activation (ex: "08:30")
 

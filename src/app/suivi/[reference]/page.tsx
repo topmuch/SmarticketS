@@ -528,7 +528,7 @@ export default function SuiviPage() {
           )}
         </div>
 
-        {/* ═══ 🟦 BLOC 1 : INFORMATIONS DU BAGAGE ═══ */}
+        {/* ═══ 🟦 BLOC 1 : INFORMATIONS DU COLIS ═══ */}
         <div className="w-full bg-[#0A192F] rounded-2xl p-5 md:p-6 mb-5 shadow-xl shadow-blue-900/20">
           <h2 className="text-xs uppercase tracking-widest text-white font-bold mb-4 flex items-center gap-2">
             <span>📦</span> {t('tracking.baggage_info')}

@@ -45,7 +45,7 @@ export async function GET(
         status: colis.status,
         transportType: colis.transportMode,
         company: colis.busCompany || colis.airlineName || '',
-        departureCity: '', // not stored in departure, we use destination for arrival
+        departureCity: colis.departureCity || '',
         arrivalCity: colis.destination || '',
         departureDate: colis.departureDate,
         departureTime: colis.departureTime,
