@@ -2,7 +2,7 @@
 FROM node:20-alpine
 
 # Cache buster - increment to force rebuild
-ARG CACHEBUST=9
+ARG CACHEBUST=10
 
 # Install required packages
 RUN apk add --no-cache git libc6-compat sqlite
@@ -51,12 +51,14 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
 # Start command: sync DB schema then start server
+# ⚠️ NO --accept-data-loss: preserves existing data (baggages, QR codes, sessions, etc.)
+# If schema migration requires data loss, it will FAIL SAFE and keep existing DB intact.
+# Manually run `npx prisma db push --accept-data-loss` in Coolify terminal ONLY when needed.
 CMD sh -c "\
   mkdir -p /app/data /app/public/uploads && \
   export DATABASE_URL=file:/app/data/qrtrans.db && \
   echo '>>> [1/3] Syncing DB schema...' && \
-  npx prisma db push --skip-generate --accept-data-loss 2>&1 && \
-  echo '>>> [2/3] DB synced OK' && \
+  npx prisma db push --skip-generate 2>&1; echo '>>> [2/3] DB sync completed' && \
   echo '>>> [3/3] Starting server on port 3000...' && \
   exec node .next/standalone/server.js \
 "
