@@ -143,6 +143,11 @@ export async function POST(
     const trackingUrl = `https://qrtrans.com/suivi/${updated.reference}`;
     const companyName = updated.busCompany || updated.airlineName || '';
 
+    // Driver phone line (conditional — security: never expose if consent = false)
+    const driverLine = updated.shareDriverPhone && updated.driverPhone
+      ? `📞 Contacter le transporteur : ${updated.driverPhone}`
+      : `📞 Assistance : ${companyName}`;
+
     // ─── 🟢 SENDER MESSAGE (Arrival confirmed) ───
     const senderArrivalMessage = `🟢 *QRTrans — Colis Livré ✅*
 
@@ -171,7 +176,8 @@ Votre colis est arrivé et peut maintenant être retiré.
 📦 Référence : *${updated.reference}*
 📍 Point de retrait : ${data.delivery_location}
 🕐 Horaires : 08h00 - 18h00
-✅ Arrivé le : ${arrivedDate} à ${arrivedTime}${companyName ? `\n📞 Assistance : ${companyName}` : ''}
+✅ Arrivé le : ${arrivedDate} à ${arrivedTime}
+${driverLine}
 
 Merci d'utiliser QRTrans 🙏
 
@@ -181,12 +187,6 @@ Merci d'utiliser QRTrans 🙏
     const wa_receiver = generateWaMeLink(cleanPhone(updated.receiverWhatsapp || ''), receiverArrivalMessage);
 
     // Log arrival events (system + sender + receiver WhatsApp notifications)
-    const maskPhone = (phone: string) => {
-      const clean = cleanPhone(phone);
-      if (clean.length <= 4) return '***';
-      return clean.slice(0, 4) + '***' + clean.slice(-2);
-    };
-
     await db.colisEvent.createMany({
       data: [
         {

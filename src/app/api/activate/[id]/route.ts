@@ -42,10 +42,15 @@ const activateSchema = z.object({
   pickup_address: z.string().optional(),
   estimated_arrival: z.string().optional(),
   payment_status: z.enum(['SENDER_PAID', 'RECEIVER_PAY'], { message: 'Le statut de paiement est obligatoire' }),
+  driver_phone: z.string().regex(WHATSAPP_REGEX, 'Format WhatsApp invalide').optional(),
+  share_driver_phone: z.boolean().default(false),
   sender: senderSchema,
   receiver: receiverSchema,
   baggage: baggageSchema,
-});
+}).refine(
+  (data) => !(data.share_driver_phone && !data.driver_phone),
+  { message: 'Le numéro du chauffeur est requis pour activer le partage.', path: ['driver_phone'] }
+);
 
 export async function POST(
   request: NextRequest,
@@ -157,6 +162,9 @@ export async function POST(
         pickupAddress: data.pickup_address || null,
         estimatedArrival: data.estimated_arrival || null,
         paymentStatus: data.payment_status,
+        // Driver phone & consent
+        driverPhone: data.driver_phone || null,
+        shareDriverPhone: data.share_driver_phone,
         // New baggage fields
         colisType: data.baggage.type,
         colisTypeOther: data.baggage.type === 'OTHER' ? (data.baggage.typeOther || null) : null,
@@ -214,6 +222,11 @@ Merci de votre confiance 🙏
 
 🔗 Suivre le colis : ${trackingUrl}`;
 
+    // Driver phone line (conditional)
+    const driverLine = data.share_driver_phone && data.driver_phone
+      ? `📞 Contacter le transporteur : ${data.driver_phone}`
+      : '📞 Pour toute question, contactez l\'agence au +221 78 123 00 00';
+
     // ─── 🔵 RECEIVER MESSAGE (Departure — with PIN) ───
     const receiverMessage = `🔵 *QRTrans — Colis en Transit*
 
@@ -228,6 +241,7 @@ Un colis destiné à votre attention est actuellement en route.
 🕐 Arrivée estimée : ${estimatedArrivalLine}
 🔐 *Code de retrait : ${pin}*
 Conservez ce code. Il sera exigé à l'arrivée.
+${driverLine}
 
 Vous serez notifié immédiatement dès l'arrivée du colis.
 
@@ -267,7 +281,7 @@ Vous serez notifié immédiatement dès l'arrivée du colis.
           messageTitle: '🔵 Colis en Transit — Destinataire (avec PIN)',
           messageContent: receiverMessage,
           waLink: wa_receiver,
-          metadata: JSON.stringify({ departure_city: data.departure_city, arrival_city: data.arrival_city, company: data.company_name, pin: '***' + pin.slice(-3) }),
+          metadata: JSON.stringify({ departure_city: data.departure_city, arrival_city: data.arrival_city, company: data.company_name, pin: '***' + pin.slice(-3), driver_shared: data.share_driver_phone }),
         },
         {
           baggageId: updated.id,

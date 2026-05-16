@@ -41,6 +41,8 @@ export interface NotificationVars {
   tracking_url: string;
   feedback_url?: string;
   pin?: string;
+  driver_phone?: string;
+  share_driver_phone?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -133,7 +135,7 @@ Un colis destiné à votre attention est actuellement en route.
 🚌 Compagnie : ${v.company_name}
 📍 Destination : ${v.arrival_city}
 🕐 Arrivée estimée : ${v.departure_date}
-${v.pin ? `🔐 *Code de retrait : ${v.pin}*\nConservez ce code. Il sera exigé à l'arrivée.\n` : ''}Vous serez notifié immédiatement dès l'arrivée du colis.
+${v.pin ? `🔐 *Code de retrait : ${v.pin}*\nConservez ce code. Il sera exigé à l'arrivée.\n` : ''}${v.share_driver_phone && v.driver_phone ? `📞 Contacter le transporteur : ${v.driver_phone}\n` : '📞 Pour toute question, contactez l\'agence au +221 78 123 00 00\n'}Vous serez notifié immédiatement dès l'arrivée du colis.
 
 🤝 Merci d'utiliser QRTrans
 
@@ -170,8 +172,7 @@ Votre colis est arrivé et peut maintenant être retiré.
 📍 Point de retrait : ${v.delivery_location || 'Non renseigné'}
 🕐 Horaires : 08h00 - 18h00
 ✅ Arrivé le : ${v.arrived_date || ''} à ${v.arrived_time || ''}
-
-📞 Assistance : ${v.company_name}
+${v.share_driver_phone && v.driver_phone ? `📞 Contacter le transporteur : ${v.driver_phone}` : `📞 Assistance : ${v.company_name}`}
 
 Merci d'utiliser QRTrans 🙏
 

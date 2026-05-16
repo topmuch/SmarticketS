@@ -138,6 +138,10 @@ model Baggage {
   isFragile         Boolean   @default(false)
   hasProhibited     Boolean   @default(false)
 
+  // DRIVER: Driver phone & consent
+  driverPhone        String?   // Numéro WhatsApp du chauffeur/transporteur
+  shareDriverPhone   Boolean   @default(false) // Consentement partage avec le destinataire
+
   // PIN-FEATURE: Secure retrieval PIN
   retrievalPin      String?   // PIN à 6 chiffres pour le retrait du colis
   pinVerified       Boolean   @default(false) // true quand le PIN a été validé

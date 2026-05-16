@@ -199,6 +199,9 @@ export async function GET(
         arrivedAt: colis.arrivedAt,
         deliveredAt: colis.deliveredAt,
         deliveryLocation: colis.deliveryLocation,
+        // Driver phone: NEVER expose if consent = false (security)
+        driverPhone: colis.shareDriverPhone ? (colis.driverPhone || null) : null,
+        shareDriverPhone: colis.shareDriverPhone,
       },
       timeline,
       totalEvents: timeline.length,

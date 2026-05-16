@@ -1,9 +1,10 @@
 'use client';
 
-import { Bus, Truck, MapPin, Clock, CreditCard } from 'lucide-react';
+import { Bus, Truck, MapPin, Clock, CreditCard, Phone } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import TextareaAutosize from 'react-textarea-autosize';
+import SmartPhoneInput from './SmartPhoneInput';
 
 interface VoyageSectionProps {
   transportType: string;
@@ -24,6 +25,11 @@ interface VoyageSectionProps {
   setEstimatedArrival: (v: string) => void;
   paymentStatus: string;
   setPaymentStatus: (v: string) => void;
+  driverPhone: string;
+  setDriverPhone: (v: string) => void;
+  shareDriverPhone: boolean;
+  setShareDriverPhone: (v: boolean) => void;
+  driverPhoneError: string | null;
   lang: 'fr' | 'en';
 }
 
@@ -37,6 +43,9 @@ export default function VoyageSection({
   pickupAddress, setPickupAddress,
   estimatedArrival, setEstimatedArrival,
   paymentStatus, setPaymentStatus,
+  driverPhone, setDriverPhone,
+  shareDriverPhone, setShareDriverPhone,
+  driverPhoneError,
   lang,
 }: VoyageSectionProps) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
@@ -195,6 +204,57 @@ export default function VoyageSection({
             onChange={(e) => setEstimatedArrival(e.target.value)}
             className="h-12 bg-white/95 border-white/30 focus-visible:ring-white/50 focus-visible:border-white/60 text-sm text-gray-900 [color-scheme:light]"
           />
+        </div>
+
+        {/* Driver Phone Section */}
+        <div className="border-t border-white/20 pt-4">
+          <p className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5" />
+            {t('Chauffeur / Transporteur', 'Driver / Transporter')}
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <SmartPhoneInput
+            label={t('Numéro du Chauffeur', 'Driver Number')}
+            value={driverPhone}
+            onChange={(v) => setDriverPhone(v)}
+            hint={t('Numéro WhatsApp du chauffeur ou transporteur.', 'WhatsApp number of the driver or transporter.')}
+            error={driverPhoneError}
+            name="driver_phone"
+            optional
+          />
+        </div>
+
+        {/* Share Toggle */}
+        <div className="flex items-center justify-between p-3 bg-white/10 rounded-xl border border-white/20">
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm">Share</span>
+            <div>
+              <Label className="text-sm font-medium text-white cursor-pointer">
+                {t('Partager ce numéro avec le destinataire ?', 'Share this number with the recipient?')}
+              </Label>
+              <p className="text-xs text-white/60">
+                {t('Le destinataire pourra contacter le chauffeur directement.', 'The recipient will be able to contact the driver directly.')}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={shareDriverPhone}
+            onClick={() => setShareDriverPhone(!shareDriverPhone)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 ${
+              shareDriverPhone ? 'bg-emerald-400' : 'bg-white/30'
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                shareDriverPhone ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
         </div>
 
         {/* Payment Status */}

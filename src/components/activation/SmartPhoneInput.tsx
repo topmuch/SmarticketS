@@ -111,6 +111,7 @@ interface SmartPhoneInputProps {
   name: string;
   labelClassName?: string;
   hintClassName?: string;
+  optional?: boolean; // If true, shows (optionnel) instead of *
 }
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -148,6 +149,7 @@ export default function SmartPhoneInput({
   name,
   labelClassName = 'text-[#4B5563]',
   hintClassName = '',
+  optional = false,
 }: SmartPhoneInputProps) {
   const isDark = hintClassName.includes('white');
 
@@ -214,7 +216,12 @@ export default function SmartPhoneInput({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={inputId} className={`text-sm font-medium ${labelClassName}`}>
-        {label} <span className="text-red-500">*</span>
+        {label}{' '}
+        {optional ? (
+          <span className="text-xs font-normal opacity-60">(optionnel)</span>
+        ) : (
+          <span className="text-red-500">*</span>
+        )}
       </Label>
 
       {/* Phone input with badge */}

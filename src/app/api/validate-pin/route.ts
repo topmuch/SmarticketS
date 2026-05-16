@@ -96,6 +96,11 @@ export async function POST(request: NextRequest) {
     // Company name for assistance
     const companyName = updated.busCompany || updated.airlineName || updated.trainCompany || '';
 
+    // Driver phone line (conditional — security: never expose if consent = false)
+    const driverLine = updated.shareDriverPhone && updated.driverPhone
+      ? `📞 Contacter le transporteur : ${updated.driverPhone}`
+      : `📞 Assistance : ${companyName}`;
+
     // ─── 🟢 SENDER MESSAGE (Delivery confirmed) ───
     const senderMessage = `🟢 *QRTrans — Colis Livré ✅*
 
@@ -123,7 +128,8 @@ Votre colis est arrivé et a été retiré avec succès.
 
 📦 Référence : *${updated.reference}*
 📍 Retrait : ${updated.deliveryLocation || 'Non renseigné'}
-✅ Retiré le : ${today} à ${deliveryTime}${companyName ? `\n📞 Assistance : ${companyName}` : ''}
+✅ Retiré le : ${today} à ${deliveryTime}
+${driverLine}
 
 Merci d'utiliser QRTrans 🙏
 
@@ -144,8 +150,6 @@ Merci d'utiliser QRTrans 🙏
       if (clean.length <= 4) return '***';
       return clean.slice(0, 4) + '***' + clean.slice(-2);
     };
-
-    const deliveryTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
     await db.colisEvent.createMany({
       data: [

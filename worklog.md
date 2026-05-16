@@ -1563,3 +1563,28 @@ Stage Summary:
 - Key WOW effects: particle canvas, 3D tilt cards, animated timeline, counter animation, testimonial carousel, confetti CTA, parallax hero
 - No new heavy dependencies (canvas-confetti only, ~2KB gzipped)
 - Performance: lazy loading, SVG inline, no external fonts
+---
+Task ID: 1
+Agent: Main Agent
+Task: Add Driver Phone Number + Consent Sharing feature to activation page
+
+Work Log:
+- Updated Prisma schema: added `driverPhone String?` and `shareDriverPhone Boolean @default(false)` to Baggage model
+- Ran `bun run db:push` to sync schema + regenerate Prisma client
+- Updated `src/lib/wame.ts`: added `driver_phone` and `share_driver_phone` to NotificationVars interface; updated `departure_receiver` and `arrival_receiver` templates with conditional driver phone line
+- Updated `src/components/activation/SmartPhoneInput.tsx`: added `optional` prop to show "(optionnel)" instead of "*" for non-required fields
+- Updated `src/components/activation/VoyageSection.tsx`: added SmartPhoneInput for driver phone (optional), share toggle switch, Phone icon import, new props (driverPhone, setDriverPhone, shareDriverPhone, setShareDriverPhone, driverPhoneError)
+- Updated `src/components/activation/ActivationForm.tsx`: added driverPhone/shareDriverPhone state, validation logic (optional but if filled must be valid, share requires phone), payload inclusion, reset handling, passed props to VoyageSection
+- Updated `src/app/api/activate/[id]/route.ts`: added driver_phone/share_driver_phone to Zod schema with refine (share requires phone), saved to DB, conditional driverLine in receiver WhatsApp message
+- Updated `src/app/api/arrivee/[id]/route.ts`: added conditional driverLine in receiver arrival message, fixed duplicate maskPhone function bug
+- Updated `src/app/api/validate-pin/route.ts`: added conditional driverLine in receiver delivery message, fixed duplicate deliveryTime declaration bug
+- Updated `src/app/api/tracking/[id]/route.ts`: added driverPhone field to response but ONLY when shareDriverPhone=true (security), never exposed otherwise
+- Updated `src/app/suivi/[id]/page.tsx`: added driverPhone/shareDriverPhone to ColisInfo type, Phone icon import, conditional driver phone display with wa.me link, updated InfoItem component to support href prop for clickable phone numbers
+- All lint checks pass, dev server compiles successfully
+
+Stage Summary:
+- Complete driver phone feature implemented end-to-end (UI → API → DB → WhatsApp templates → Tracking page)
+- Security: driver phone is NEVER exposed to recipient/tracking if consent = false
+- WhatsApp templates: conditional driver phone line in receiver messages (departure + arrival + delivery)
+- 2 bugs fixed: duplicate maskPhone in arrivee API, duplicate deliveryTime in validate-pin API
+- Files modified: schema.prisma, wame.ts, SmartPhoneInput.tsx, VoyageSection.tsx, ActivationForm.tsx, activate/route.ts, arrivee/route.ts, validate-pin/route.ts, tracking/route.ts, suivi/[id]/page.tsx

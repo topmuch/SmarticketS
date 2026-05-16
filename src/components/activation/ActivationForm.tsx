@@ -31,6 +31,10 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
   const [estimatedArrival, setEstimatedArrival] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
 
+  // Driver (Card 1 - optional)
+  const [driverPhone, setDriverPhone] = useState('');
+  const [shareDriverPhone, setShareDriverPhone] = useState(false);
+
   // Sender (Card 2)
   const [senderName, setSenderName] = useState('');
   const [senderPhone, setSenderPhone] = useState('');
@@ -57,6 +61,7 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
   // Validation errors
   const [senderPhoneError, setSenderPhoneError] = useState<string | null>(null);
   const [receiverPhoneError, setReceiverPhoneError] = useState<string | null>(null);
+  const [driverPhoneError, setDriverPhoneError] = useState<string | null>(null);
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
@@ -95,6 +100,26 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
     // Prohibited items block
     if (hasProhibited) return t("Les produits interdits (inflammables, liquides >100ml, armes) ne sont pas acceptés. Veuillez modifier.", 'Prohibited items (flammables, liquids >100ml, weapons) are not accepted. Please modify.');
 
+    // Card 1: Driver phone (optional, but if filled → must be valid)
+    if (driverPhone) {
+      const cleaned = driverPhone.replace(/\s/g, '');
+      if (!WHATSAPP_REGEX.test(cleaned)) {
+        const dErr = t('Format invalide. Ex: +221771234567', 'Invalid format. Ex: +221771234567');
+        setDriverPhoneError(dErr);
+        return dErr;
+      }
+      // If share toggled but no phone → warn
+      if (shareDriverPhone && cleaned.length < 8) {
+        const dErr = t('Numéro incomplet pour le partage.', 'Incomplete number for sharing.');
+        setDriverPhoneError(dErr);
+        return dErr;
+      }
+    } else if (shareDriverPhone) {
+      const dErr = t('Entrez un numéro pour activer le partage.', 'Enter a number to enable sharing.');
+      setDriverPhoneError(dErr);
+      return dErr;
+    }
+
     // Card 3: Receiver
     if (!receiverName.trim()) return t('Saisissez le nom du destinataire.', "Enter the receiver's name.");
     const rErr = validatePhone(receiverPhone);
@@ -107,6 +132,7 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
     e.preventDefault();
     setSenderPhoneError(null);
     setReceiverPhoneError(null);
+    setDriverPhoneError(null);
 
     const err = validateAll();
     if (err) {
@@ -132,6 +158,8 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
         pickup_address: pickupAddress.trim() || undefined,
         estimated_arrival: estimatedArrival || undefined,
         payment_status: paymentStatus as 'SENDER_PAID' | 'RECEIVER_PAY',
+        driver_phone: driverPhone.replace(/\s/g, '') || undefined,
+        share_driver_phone: shareDriverPhone,
         sender: {
           name: senderName.trim(),
           phone: senderPhone.replace(/\s/g, ''),
@@ -203,6 +231,8 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
     setPickupAddress('');
     setEstimatedArrival('');
     setPaymentStatus('');
+    setDriverPhone('');
+    setShareDriverPhone(false);
     setSenderName('');
     setSenderPhone('');
     setBaggageType('');
@@ -220,6 +250,7 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
     setWaReceiverUrl('');
     setSenderPhoneError(null);
     setReceiverPhoneError(null);
+    setDriverPhoneError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -326,6 +357,9 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
         pickupAddress={pickupAddress} setPickupAddress={setPickupAddress}
         estimatedArrival={estimatedArrival} setEstimatedArrival={setEstimatedArrival}
         paymentStatus={paymentStatus} setPaymentStatus={setPaymentStatus}
+        driverPhone={driverPhone} setDriverPhone={setDriverPhone}
+        shareDriverPhone={shareDriverPhone} setShareDriverPhone={setShareDriverPhone}
+        driverPhoneError={driverPhoneError}
         lang={lang}
       />
 

@@ -21,6 +21,7 @@ import {
   Shield,
   Send,
   Copy,
+  Phone,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -62,6 +63,8 @@ interface ColisInfo {
   arrivedAt: string | null;
   deliveredAt: string | null;
   deliveryLocation: string | null;
+  driverPhone: string | null;
+  shareDriverPhone: boolean;
 }
 
 // ═══════════════════════════════════════════════════
@@ -379,6 +382,15 @@ export default function SuiviPage() {
               {colis.deliveryLocation && (
                 <InfoItem icon={MapPin} label={t('Lieu de dépôt', 'Drop-off')} value={colis.deliveryLocation} />
               )}
+              {colis.driverPhone && colis.shareDriverPhone && (
+                <InfoItem
+                  icon={Phone}
+                  label={t('Chauffeur', 'Driver')}
+                  value={colis.driverPhone}
+                  mono
+                  href={`https://wa.me/${colis.driverPhone.replace(/^\+/, '')}`}
+                />
+              )}
               {colis.deliveredAt && (
                 <InfoItem icon={CheckCircle} label={t('Livré le', 'Delivered')} value={formatDate(colis.deliveredAt, lang)} />
               )}
@@ -525,14 +537,21 @@ function InfoItem({
   label,
   value,
   mono,
+  href,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   mono?: boolean;
+  href?: string;
 }) {
+  const Wrapper = href ? 'a' : 'div';
+  const wrapperProps = href
+    ? { href, target: '_blank' as const, rel: 'noopener noreferrer' as const, className: 'flex items-start gap-2.5 no-underline hover:bg-white/5 rounded-lg p-1 -m-1 transition-colors cursor-pointer' }
+    : { className: 'flex items-start gap-2.5' };
+
   return (
-    <div className="flex items-start gap-2.5">
+    <Wrapper {...wrapperProps}>
       <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
         <Icon className="w-3.5 h-3.5 text-white/80" />
       </div>
@@ -542,6 +561,6 @@ function InfoItem({
           {value}
         </p>
       </div>
-    </div>
+    </Wrapper>
   );
 }
