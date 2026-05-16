@@ -2,7 +2,7 @@
 FROM node:20-alpine
 
 # Cache buster - increment to force rebuild
-ARG CACHEBUST=7
+ARG CACHEBUST=8
 
 # Install required packages
 RUN apk add --no-cache git libc6-compat sqlite
@@ -46,14 +46,13 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=file:/app/data/qrtrans.db
 
-# Start command: sync DB schema → generate client → start server
-# Seed is skipped at runtime (non-critical, only needed for fresh DBs)
+# Start command: sync DB schema with db push → start server
 CMD sh -c "\
   mkdir -p /app/data /app/public/uploads && \
   export DATABASE_URL=file:/app/data/qrtrans.db && \
-  echo '>>> [1/2] Syncing DB schema...' && \
-  (npx prisma migrate deploy 2>&1 && echo '>>> Migrations OK') || \
-    (npx prisma db push --skip-generate --accept-data-loss 2>&1 && echo '>>> DB push OK') ; \
-  echo '>>> [2/2] Starting server...' && \
+  echo '>>> Syncing DB schema...' && \
+  npx prisma db push --skip-generate --accept-data-loss 2>&1 && \
+  echo '>>> DB synced OK' && \
+  echo '>>> Starting server...' && \
   HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js \
 "
