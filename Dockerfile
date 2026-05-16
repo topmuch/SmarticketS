@@ -1,8 +1,8 @@
-# QRTrans - Dockerfile for Coolify (based on proven qrbags production config)
+# QRTrans - Dockerfile for Coolify
 FROM node:20-alpine
 
 # Cache buster - increment to force rebuild
-ARG CACHEBUST=8
+ARG CACHEBUST=9
 
 # Install required packages
 RUN apk add --no-cache git libc6-compat sqlite
@@ -30,14 +30,13 @@ RUN bun run build
 RUN cp -r .next/static .next/standalone/.next/static
 RUN cp -r public .next/standalone/public
 
-# Copy Prisma files into standalone so migrations work at runtime
-# CRITICAL: schema + engine (.prisma) + CLI (prisma package) + runtime (@prisma) + migrations
+# Copy Prisma files into standalone so db push works at runtime
 RUN cp -r prisma .next/standalone/prisma
 RUN cp -r node_modules/.prisma .next/standalone/node_modules/.prisma
 RUN cp -r node_modules/@prisma .next/standalone/node_modules/@prisma
 RUN cp -r node_modules/prisma .next/standalone/node_modules/prisma
 
-# Create data directory
+# Create data directories
 RUN mkdir -p /app/data /app/public/uploads
 
 EXPOSE 3000
@@ -45,14 +44,19 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=file:/app/data/qrtrans.db
+ENV NODE_ENV=production
 
-# Start command: sync DB schema with db push → start server
+# Health check — Coolify expects the container to respond on its port
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
+
+# Start command: sync DB schema then start server
 CMD sh -c "\
   mkdir -p /app/data /app/public/uploads && \
   export DATABASE_URL=file:/app/data/qrtrans.db && \
-  echo '>>> Syncing DB schema...' && \
+  echo '>>> [1/3] Syncing DB schema...' && \
   npx prisma db push --skip-generate --accept-data-loss 2>&1 && \
-  echo '>>> DB synced OK' && \
-  echo '>>> Starting server...' && \
-  HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js \
+  echo '>>> [2/3] DB synced OK' && \
+  echo '>>> [3/3] Starting server on port 3000...' && \
+  exec node .next/standalone/server.js \
 "
