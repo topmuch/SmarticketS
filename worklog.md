@@ -831,3 +831,54 @@ Stage Summary:
   - WhatsApp wame: includes tracking URL ✅
 - Build passes with 0 errors after all fixes
 - Pushed to GitHub: commit 768a16c
+
+---
+Task ID: 18
+Agent: Main Agent
+Task: Create centralized WhatsApp notification system (4 templates) + integrate in activation/arrival pages + status-based routing
+
+Work Log:
+- Created `src/lib/wame.ts` — Centralized notification utility with:
+  - 4 types: departure_sender, departure_receiver, arrival_sender, arrival_receiver
+  - NotificationVars interface with all dynamic variables
+  - cleanPhone() — phone number sanitizer
+  - generateWaMeLink() — wa.me URL builder with pre-filled message
+  - formatDateFR() / formatTime() — date formatting helpers
+  - NOTIFICATION_TEMPLATES — 4 professional WhatsApp templates with emojis, *bold*, separators
+  - createNotificationLink() — single link generator
+  - createDepartureLinks() / createArrivalLinks() — batch link generators
+- Rewrote `src/components/activation/SuccessScreen.tsx`:
+  - Now imports from @/lib/wame (createDepartureLinks, formatDateFR, formatTime)
+  - Added departureDate + departureTime props
+  - Removed inline wa.me message construction (was simple 1-line messages)
+  - Now uses professional templates from wame.ts
+  - Fixed bug: React.useState → useState (React not imported)
+  - Added departure date/time display in summary section
+  - Kept transition section to /arrivee/[id] with orange button
+- Rewrote `src/components/arrival/ArrivalSuccess.tsx`:
+  - Now imports from @/lib/wame (createArrivalLinks, formatDateFR, formatTime)
+  - Added companyName prop
+  - Replaced simple inline wa.me messages with professional templates
+  - Added "Notifier les contacts" header section
+  - Buttons now properly say "NOTIFIER L'ENVOYEUR" / "NOTIFIER LE DESTINATAIRE"
+- Updated `src/components/activation/ActivationForm.tsx`:
+  - Added departureDate + departureTime props to SuccessScreen call
+- Updated `src/app/arrivee/[id]/page.tsx`:
+  - Added companyName prop to ArrivalSuccess call (from colis.company)
+- Rewrote `src/app/activate/[id]/page.tsx`:
+  - Added status-based routing on mount
+  - Fetches colis status via /api/arrivee/[id]
+  - If in_transit → auto-redirects to /arrivee/[id] (router.replace)
+  - If delivered → auto-redirects to /suivi/[id]
+  - Shows loading spinner while checking
+  - Falls back to normal form if check fails (pending_activation)
+- Validation: bun run lint → 0 errors
+- Dev server: running clean, no compilation errors
+
+Stage Summary:
+- 1 new file created: src/lib/wame.ts
+- 4 files modified: SuccessScreen.tsx, ArrivalSuccess.tsx, ActivationForm.tsx, activate/[id]/page.tsx, arrivee/[id]/page.tsx
+- 4 professional WhatsApp notification templates centralized
+- Status-based routing: activate page auto-redirects to arrivee if already in_transit
+- All 4 wa.me buttons use centralized templates (no more inline messages)
+- Zero lint errors

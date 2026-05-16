@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle, Copy, ExternalLink, RotateCcw, ArrowRight, Truck } from 'lucide-react';
+import { createDepartureLinks, formatDateFR, formatTime } from '@/lib/wame';
 
 interface SuccessScreenProps {
   reference: string;
@@ -10,6 +11,8 @@ interface SuccessScreenProps {
   company: string;
   departureCity: string;
   arrivalCity: string;
+  departureDate: string;
+  departureTime: string;
   senderName: string;
   senderPhone: string;
   receiverName: string;
@@ -24,6 +27,8 @@ export default function SuccessScreen({
   company,
   departureCity,
   arrivalCity,
+  departureDate,
+  departureTime,
   senderName,
   senderPhone,
   receiverName,
@@ -33,24 +38,31 @@ export default function SuccessScreen({
 }: SuccessScreenProps) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
-  // Messages wa.me exacts du cahier des charges
-  const senderMsg = lang === 'fr'
-    ? `Bonjour ${senderName}, votre colis pour ${arrivalCity} a été pris en charge par ${company}. Il est en route.`
-    : `Hello ${senderName}, your package for ${arrivalCity} has been taken by ${company}. It is on its way.`;
-
-  const receiverMsg = lang === 'fr'
-    ? `Bonjour ${receiverName}, un colis envoyé par ${senderName} arrive à ${arrivalCity}. Vous recevrez un message pour le retrait.`
-    : `Hello ${receiverName}, a package sent by ${senderName} is arriving in ${arrivalCity}. You will receive a message for pickup.`;
-
-  const cleanPhone = (p: string) => p.replace(/[^0-9]/g, '');
-  const senderWaUrl = `https://wa.me/${cleanPhone(senderPhone)}?text=${encodeURIComponent(senderMsg)}`;
-  const receiverWaUrl = `https://wa.me/${cleanPhone(receiverPhone)}?text=${encodeURIComponent(receiverMsg)}`;
-
   const trackingUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/suivi/${reference}`
     : `/suivi/${reference}`;
 
-  const [copied, setCopied] = React.useState(false);
+  // Build vars for wame.ts
+  const formattedDate = formatDateFR(departureDate);
+  const formattedTime = formatTime(departureTime);
+
+  const vars = {
+    reference,
+    sender_name: senderName,
+    sender_whatsapp: senderPhone,
+    receiver_name: receiverName,
+    receiver_whatsapp: receiverPhone,
+    company_name: company,
+    departure_city: departureCity,
+    arrival_city: arrivalCity,
+    departure_date: formattedDate,
+    departure_time: formattedTime,
+    tracking_url: trackingUrl,
+  };
+
+  const links = createDepartureLinks(vars);
+
+  const [copied, setCopied] = useState(false);
 
   const copyLink = async () => {
     try {
@@ -101,6 +113,13 @@ export default function SuccessScreen({
           </div>
         </div>
 
+        <div className="flex items-center gap-3 bg-[#F8FAFC] rounded-lg p-3">
+          <div className="flex-1">
+            <p className="text-xs text-gray-400">{t('Départ', 'Departure')}</p>
+            <p className="font-semibold text-gray-900 text-sm">{formattedDate} {t('à', 'at')} {formattedTime}</p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#F8FAFC] rounded-lg p-3">
             <p className="text-xs text-gray-400">{t('Expéditeur', 'Sender')}</p>
@@ -113,24 +132,37 @@ export default function SuccessScreen({
         </div>
       </div>
 
+      {/* Section: Notifier les contacts */}
+      <div className="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-5 space-y-3">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          📱 {t('Notifier les contacts', 'Notify contacts')}
+        </h3>
+        <p className="text-xs text-gray-500">
+          {t(
+            'Envoyez une notification WhatsApp professionnelle à l\'expéditeur et au destinataire du colis.',
+            'Send a professional WhatsApp notification to the sender and receiver.'
+          )}
+        </p>
+      </div>
+
       {/* WhatsApp Buttons */}
       <div className="space-y-3">
         <a
-          href={senderWaUrl}
+          href={links.sender}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full h-[56px] bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-bold text-[15px] shadow-lg shadow-green-500/25 transition-all no-underline"
         >
-          💬 {t("NOTIFIER L'ENVOYEUR", 'NOTIFY SENDER')}
+          🟢 {t('NOTIFIER L\'ENVOYEUR', 'NOTIFY SENDER')}
           <ExternalLink className="w-3.5 h-3.5 opacity-50" />
         </a>
         <a
-          href={receiverWaUrl}
+          href={links.receiver}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full h-[56px] bg-[#0077B6] hover:bg-[#005f8d] active:bg-[#004a6e] text-white rounded-xl font-bold text-[15px] shadow-lg shadow-blue-500/25 transition-all no-underline"
         >
-          🔵 {t('NOTIFIER LE RECEVEUR', 'NOTIFY RECEIVER')}
+          🔵 {t('NOTIFIER LE DESTINATAIRE', 'NOTIFY RECEIVER')}
           <ExternalLink className="w-3.5 h-3.5 opacity-50" />
         </a>
       </div>
@@ -143,7 +175,7 @@ export default function SuccessScreen({
             {t('Colis en route — Prêt pour la livraison', 'Package in transit — Ready for delivery')}
           </p>
         </div>
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-gray-600">
           {t(
             'À l\'arrivée, rescannez ce QR code ou cliquez ci-dessous pour confirmer la livraison.',
             'On arrival, rescan this QR code or click below to confirm delivery.'
@@ -179,5 +211,3 @@ export default function SuccessScreen({
     </div>
   );
 }
-
-

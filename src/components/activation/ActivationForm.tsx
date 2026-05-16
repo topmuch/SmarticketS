@@ -173,6 +173,8 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
         company={company}
         departureCity={departureCity}
         arrivalCity={arrivalCity}
+        departureDate={departureDate}
+        departureTime={departureTime}
         senderName={senderName}
         senderPhone={senderPhone.replace(/\s/g, '')}
         receiverName={receiverName}

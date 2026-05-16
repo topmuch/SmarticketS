@@ -137,6 +137,7 @@ export default function ArriveePage() {
             senderPhone={colis.senderPhone}
             receiverName={colis.receiverName}
             receiverPhone={colis.receiverPhone}
+            companyName={colis.company}
             lang={lang}
           />
         )}

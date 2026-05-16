@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle, Copy, ExternalLink, Home, Download } from 'lucide-react';
+import { CheckCircle, Copy, ExternalLink, Home } from 'lucide-react';
+import { createArrivalLinks, formatDateFR, formatTime } from '@/lib/wame';
 
 interface ArrivalSuccessProps {
   reference: string;
@@ -13,39 +14,45 @@ interface ArrivalSuccessProps {
   senderPhone: string;
   receiverName: string;
   receiverPhone: string;
+  companyName: string;
   lang: 'fr' | 'en';
 }
 
 export default function ArrivalSuccess({
   reference, arrivalCity, deliveryLocation, arrivalDate, arrivalTime,
-  senderName, senderPhone, receiverName, receiverPhone, lang,
+  senderName, senderPhone, receiverName, receiverPhone, companyName, lang,
 }: ArrivalSuccessProps) {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
   const [copied, setCopied] = useState(false);
 
-  const cleanPhone = (p: string) => p.replace(/[^0-9]/g, '');
-
-  const formatDate = (d: string) => {
-    try {
-      return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch { return d; }
-  };
-
-  // WhatsApp messages exacts du cahier des charges
-  const senderMessage = lang === 'fr'
-    ? `Bonjour ${senderName},\nVotre colis (Réf: #${reference}) est bien ARRIVÉ à ${arrivalCity} et a été livré au destinataire.\nMerci d'avoir utilisé QRTrans.`
-    : `Hello ${senderName},\nYour package (Ref: #${reference}) has ARRIVED in ${arrivalCity} and has been delivered to the recipient.\nThank you for using QRTrans.`;
-
-  const receiverMessage = lang === 'fr'
-    ? `Bonjour ${receiverName},\nVotre colis (Réf: #${reference}) est ARRIVÉ à ${arrivalCity} !\nVenez le retirer à : ${deliveryLocation}\nHoraires : 8h00 - 18h00`
-    : `Hello ${receiverName},\nYour package (Ref: #${reference}) has ARRIVED in ${arrivalCity}!\nPick it up at: ${deliveryLocation}\nHours: 8:00 AM - 6:00 PM`;
-
-  const senderWaUrl = `https://wa.me/${cleanPhone(senderPhone)}?text=${encodeURIComponent(senderMessage)}`;
-  const receiverWaUrl = `https://wa.me/${cleanPhone(receiverPhone)}?text=${encodeURIComponent(receiverMessage)}`;
-
   const trackingUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/suivi/${reference}`
     : `/suivi/${reference}`;
+
+  const feedbackUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/feedback/${reference}`
+    : `/feedback/${reference}`;
+
+  // Build vars for wame.ts
+  const vars = {
+    reference,
+    sender_name: senderName,
+    sender_whatsapp: senderPhone,
+    receiver_name: receiverName,
+    receiver_whatsapp: receiverPhone,
+    company_name: companyName,
+    departure_city: '',
+    arrival_city: arrivalCity,
+    departure_date: '',
+    departure_time: '',
+    arrived_date: formatDateFR(arrivalDate),
+    arrived_time: formatTime(arrivalTime),
+    delivery_location: deliveryLocation,
+    tracking_url: trackingUrl,
+    feedback_url: feedbackUrl,
+  };
+
+  const links = createArrivalLinks(vars);
 
   const copyLink = async () => {
     try {
@@ -72,20 +79,33 @@ export default function ArrivalSuccess({
           <CheckCircle className="w-8 h-8 text-white" />
         </div>
         <h2 className="text-xl font-bold text-gray-900">
-          ✅ {t('ARRIVÉE CONFIRMÉE !', 'ARRIVAL CONFIRMED!')}
+          ✅ {t('LIVRAISON CONFIRMÉE !', 'DELIVERY CONFIRMED!')}
         </h2>
         <div className="mt-2 flex items-center justify-center gap-3 text-sm text-gray-600">
-          <span>{formatDate(arrivalDate)} {t('à', 'at')} {arrivalTime}</span>
+          <span>{formatDateFR(arrivalDate)} {t('à', 'at')} {formatTime(arrivalTime)}</span>
         </div>
         <div className="mt-1 text-sm text-gray-500">
           📍 {deliveryLocation}
         </div>
       </div>
 
+      {/* Section: Notifier les contacts */}
+      <div className="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-5 space-y-3">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          📱 {t('Notifier les contacts', 'Notify contacts')}
+        </h3>
+        <p className="text-xs text-gray-500">
+          {t(
+            'Informez l\'expéditeur et le destinataire de la livraison du colis.',
+            'Inform the sender and receiver about the package delivery.'
+          )}
+        </p>
+      </div>
+
       {/* WhatsApp Buttons */}
       <div className="space-y-3">
         <a
-          href={senderWaUrl}
+          href={links.sender}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full h-[56px] bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-bold text-[15px] shadow-lg shadow-green-500/25 transition-all no-underline"
@@ -94,12 +114,12 @@ export default function ArrivalSuccess({
           <ExternalLink className="w-3.5 h-3.5 opacity-50" />
         </a>
         <a
-          href={receiverWaUrl}
+          href={links.receiver}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full h-[56px] bg-[#0077B6] hover:bg-[#005f8d] active:bg-[#004a6e] text-white rounded-xl font-bold text-[15px] shadow-lg shadow-blue-500/25 transition-all no-underline"
         >
-          🔵 {t('NOTIFIER LE RECEVEUR (Retrait)', 'NOTIFY RECEIVER (Pickup)')}
+          🔵 {t('NOTIFIER LE DESTINATAIRE (Retrait)', 'NOTIFY RECEIVER (Pickup)')}
           <ExternalLink className="w-3.5 h-3.5 opacity-50" />
         </a>
       </div>
