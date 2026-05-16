@@ -143,16 +143,7 @@ function QuickActions() {
       hoverShadow: "hover:shadow-emerald-500/25",
       bgPattern: "bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_60%)]"
     },
-    { 
-      label: "Hajj 2026", 
-      description: "Pèlerins",
-      icon: <Users className="w-7 h-7" />, 
-      href: "/admin/hajj",
-      gradient: "from-sky-500 to-blue-700",
-      hoverShadow: "hover:shadow-sky-500/25",
-      bgPattern: "bg-[radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.15),transparent_60%)]"
-    },
-    { 
+    {
       label: "Commandes", 
       description: "Demandes",
       icon: <ShoppingCart className="w-7 h-7" />, 
@@ -173,7 +164,7 @@ function QuickActions() {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {actions.map((action, index) => (
         <Link
           key={index}
