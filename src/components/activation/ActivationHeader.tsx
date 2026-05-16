@@ -10,7 +10,7 @@ interface ActivationHeaderProps {
 
 export default function ActivationHeader({ qrCode, onLangChange, currentLang }: ActivationHeaderProps) {
   return (
-    <header className="bg-black text-white sticky top-0 z-50">
+    <header className="bg-[#8b5cf6] text-white sticky top-0 z-50">
       <div className="max-w-[600px] mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
