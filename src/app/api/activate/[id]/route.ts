@@ -16,7 +16,7 @@ const receiverSchema = z.object({
 });
 
 const activateSchema = z.object({
-  transport_type: z.enum(['GP', 'BUS'], { required_error: 'Le type de transport est obligatoire' }),
+  transport_type: z.enum(['GP', 'BUS'], { message: 'Le type de transport est obligatoire' }),
   company_name: z.string().min(1, 'La compagnie est obligatoire'),
   departure_city: z.string().min(1, 'La ville de départ est obligatoire'),
   arrival_city: z.string().min(1, "La ville d'arrivée est obligatoire"),

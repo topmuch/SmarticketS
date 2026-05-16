@@ -42,18 +42,6 @@ interface ColisData {
 }
 
 // ═══════════════════════════════════════════════════
-//  HELPER: i18n
-// ═══════════════════════════════════════════════════
-
-function useI18n(lang: 'fr' | 'en') {
-  const t = useCallback(
-    (fr: string, en: string) => (lang === 'fr' ? fr : en),
-    [lang]
-  );
-  return { t, lang };
-}
-
-// ═══════════════════════════════════════════════════
 //  PIN INPUT COMPONENT (inline)
 // ═══════════════════════════════════════════════════
 
@@ -281,7 +269,6 @@ function ColisSummaryCard({ colis, lang }: { colis: ColisData; lang: 'fr' | 'en'
 export default function RetrievePage() {
   const params = useParams();
   const reference = ((params?.id as string) || '').toUpperCase().trim();
-  const { t, lang } = useI18n('fr' as 'fr' | 'en');
 
   // ─── States ───
   const [currentLang, setCurrentLang] = useState<'fr' | 'en'>('fr');

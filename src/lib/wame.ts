@@ -56,9 +56,10 @@ export const cleanPhone = (phone: string): string => {
 
 /**
  * Génère un lien wa.me complet avec message pré-rempli
+ * Note: WhatsApp URL path does not include '+' prefix
  */
 export const generateWaMeLink = (phone: string, message: string): string => {
-  const clean = cleanPhone(phone);
+  const clean = cleanPhone(phone).replace(/^\+/, ''); // Remove + for wa.me URL
   return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
 };
 
@@ -198,15 +199,6 @@ export const createNotificationLink = (
  * Génère les 4 liens wa.me pour les 2 notifications de départ (envoyeur + receveur)
  */
 export const createDepartureLinks = (vars: NotificationVars) => ({
-  sender: createNotificationLink('departure_sender', vars.sender_whatsapp, vars),
-  receiver: createNotificationLink('departure_receiver', vars.receiver_whatsapp, vars),
-});
-
-/**
- * Génère les liens wa.me pour les 2 notifications de départ (envoyeur + receveur)
- * Identique à createDepartureLinks mais inclut le pin.
- */
-export const createDepartureLinksWithPin = (vars: NotificationVars) => ({
   sender: createNotificationLink('departure_sender', vars.sender_whatsapp, vars),
   receiver: createNotificationLink('departure_receiver', vars.receiver_whatsapp, vars),
 });

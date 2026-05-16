@@ -253,9 +253,15 @@ export default function SmartPhoneInput({
               {hint}
             </p>
           )}
-          <p className="text-xs text-emerald-600 flex items-center gap-1">
-            ✅ Indicatif détecté automatiquement
-          </p>
+          {detected ? (
+            <p className="text-xs text-emerald-600 flex items-center gap-1">
+              ✅ Indicatif détecté automatiquement
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              🌐 Indicatif par défaut ({flag} {callingCode})
+            </p>
+          )}
         </div>
       )}
     </div>
