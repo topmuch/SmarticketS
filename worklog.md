@@ -966,3 +966,18 @@ Stage Summary:
 - Dockerfile uses proven qrbags production pattern: git clone → bun install → prisma generate → build → copy static → runtime schema sync + seed
 - Database path: /app/data/qrtrans.db (persistent via Docker volume)
 - ESLint: 0 errors
+
+---
+Task ID: 19
+Agent: Main Agent
+Task: Create GitHub repo and push code
+
+Work Log:
+- Created repo https://github.com/topmuch/qrtrans via GitHub API (public, no wiki, no projects)
+- Changed git remote origin from qrbags → qrtrans (with token auth)
+- Force pushed all commits (10) to new repo main branch
+
+Stage Summary:
+- Repo live at: https://github.com/topmuch/qrtrans
+- All code pushed successfully, branch tracking set up
+- Dockerfile (Coolify config), .dockerignore, docker-compose.yml all included
