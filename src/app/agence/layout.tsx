@@ -92,7 +92,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
       {/* Sidebar - Orange Background */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-[280px] bg-[#ff7f00]
+        w-[280px] bg-[#FF1D8D]
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col shadow-2xl
@@ -293,12 +293,12 @@ function Header({ unreadMessages, onMenuClick, userName, agencySlug }: { unreadM
           </div>
           
           {/* Public Page Button */}
-          <div className="hidden lg:flex items-center gap-2 bg-gradient-to-r from-[#ff7f00]/10 to-[#ff9f00]/10 dark:from-[#ff7f00]/20 dark:to-[#ff9f00]/20 border border-[#ff7f00]/30 rounded-xl px-3 py-1.5">
-            <Globe className="w-4 h-4 text-[#ff7f00]" />
+          <div className="hidden lg:flex items-center gap-2 bg-gradient-to-r from-[#FF1D8D]/10 to-[#FF3DA0]/10 dark:from-[#FF1D8D]/20 dark:to-[#FF3DA0]/20 border border-[#FF1D8D]/30 rounded-xl px-3 py-1.5">
+            <Globe className="w-4 h-4 text-[#FF1D8D]" />
             <span className="text-sm text-slate-600 dark:text-slate-300">Page publique</span>
             <button
               onClick={handleCopy}
-              className={`p-1 rounded-lg transition-colors ${copied ? 'text-emerald-500' : 'hover:bg-[#ff7f00]/20 text-[#ff7f00]'}`}
+              className={`p-1 rounded-lg transition-colors ${copied ? 'text-emerald-500' : 'hover:bg-[#FF1D8D]/20 text-[#FF1D8D]'}`}
               title="Copier le lien"
             >
               {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -306,7 +306,7 @@ function Header({ unreadMessages, onMenuClick, userName, agencySlug }: { unreadM
             <Link
               href={`/agency/${agencySlug}`}
               target="_blank"
-              className="p-1 rounded-lg hover:bg-[#ff7f00]/20 text-[#ff7f00] transition-colors"
+              className="p-1 rounded-lg hover:bg-[#FF1D8D]/20 text-[#FF1D8D] transition-colors"
               title="Voir la page"
             >
               <ExternalLink className="w-4 h-4" />
@@ -341,7 +341,7 @@ function Header({ unreadMessages, onMenuClick, userName, agencySlug }: { unreadM
           
           {/* User */}
           <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-700">
-            <div className="w-9 h-9 rounded-full bg-[#ff7f00] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-[#FF1D8D] flex items-center justify-center">
               <span className="text-white font-semibold text-sm">{userName ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AG'}</span>
             </div>
             <div className="hidden sm:block">
@@ -435,7 +435,7 @@ export default function AgencyRootLayout({
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border-2 border-[#ff7f00]/30 border-t-[#ff7f00] rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#FF1D8D]/30 border-t-[#FF1D8D] rounded-full animate-spin" />
           <span className="text-slate-500">Vérification...</span>
         </div>
       </div>

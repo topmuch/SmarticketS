@@ -86,14 +86,11 @@ function Sidebar({
     // Baggages
     { label: "Étiquettes", icon: <Layers className="w-5 h-5" />, href: "/admin/etiquettes", permission: PERMISSIONS.VIEW_BAGGAGES },
 
-    // Travelers Category
-    { label: "VOYAGEURS", icon: null, isCategory: true },
+    // Colis Category
+    { label: "COLIS", icon: null, isCategory: true },
 
-    // Hajj pilgrims
-    { label: "Pèlerins Hajj", icon: <Users className="w-5 h-5" />, href: "/admin/hajj", permission: PERMISSIONS.VIEW_BAGGAGES },
-
-    // Voyageurs
-    { label: "Voyageurs", icon: <Users className="w-5 h-5" />, href: "/admin/voyageurs", permission: PERMISSIONS.VIEW_BAGGAGES },
+    // Colis
+    { label: "Colis", icon: <Users className="w-5 h-5" />, href: "/admin/voyageurs", permission: PERMISSIONS.VIEW_BAGGAGES },
 
     // Messages Category
     { label: "MESSAGES", icon: null, isCategory: true },
@@ -186,7 +183,7 @@ function Sidebar({
       {/* Sidebar - Orange Background */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-[280px] bg-[#16a34a]
+        w-[280px] bg-[#FF1D8D]
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col shadow-2xl
@@ -412,7 +409,7 @@ export default function AdminRootLayout({
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border-2 border-[#16a34a]/30 border-t-[#16a34a] rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#FF1D8D]/30 border-t-[#FF1D8D] rounded-full animate-spin" />
           <span className="text-slate-500">Vérification...</span>
         </div>
       </div>

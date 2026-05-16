@@ -28,14 +28,14 @@ interface AdminLayoutProps {
 }
 
 // Couleur unique pour tout le sidebar
-const SIDEBAR_COLOR = '#22855f';
+const SIDEBAR_COLOR = '#FF1D8D';
 
 export default function AdminLayout({ 
   children, 
   title, 
   subtitle, 
   icon, 
-  iconBg = 'from-[#22855f] to-[#1a6b4a]',
+  iconBg = 'from-[#FF1D8D] to-[#d4167a]',
   unreadMessages = 0 
 }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -53,9 +53,8 @@ export default function AdminLayout({
     { label: "Générer QR", icon: "🔢", href: "/admin/generer" },
     { label: "Les Étiquettes", icon: "🏷️", href: "/admin/etiquettes" },
     // 🧳 Voyageurs & Pèlerins
-    { label: "VOYAGEURS & PÈLERINS", isCategory: true },
-    { label: "Pèlerins Hajj", icon: "🕋", href: "/admin/hajj" },
-    { label: "Voyageurs", icon: "✈️", href: "/admin/voyageurs" },
+    { label: "COLIS", isCategory: true },
+    { label: "Colis", icon: "📦", href: "/admin/voyageurs" },
     // 📬 Opérations
     { label: "OPÉRATIONS", isCategory: true },
     { label: "Messages", icon: "📩", href: "/admin/messages", badge: unreadMessages },

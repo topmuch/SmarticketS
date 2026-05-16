@@ -32,7 +32,7 @@ const COLORS = {
   success: '#10b981',      // Emerald
   warning: '#f59e0b',      // Amber
   danger: '#ef4444',       // Red
-  sidebar: '#ff7f00',      // Orange sidebar
+  sidebar: '#FF1D8D',      // Pink sidebar
 };
 
 interface MenuItem {
@@ -78,9 +78,8 @@ export default function AdminLayout({ children, title, subtitle, unreadMessages 
     { label: "PRODUITS", icon: null, isCategory: true },
     { label: "Générer QR", icon: <QrCode className="w-5 h-5" />, href: "/admin/generer" },
     { label: "Étiquettes", icon: <Layers className="w-5 h-5" />, href: "/admin/etiquettes" },
-    { label: "VOYAGEURS", icon: null, isCategory: true },
-    { label: "Pèlerins Hajj", icon: <Users className="w-5 h-5" />, href: "/admin/hajj" },
-    { label: "Voyageurs", icon: <Package className="w-5 h-5" />, href: "/admin/voyageurs" },
+    { label: "COLIS", icon: null, isCategory: true },
+    { label: "Colis", icon: <Package className="w-5 h-5" />, href: "/admin/voyageurs" },
     { label: "MESSAGES", icon: null, isCategory: true },
     { label: "Messages", icon: <MessageSquare className="w-5 h-5" />, href: "/admin/messages", badge: messages },
     { label: "Trouvailles", icon: <Scan className="w-5 h-5" />, href: "/admin/trouvailles" },
@@ -102,7 +101,7 @@ export default function AdminLayout({ children, title, subtitle, unreadMessages 
 
         <aside className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-[280px] bg-[#ff7f00]
+          w-[280px] bg-[#FF1D8D]
           transform transition-transform duration-300
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           flex flex-col shadow-2xl
