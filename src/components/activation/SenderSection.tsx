@@ -68,28 +68,28 @@ export default function SenderSection({
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
   return (
-    <div className="bg-orange-50 border-2 border-dashed border-orange-300 rounded-2xl p-6">
-      <h2 className="text-base font-bold text-orange-800 mb-5 flex items-center gap-2">
+    <div className="bg-[#f97316] rounded-2xl p-6 shadow-lg shadow-orange-500/20">
+      <h2 className="text-base font-bold text-white mb-5 flex items-center gap-2">
         📤 {t('EXPÉDITEUR & COLIS', 'SENDER & PACKAGE')}
       </h2>
 
       <div className="space-y-6">
         {/* ─── Section A: Coordonnées Expéditeur ─── */}
         <div>
-          <p className="text-xs font-semibold text-orange-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/80 uppercase tracking-wider mb-3">
             👤 {t('Coordonnées Expéditeur', 'Sender Details')}
           </p>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="sender_name" className="text-sm font-medium text-orange-700">
-                {t('Nom Complet', 'Full Name')} <span className="text-red-500">*</span>
+              <Label htmlFor="sender_name" className="text-sm font-medium text-orange-100">
+                {t('Nom Complet', 'Full Name')} <span className="text-yellow-300">*</span>
               </Label>
               <Input
                 id="sender_name"
                 value={senderName}
                 onChange={(e) => setSenderName(e.target.value)}
                 placeholder={t('Ex: Moussa Diop', 'Ex: Moussa Diop')}
-                className="h-12 bg-white border-orange-200 focus-visible:ring-orange-400 focus-visible:border-orange-400 text-sm"
+                className="h-12 bg-white/95 border-white/30 focus-visible:ring-white/50 focus-visible:border-white/60 text-sm text-gray-900 placeholder:text-gray-400"
                 aria-required="true"
               />
             </div>
@@ -106,18 +106,18 @@ export default function SenderSection({
         </div>
 
         {/* Separator */}
-        <div className="border-t border-orange-200" />
+        <div className="border-t border-white/20" />
 
         {/* ─── Section B: Type & Physique du Bagage ─── */}
         <div>
-          <p className="text-xs font-semibold text-orange-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/80 uppercase tracking-wider mb-3">
             📦 {t('Type & Physique du Bagage', 'Baggage Type & Physical')}
           </p>
           <div className="space-y-4">
             {/* Baggage Type */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-orange-700">
-                {t('Type de bagage', 'Baggage type')} <span className="text-red-500">*</span>
+              <Label className="text-sm font-medium text-orange-100">
+                {t('Type de bagage', 'Baggage type')} <span className="text-yellow-300">*</span>
               </Label>
               <div className="grid grid-cols-3 gap-2">
                 {BAGGAGE_TYPES.map((bt) => (
@@ -128,8 +128,8 @@ export default function SenderSection({
                     aria-pressed={baggageType === bt.value}
                     className={`flex items-center justify-center h-11 rounded-lg border-2 text-xs font-semibold transition-all px-2 ${
                       baggageType === bt.value
-                        ? 'border-orange-500 bg-orange-500/10 text-orange-700 shadow-sm shadow-orange-200'
-                        : 'border-orange-200 text-orange-400 hover:border-orange-300 hover:text-orange-600'
+                        ? 'border-white bg-white/25 text-white shadow-sm shadow-black/10'
+                        : 'border-white/30 text-white/70 hover:border-white/50 hover:text-white'
                     }`}
                   >
                     {lang === 'fr' ? bt.label : bt.en}
@@ -142,7 +142,7 @@ export default function SenderSection({
                   value={baggageTypeOther}
                   onChange={(e) => setBaggageTypeOther(e.target.value)}
                   placeholder={t('Précisez le type...', 'Specify type...')}
-                  className="h-11 bg-white border-orange-200 focus-visible:ring-orange-400 focus-visible:border-orange-400 text-sm"
+                  className="h-11 bg-white/95 border-white/30 focus-visible:ring-white/50 focus-visible:border-white/60 text-sm text-gray-900 placeholder:text-gray-400"
                   aria-required="true"
                 />
               )}
@@ -151,7 +151,7 @@ export default function SenderSection({
             {/* Weight / Dimensions / Color */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="baggage_weight" className="text-sm font-medium text-orange-700">
+                <Label htmlFor="baggage_weight" className="text-sm font-medium text-orange-100">
                   🏋️ {t('Poids', 'Weight')}
                 </Label>
                 <div className="relative">
@@ -163,13 +163,13 @@ export default function SenderSection({
                     value={baggageWeight}
                     onChange={(e) => setBaggageWeight(e.target.value)}
                     placeholder="0.0"
-                    className="h-12 bg-white border-orange-200 focus-visible:ring-orange-400 focus-visible:border-orange-400 text-sm pr-10"
+                    className="h-12 bg-white/95 border-white/30 focus-visible:ring-white/50 focus-visible:border-white/60 text-sm text-gray-900 placeholder:text-gray-400 pr-10"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-orange-400 font-semibold">kg</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-orange-200 font-semibold">kg</span>
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="baggage_color" className="text-sm font-medium text-orange-700">
+                <Label htmlFor="baggage_color" className="text-sm font-medium text-orange-100">
                   🎨 {t('Couleur', 'Color')}
                 </Label>
                 <Input
@@ -177,13 +177,13 @@ export default function SenderSection({
                   value={baggageColor}
                   onChange={(e) => setBaggageColor(e.target.value)}
                   placeholder={t('Noir, Bleu...', 'Black, Blue...')}
-                  className="h-12 bg-white border-orange-200 focus-visible:ring-orange-400 focus-visible:border-orange-400 text-sm"
+                  className="h-12 bg-white/95 border-white/30 focus-visible:ring-white/50 focus-visible:border-white/60 text-sm text-gray-900 placeholder:text-gray-400"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="baggage_dimensions" className="text-sm font-medium text-orange-700">
+              <Label htmlFor="baggage_dimensions" className="text-sm font-medium text-orange-100">
                 📏 {t('Dimensions', 'Dimensions')}
               </Label>
               <Input
@@ -191,24 +191,24 @@ export default function SenderSection({
                 value={baggageDimensions}
                 onChange={(e) => setBaggageDimensions(e.target.value)}
                 placeholder={t('L x l x h en cm', 'L x W x H in cm')}
-                className="h-12 bg-white border-orange-200 focus-visible:ring-orange-400 focus-visible:border-orange-400 text-sm"
+                className="h-12 bg-white/95 border-white/30 focus-visible:ring-white/50 focus-visible:border-white/60 text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
           </div>
         </div>
 
         {/* Separator */}
-        <div className="border-t border-orange-200" />
+        <div className="border-t border-white/20" />
 
         {/* ─── Section C: Contenu & Valeur ─── */}
         <div>
-          <p className="text-xs font-semibold text-orange-500 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/80 uppercase tracking-wider mb-3">
             📋 {t('Contenu & Valeur', 'Content & Value')}
           </p>
           <div className="space-y-4">
             {/* Content Category */}
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-orange-700">
+              <Label className="text-sm font-medium text-orange-100">
                 {t('Catégorie du contenu', 'Content category')}
               </Label>
               <div className="grid grid-cols-3 gap-2">
@@ -220,8 +220,8 @@ export default function SenderSection({
                     aria-pressed={contentCategory === cat.value}
                     className={`flex items-center justify-center h-11 rounded-lg border-2 text-xs font-semibold transition-all px-2 ${
                       contentCategory === cat.value
-                        ? 'border-orange-500 bg-orange-500/10 text-orange-700 shadow-sm shadow-orange-200'
-                        : 'border-orange-200 text-orange-400 hover:border-orange-300 hover:text-orange-600'
+                        ? 'border-white bg-white/25 text-white shadow-sm shadow-black/10'
+                        : 'border-white/30 text-white/70 hover:border-white/50 hover:text-white'
                     }`}
                   >
                     {lang === 'fr' ? cat.label : cat.en}
@@ -232,8 +232,8 @@ export default function SenderSection({
 
             {/* Declared Value */}
             <div className="space-y-1.5">
-              <Label htmlFor="declared_value" className="text-sm font-medium text-orange-700">
-                💰 {t('Valeur déclarée', 'Declared value')} <span className="text-xs text-orange-400 font-normal">({t('optionnel', 'optional')})</span>
+              <Label htmlFor="declared_value" className="text-sm font-medium text-orange-100">
+                💰 {t('Valeur déclarée', 'Declared value')} <span className="text-xs text-orange-200 font-normal">({t('optionnel', 'optional')})</span>
               </Label>
               <div className="relative">
                 <Input
@@ -244,23 +244,23 @@ export default function SenderSection({
                   value={declaredValue}
                   onChange={(e) => setDeclaredValue(e.target.value)}
                   placeholder="0"
-                  className="h-12 bg-white border-orange-200 focus-visible:ring-orange-400 focus-visible:border-orange-400 text-sm pr-14"
+                  className="h-12 bg-white/95 border-white/30 focus-visible:ring-white/50 focus-visible:border-white/60 text-sm text-gray-900 placeholder:text-gray-400 pr-14"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-orange-400 font-semibold">FCFA</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-orange-200 font-semibold">FCFA</span>
               </div>
             </div>
 
             {/* Toggles: Fragile / Prohibited */}
             <div className="space-y-3">
               {/* Fragile Toggle */}
-              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-orange-200">
+              <div className="flex items-center justify-between p-3 bg-white/95 rounded-xl border border-white/30">
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">⚠️</span>
                   <div>
-                    <Label className="text-sm font-medium text-orange-800 cursor-pointer">
+                    <Label className="text-sm font-medium text-gray-800 cursor-pointer">
                       {t('Objet fragile ?', 'Fragile item?')}
                     </Label>
-                    <p className="text-xs text-orange-500">{t('Manutention avec précaution', 'Handle with care')}</p>
+                    <p className="text-xs text-gray-500">{t('Manutention avec précaution', 'Handle with care')}</p>
                   </div>
                 </div>
                 <button
@@ -268,8 +268,8 @@ export default function SenderSection({
                   role="switch"
                   aria-checked={isFragile}
                   onClick={() => setIsFragile(!isFragile)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 ${
-                    isFragile ? 'bg-orange-500' : 'bg-orange-200'
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 ${
+                    isFragile ? 'bg-orange-500' : 'bg-gray-300'
                   }`}
                 >
                   <span
@@ -282,14 +282,14 @@ export default function SenderSection({
               </div>
 
               {/* Prohibited Items Toggle */}
-              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-orange-200">
+              <div className="flex items-center justify-between p-3 bg-white/95 rounded-xl border border-white/30">
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">🚫</span>
                   <div>
-                    <Label className="text-sm font-medium text-orange-800 cursor-pointer">
+                    <Label className="text-sm font-medium text-gray-800 cursor-pointer">
                       {t('Contient produits interdits ?', 'Contains prohibited items?')}
                     </Label>
-                    <p className="text-xs text-orange-500">{t('Inflammables, liquides, armes...', 'Flammables, liquids, weapons...')}</p>
+                    <p className="text-xs text-gray-500">{t('Inflammables, liquides, armes...', 'Flammables, liquids, weapons...')}</p>
                   </div>
                 </div>
                 <button
@@ -297,8 +297,8 @@ export default function SenderSection({
                   role="switch"
                   aria-checked={hasProhibited}
                   onClick={() => setHasProhibited(!hasProhibited)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 ${
-                    hasProhibited ? 'bg-red-500' : 'bg-orange-200'
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 ${
+                    hasProhibited ? 'bg-red-500' : 'bg-gray-300'
                   }`}
                 >
                   <span
@@ -313,13 +313,13 @@ export default function SenderSection({
 
             {/* Prohibited warning */}
             {hasProhibited && (
-              <div className="bg-red-50 border border-red-300 rounded-xl p-3 flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="bg-red-600 border border-red-400 rounded-xl p-3 flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
                 <span className="text-base mt-0.5">⚠️</span>
                 <div>
-                  <p className="text-sm font-semibold text-red-700">
+                  <p className="text-sm font-semibold text-white">
                     {t('Produits interdits détectés !', 'Prohibited items detected!')}
                   </p>
-                  <p className="text-xs text-red-600 mt-0.5">
+                  <p className="text-xs text-red-100 mt-0.5">
                     {t("Les produits inflammables, liquides >100ml et armes ne sont pas acceptés.", "Flammable products, liquids >100ml and weapons are not accepted.")}
                   </p>
                 </div>
