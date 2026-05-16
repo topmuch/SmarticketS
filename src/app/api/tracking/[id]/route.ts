@@ -113,7 +113,7 @@ export async function GET(
           description: `Colis arrivé à ${colis.deliveryLocation || '—'}`,
           timestamp: colis.arrivedAt.toISOString(),
           icon: 'map-pin',
-          color: '#8b5cf6',
+          color: '#f97316',
         });
       }
 

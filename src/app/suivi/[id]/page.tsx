@@ -93,10 +93,10 @@ function formatTime(iso: string, lang: 'fr' | 'en') {
 
 function getEventDotColor(type: string): string {
   switch (type) {
-    case 'activation': return 'bg-emerald-500';
-    case 'pin_generated': return 'bg-violet-500';
-    case 'arrival': return 'bg-orange-500';
-    case 'delivery': return 'bg-emerald-500';
+    case 'activation': return 'bg-[#10b981]';
+    case 'pin_generated': return 'bg-[#8b5cf6]';
+    case 'arrival': return 'bg-[#f97316]';
+    case 'delivery': return 'bg-[#10b981]';
     case 'created': return 'bg-gray-400';
     default: return 'bg-gray-300';
   }
@@ -309,7 +309,11 @@ export default function SuiviPage() {
           <div
             className="rounded-2xl p-5 text-white relative overflow-hidden"
             style={{
-              background: `linear-gradient(135deg, ${colis.statusColor}, ${colis.statusColor}dd)`,
+              background: colis.status === 'delivered'
+                ? 'linear-gradient(135deg, #10b981, #10b981cc)'
+                : colis.status === 'in_transit'
+                  ? 'linear-gradient(135deg, #f97316, #f97316cc)'
+                  : 'linear-gradient(135deg, #6b7280, #6b7280cc)',
             }}
           >
             {/* Decorative circles */}
@@ -343,7 +347,7 @@ export default function SuiviPage() {
                   <p className="text-[10px] text-white/60">{t('Départ', 'Departure')}</p>
                 </div>
                 <div className="flex items-center gap-1 text-white/40">
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-5 h-5 text-[#FF6B35]" />
                 </div>
                 <div className="text-center flex-1">
                   <p className="text-lg font-bold">{colis.arrivalCity}</p>
@@ -354,10 +358,10 @@ export default function SuiviPage() {
           </div>
         )}
 
-        {/* ─── COLIS INFO CARD ─── */}
+        {/* ─── COLIS INFO CARD (color: Voyage green #10b981) ─── */}
         {colis && (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="bg-[#10b981] rounded-2xl p-5 shadow-lg shadow-emerald-500/20 space-y-3">
+            <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
               {t('Détails du colis', 'Package details')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -382,13 +386,13 @@ export default function SuiviPage() {
           </div>
         )}
 
-        {/* ─── TIMELINE ─── */}
+        {/* ─── TIMELINE (color: Sender orange #f97316) ─── */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-gray-900">
               📋 {t('Historique du voyage', 'Journey history')}
             </h2>
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs font-medium text-[#f97316]">
               {timeline.length} {t('événement(s)', 'event(s)')}
             </span>
           </div>
@@ -473,7 +477,7 @@ function SuiviHeader({
     <header className="bg-[#8b5cf6] text-white sticky top-0 z-50">
       <div className="max-w-[600px] mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-[#FF6B35] flex items-center justify-center">
             <QrCode className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -484,9 +488,9 @@ function SuiviHeader({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-white/15 border border-white/20 rounded-full px-3 py-1.5">
-            <Truck className="w-3.5 h-3.5" />
-            <span className="text-xs font-semibold">
+          <div className="flex items-center gap-1.5 bg-[#FF6B35]/15 border border-[#FF6B35]/30 rounded-full px-3 py-1.5">
+            <Truck className="w-3.5 h-3.5 text-[#FF6B35]" />
+            <span className="text-xs font-semibold text-[#FF6B35]">
               {lang === 'fr' ? 'Suivi' : 'Tracking'}
             </span>
           </div>
@@ -529,12 +533,12 @@ function InfoItem({
 }) {
   return (
     <div className="flex items-start gap-2.5">
-      <div className="w-7 h-7 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon className="w-3.5 h-3.5 text-gray-400" />
+      <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon className="w-3.5 h-3.5 text-white/80" />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] text-gray-400 font-medium">{label}</p>
-        <p className={`text-sm text-gray-900 font-semibold truncate ${mono ? 'font-mono' : ''}`}>
+        <p className="text-[11px] text-white/60 font-medium">{label}</p>
+        <p className={`text-sm text-white font-semibold truncate ${mono ? 'font-mono' : ''}`}>
           {value}
         </p>
       </div>
