@@ -22,22 +22,22 @@ export default function SenderSection({
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
   return (
-    <div className="bg-[#2d60fa] rounded-2xl p-6">
-      <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+    <div className="bg-[#d8f0f4] border border-[#d8f0f4] rounded-2xl p-6">
+      <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
         📤 {t('EXPÉDITEUR', 'SENDER')}
       </h2>
 
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="sender_name" className="text-sm font-medium text-white/90">
-            {t('Nom Complet', 'Full Name')} <span className="text-yellow-300">*</span>
+          <Label htmlFor="sender_name" className="text-sm font-medium text-gray-700">
+            {t('Nom Complet', 'Full Name')} <span className="text-red-500">*</span>
           </Label>
           <Input
             id="sender_name"
             value={senderName}
             onChange={(e) => setSenderName(e.target.value)}
             placeholder={t('Ex: Moussa Diop', 'Ex: Moussa Diop')}
-            className="h-12 bg-white border-[#2d60fa]/30 focus-visible:ring-white/40 focus-visible:border-white/50 text-sm text-gray-800 placeholder:text-gray-400"
+            className="h-12 bg-white border-gray-200 focus-visible:ring-[#158c2d]/40 focus-visible:border-[#158c2d]/50 text-sm"
             aria-required="true"
           />
         </div>
@@ -49,8 +49,6 @@ export default function SenderSection({
           hint={t('Recevra la confirmation de départ.', 'Will receive the departure confirmation.')}
           error={phoneError}
           name="sender_phone"
-          labelClassName="text-white/90"
-          hintClassName="text-white/60"
         />
       </div>
     </div>

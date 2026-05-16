@@ -22,7 +22,7 @@ export default function ReceiverSection({
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
   return (
-    <div className="bg-[#fa742d] rounded-2xl p-6">
+    <div className="bg-[#158c2d] rounded-2xl p-6">
       <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
         📥 {t('DESTINATAIRE', 'RECEIVER')}
       </h2>
@@ -37,7 +37,7 @@ export default function ReceiverSection({
             value={receiverName}
             onChange={(e) => setReceiverName(e.target.value)}
             placeholder={t('Ex: Fatou Sow', 'Ex: Fatou Sow')}
-            className="h-12 bg-white border-[#fa742d]/30 focus-visible:ring-white/40 focus-visible:border-white/50 text-sm text-gray-800 placeholder:text-gray-400"
+            className="h-12 bg-white border-[#158c2d]/30 focus-visible:ring-white/40 focus-visible:border-white/50 text-sm text-gray-800 placeholder:text-gray-400"
             aria-required="true"
           />
         </div>
