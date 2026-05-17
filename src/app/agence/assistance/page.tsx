@@ -80,12 +80,12 @@ export default function AssistancePage() {
           agencyId: agencyId,
           senderName: agencyName,
           subject: form.subject,
-          content: JSON.stringify({
+          content: {
             message: form.message,
             priority: form.priority,
             agencyName: agencyName,
             agencyEmail: agencyData?.email
-          })
+          }
         })
       });
 

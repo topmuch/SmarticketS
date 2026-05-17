@@ -39,11 +39,9 @@ export default function ContactPage() {
           type: 'contact',
           senderName: formData.name,
           senderEmail: formData.email,
-          content: {
-            phone: formData.phone,
-            subject: formData.subject,
-            message: formData.message,
-          },
+          senderPhone: formData.phone || null,
+          subject: formData.subject,
+          content: formData.message,
         }),
       });
       setSubmitted(true);

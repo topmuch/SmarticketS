@@ -62,6 +62,8 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 
 // Format message content for display
 function formatMessageContent(content: string, messageType: string): string {
+  if (!content) return '';
+  
   try {
     const parsed = JSON.parse(content);
     
@@ -73,17 +75,75 @@ function formatMessageContent(content: string, messageType: string): string {
       return `Commande: ${parsed.count} ${countLabel}\nType: ${typeLabel}${notes}`;
     }
     
-    // Handle contact/partenaire types
-    if (parsed.message) return parsed.message;
-    if (parsed.nom) return `Nom: ${parsed.nom}${parsed.email ? `\nEmail: ${parsed.email}` : ''}${parsed.message ? `\nMessage: ${parsed.message}` : ''}`;
+    // Handle assistance_agence type (contains message, priority, agencyName, agencyEmail)
+    if (messageType === 'assistance_agence' && parsed.message) {
+      const parts = [parsed.message];
+      if (parsed.priority && parsed.priority !== 'normal') {
+        parts.push(`Priorité: ${parsed.priority}`);
+      }
+      if (parsed.agencyName) {
+        parts.push(`Agence: ${parsed.agencyName}`);
+      }
+      return parts.join('\n');
+    }
+    
+    // Handle old contact/partenaire format (content was JSON with phone, subject, message)
+    if (typeof parsed === 'object' && parsed !== null) {
+      if (parsed.message && parsed.phone && parsed.subject) {
+        // Old contact format: {phone, subject, message}
+        return parsed.message;
+      }
+      if (parsed.message && parsed.agence) {
+        // Old partenaire format: {agence, message}
+        return `${parsed.agence}: ${parsed.message}`;
+      }
+      if (parsed.message) {
+        return parsed.message;
+      }
+      if (parsed.nom) {
+        const parts = [parsed.nom];
+        if (parsed.email) parts.push(parsed.email);
+        if (parsed.message) parts.push(parsed.message);
+        return parts.join(' - ');
+      }
+    }
     
     // Default: try to extract meaningful text
     if (typeof parsed === 'string') return parsed;
     
     return content;
   } catch {
+    // Not JSON — return plain text content
     return content;
   }
+}
+
+// Parse message content to extract structured fields (for detail modal)
+function parseMessageFields(content: string, messageType: string) {
+  const fields: { phone?: string; subject?: string; message: string; agencyName?: string; priority?: string } = {
+    message: content,
+  };
+  
+  try {
+    const parsed = JSON.parse(content);
+    if (typeof parsed !== 'object' || parsed === null) return fields;
+    
+    // Old contact format: {phone, subject, message}
+    if (parsed.phone) fields.phone = parsed.phone;
+    if (parsed.subject) fields.subject = parsed.subject;
+    if (parsed.message) fields.message = parsed.message;
+    
+    // Old partenaire format: {agence, message}
+    if (parsed.agence) fields.agencyName = parsed.agence;
+    
+    // Assistance format
+    if (parsed.priority) fields.priority = parsed.priority;
+    if (parsed.agencyName) fields.agencyName = parsed.agencyName;
+  } catch {
+    // Not JSON, content is already plain text
+  }
+  
+  return fields;
 }
 
 // AI Summary Component for messages
@@ -244,11 +304,7 @@ export default function MessagesPage() {
   };
 
   const parseContent = (content: string) => {
-    try {
-      return JSON.parse(content);
-    } catch {
-      return { raw: content };
-    }
+    return parseMessageFields(content, 'contact');
   };
 
   // Calculate stats
@@ -522,17 +578,30 @@ export default function MessagesPage() {
                 </div>
               </div>
 
-              {selectedMessage.senderPhone && (
+              {(selectedMessage.senderPhone || parseContent(selectedMessage.content).phone) && (
                 <div>
                   <p className="text-slate-500 dark:text-slate-400 text-sm">Téléphone</p>
-                  <p className="text-slate-800 dark:text-white">{selectedMessage.senderPhone}</p>
+                  <p className="text-slate-800 dark:text-white">{selectedMessage.senderPhone || parseContent(selectedMessage.content).phone}</p>
                 </div>
               )}
               
-              {selectedMessage.subject && (
+              {(selectedMessage.subject || parseContent(selectedMessage.content).subject) && (
                 <div>
                   <p className="text-slate-500 dark:text-slate-400 text-sm">Sujet</p>
-                  <p className="text-slate-800 dark:text-white font-medium">{selectedMessage.subject}</p>
+                  <p className="text-slate-800 dark:text-white font-medium">{selectedMessage.subject || parseContent(selectedMessage.content).subject}</p>
+                </div>
+              )}
+
+              {parseContent(selectedMessage.content).priority && parseContent(selectedMessage.content).priority !== 'normal' && (
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">Priorité</p>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    parseContent(selectedMessage.content).priority === 'urgent' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                    parseContent(selectedMessage.content).priority === 'high' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
+                    'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  }`}>
+                    {parseContent(selectedMessage.content).priority}
+                  </span>
                 </div>
               )}
 

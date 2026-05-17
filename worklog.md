@@ -2107,3 +2107,34 @@ Stage Summary:
 - Public agency page shows in_transit instead of found baggages
 - All dates use French locale formatting
 - Emerald/green for delivered, blue for in_transit
+---
+Task ID: 18
+Agent: Main Agent
+Task: Fix received messages display — raw JSON shown instead of structured info
+
+Work Log:
+- Analyzed message flow: Contact page, Partner page, Agency assistance page → API → Admin messages page
+- Found 4 problems:
+  1. Contact page sent content as JSON object {phone, subject, message} — phone/subject lost from DB columns
+  2. Partner page sent content as JSON object {agence, message} — company name lost
+  3. Agency assistance double-stringified content (JSON.stringify inside JSON.stringify)
+  4. Admin messages page formatMessageContent() only returned parsed.message, losing phone/subject/agence info
+
+Fixes Applied:
+- src/app/contact/page.tsx: Changed to send senderPhone + subject at top level, content as plain text
+- src/app/devenir-partenaire/page.tsx: Changed to send subject at top level ("Partenariat - {company}"), content as plain text
+- src/app/agence/assistance/page.tsx: Removed JSON.stringify() from content field (was double-stringifying)
+- src/app/admin/messages/page.tsx:
+  - Rewrote formatMessageContent() to handle: old JSON contact format, old JSON partenaire format, assistance_agence format, commande_agence format, plain text
+  - Added parseMessageFields() helper to extract phone/subject/priority from JSON content for detail modal
+  - Updated detail modal to show phone/subject from content if top-level fields are null (backward compat)
+  - Added priority badge display in detail modal for assistance messages
+
+Validation: bun run lint → 0 errors
+
+Stage Summary:
+- 4 files modified, 0 new files
+- New messages will have clean data (phone/subject in proper DB columns)
+- Old messages with JSON content are now properly parsed and displayed
+- Agency assistance no longer double-stringifies content
+- Detail modal shows all extracted fields (phone, subject, priority)

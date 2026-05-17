@@ -295,10 +295,8 @@ function ContactFormSection() {
           type: 'partenaire',
           senderName: formData.name,
           senderEmail: formData.email,
-          content: {
-            agence: formData.company,
-            message: formData.message,
-          },
+          subject: `Partenariat - ${formData.company}`,
+          content: formData.message,
         }),
       });
       setSubmitted(true);
