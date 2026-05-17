@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { getSession } from '@/lib/session';
 
 // Validation schema
 const userSchema = z.object({
@@ -20,6 +21,15 @@ async function hashPassword(password: string): Promise<string> {
 // GET - List all users
 export async function GET() {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const users = await db.user.findMany({
       include: { agency: true },
       orderBy: { createdAt: 'desc' }
@@ -42,6 +52,15 @@ export async function GET() {
 // POST - Create new user
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validatedData = userSchema.parse(body);
 
@@ -93,6 +112,15 @@ export async function POST(request: NextRequest) {
 // PUT - Update user
 export async function PUT(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { id, password, ...data } = body;
 
@@ -123,6 +151,15 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete user
 export async function DELETE(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

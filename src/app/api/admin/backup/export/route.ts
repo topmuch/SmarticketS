@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
+import { getSession } from '@/lib/session';
 
 // GET - Export database as JSON file
 export async function GET(request: NextRequest) {
   try {
+    const user = await getSession();
+    if (!user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(user.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     // Fetch all data from database
     const [
       users,

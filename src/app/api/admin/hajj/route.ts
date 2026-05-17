@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 // GET - Fetch Hajj pilgrims with their baggages
 export async function GET() {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     // Get all Hajj baggages
     const baggages = await db.baggage.findMany({
       where: {
@@ -95,6 +105,15 @@ export async function GET() {
 // DELETE - Delete a pilgrim and all their baggages
 export async function DELETE(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const pilgrimKey = searchParams.get('id');
 

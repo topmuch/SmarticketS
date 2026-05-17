@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail, getTestEmailTemplate, updateTestStatus, getEmailSettings } from '@/lib/email';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 // POST - Send a test email
 export async function POST(request: NextRequest) {
   try {
+    const user = await getSession();
+    if (!user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(user.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { to } = body;
 

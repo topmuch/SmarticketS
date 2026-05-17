@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateReference, generateSetId, calculateExpirationDate } from '@/lib/qr';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 // Schema for individual generation
 const individualSchema = z.object({
@@ -31,6 +32,15 @@ const combinedSchema = z.discriminatedUnion('context', [
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validatedData = combinedSchema.parse(body);
 
@@ -196,6 +206,15 @@ async function generateBaggages(options: {
 // GET - Get all baggages (for QR codes list)
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const agencyId = searchParams.get('agencyId');
     const type = searchParams.get('type');

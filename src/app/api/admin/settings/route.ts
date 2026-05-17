@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 // Default settings
 const defaultSettings = {
@@ -23,6 +24,15 @@ const defaultSettings = {
 // GET - Get all settings
 export async function GET() {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const settings = await db.setting.findMany();
     
     // Convert to object
@@ -48,6 +58,15 @@ export async function GET() {
 // PUT - Update settings
 export async function PUT(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { settings } = body;
 

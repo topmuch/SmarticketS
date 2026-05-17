@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { sendEmail, getEmailSettings, getNewAgencyEmailTemplate } from '@/lib/email';
+import { getSession } from '@/lib/session';
 
 // Validation schema
 const agencySchema = z.object({
@@ -15,6 +16,15 @@ const agencySchema = z.object({
 // GET - List all agencies
 export async function GET() {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const agencies = await db.agency.findMany({
       include: {
         _count: {
@@ -38,6 +48,15 @@ export async function GET() {
 // POST - Create new agency
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const validatedData = agencySchema.parse(body);
 
@@ -121,6 +140,15 @@ export async function POST(request: NextRequest) {
 // PUT - Update agency
 export async function PUT(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { id, ...data } = body;
     const validatedData = agencySchema.parse(data);
@@ -150,6 +178,15 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete agency
 export async function DELETE(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

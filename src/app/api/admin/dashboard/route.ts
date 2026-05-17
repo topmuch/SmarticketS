@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isActive } from '@/lib/status';
+import { getSession } from '@/lib/session';
 
 // GET - Fetch dashboard statistics
 export async function GET() {
   try {
+    const user = await getSession();
+    if (!user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(user.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     // Get all baggages
     const baggages = await db.baggage.findMany({
       select: {

@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEmailSettings, saveEmailSettings } from '@/lib/email';
+import { getSession } from '@/lib/session';
 
 // GET - Retrieve email settings
 export async function GET() {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const settings = await getEmailSettings();
     
     // Mask sensitive data
@@ -25,6 +35,15 @@ export async function GET() {
 // PUT - Update email settings
 export async function PUT(request: NextRequest) {
   try {
+    const currentUser = await getSession();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const isAdmin = ['superadmin', 'admin'].includes(currentUser.role);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     
     // Validate provider

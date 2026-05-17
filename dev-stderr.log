@@ -1,1 +1,1 @@
-⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+$ next dev -p 3000 2>&1 | tee dev.log
