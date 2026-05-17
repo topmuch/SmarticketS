@@ -1847,3 +1847,41 @@ Stage Summary:
 - page.tsx reduced from 1232 lines to 30 lines (clean imports)
 - All real QRTrans routes preserved
 
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Complete landing page deliverables — DESIGN_GUIDE.md, JSON-LD, accessibility skip link
+
+Work Log:
+- Verified all 12 landing page components already exist and are fully functional
+- Ran ESLint: 0 errors
+- Dev server running clean, all GET / returning 200
+- Created DESIGN_GUIDE.md (535 lines) documenting:
+  - Color palette with hex values and Tailwind classes
+  - Typography hierarchy (H1-H3, body, small)
+  - Spacing rules (sections, cards, elements)
+  - Border radius standards
+  - Professional shadow tokens
+  - Framer Motion animation standards
+  - Component architecture and conventions
+  - Layout rules per section
+  - Responsive breakpoints behavior
+  - Accessibility standards (WCAG AA)
+  - Image standards
+  - Performance targets (Lighthouse ≥ 95)
+  - Route integration mapping
+  - Quick reference copy-paste classes
+- Added JSON-LD structured data to layout.tsx:
+  - Organization schema (name, url, logo, address, contactPoint, sameAs)
+  - SoftwareApplication schema (name, category, description, offers, aggregateRating)
+- Added accessibility skip link (<a href="#main-content">) to layout.tsx body
+- Added id="main-content" to <main> in page.tsx
+- Updated Twitter card metadata to match landing page content
+
+Stage Summary:
+- DESIGN_GUIDE.md created at /home/z/my-project/DESIGN_GUIDE.md
+- layout.tsx enhanced with JSON-LD (Organization + SoftwareApplication) and skip link
+- page.tsx updated with main-content ID for accessibility
+- Zero lint errors, clean dev server compilation
+- All 9 landing page sections + navigation + WhatsApp float fully operational

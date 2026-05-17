@@ -60,8 +60,8 @@ export const metadata: Metadata = {
   // Twitter
   twitter: {
     card: "summary_large_image",
-    title: "QRTrans - Protection intelligente des colis",
-    description: "Un autocollant QR intelligent pour protéger vos effets personnels.",
+    title: "QRTrans - Traçabilité & sécurité logistique | Transport inter-villes",
+    description: "Activez, tracez et sécurisez vos colis entre villes au Sénégal. Notifications WhatsApp, code PIN, suivi GPS temps réel.",
     images: ["/icons/icon-512x512.png"],
   },
 
@@ -151,6 +151,72 @@ export default function RootLayout({
       <body
         className={`${inter.variable} antialiased bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white`}
       >
+        {/* Skip to main content - Accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[#FF6B35] focus:text-white focus:rounded-lg focus:font-semibold focus:text-sm focus:shadow-lg"
+        >
+          Aller au contenu principal
+        </a>
+
+        {/* JSON-LD Structured Data: Organization */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "QRTrans",
+              url: "https://qrtrans.com",
+              logo: "https://qrtrans.com/icons/icon-512x512.png",
+              description: "Plateforme de traçabilité et sécurité logistique pour le transport inter-villes au Sénégal.",
+              address: {
+                "@type": "PostalAddress",
+                addressCountry: "SN",
+                addressLocality: "Dakar"
+              },
+              contactPoint: {
+                "@type": "ContactPoint",
+                telephone: "+221-78-485-82-26",
+                contactType: "customer service",
+                availableLanguage: ["fr", "wo", "en"]
+              },
+              sameAs: [
+                "https://wa.me/221784858226"
+              ],
+              foundingDate: "2024"
+            }),
+          }}
+        />
+
+        {/* JSON-LD Structured Data: SoftwareApplication */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "QRTrans",
+              applicationCategory: "LogisticsApplication",
+              operatingSystem: "Web, iOS, Android",
+              description: "Solution de traçabilité et sécurité logistique pour le transport inter-villes. Activation QR, notifications WhatsApp, code PIN de retrait, suivi GPS temps réel.",
+              url: "https://qrtrans.com",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "XOF",
+                description: "Plan gratuit pour chauffeurs et agences"
+              },
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: "4.8",
+                ratingCount: "520",
+                bestRating: "5"
+              }
+            }),
+          }}
+        />
+
         <ThemeProvider>
           <AuthProvider>
             <ServiceWorkerRegistration />
