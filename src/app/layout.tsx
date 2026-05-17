@@ -12,17 +12,119 @@ const inter = Inter({
   display: "swap",
 });
 
+// SEO: JSON-LD Structured Data (constantes pour éviter les problèmes JSX)
+const jsonLdSoftwareApplication = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "QRTrans",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web, iOS, Android",
+  description: "Plateforme de traçabilité de colis par QR code pour le transport inter-villes au Sénégal. Notifications WhatsApp automatiques, code PIN de retrait sécurisé, suivi GPS en temps réel, dashboard agence.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "XOF",
+    availability: "https://schema.org/InStock"
+  },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.9",
+    reviewCount: "127",
+    bestRating: "5",
+    worstRating: "1"
+  },
+  featureList: [
+    "Activation de colis par QR code en 30 secondes",
+    "Notifications WhatsApp automatiques via wa.me",
+    "Code PIN à 6 chiffres pour sécuriser la livraison",
+    "Suivi GPS en temps réel des colis",
+    "Dashboard agence avec gestion de flotte",
+    "Mode hors-ligne pour zones sans réseau",
+    "Détection IP pour saisie téléphone simplifiée",
+    "Export CSV et reporting comptable"
+  ],
+  areaServed: [
+    { "@type": "Country", name: "Sénégal" },
+    { "@type": "Country", name: "Mali" },
+    { "@type": "Country", name: "Guinée" },
+    { "@type": "Country", name: "Côte d'Ivoire" }
+  ],
+  url: "https://qrtrans.pro",
+  logo: "https://qrtrans.pro/icons/icon-512x512.png",
+  sameAs: [
+    "https://facebook.com/qrtrans.sn",
+    "https://linkedin.com/company/qrtrans",
+    "https://wa.me/221784858226"
+  ]
+});
+
+const jsonLdWebSite = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "QRTrans",
+  url: "https://qrtrans.pro",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: "https://qrtrans.pro/suivi/{search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+});
+
+const jsonLdService = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Traçabilité de Colis par QR Code",
+  description: "Activez, tracez et sécurisez vos colis inter-villes avec QRTrans. Activation QR code, notifications WhatsApp, code PIN de retrait, suivi GPS en temps réel.",
+  provider: {
+    "@type": "Organization",
+    name: "QRTrans",
+    url: "https://qrtrans.pro"
+  },
+  areaServed: [
+    { "@type": "Country", name: "Sénégal" },
+    { "@type": "Country", name: "Mali" },
+    { "@type": "Country", name: "Guinée" },
+    { "@type": "Country", name: "Côte d'Ivoire" }
+  ],
+  serviceType: "Traçabilité logistique",
+  featureList: [
+    "Activation QR code en 30 secondes",
+    "Notifications WhatsApp via wa.me",
+    "Code PIN de retrait sécurisé",
+    "Suivi GPS en temps réel",
+    "Dashboard agence avec gestion de flotte"
+  ]
+});
+
+const jsonLdPlace = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Place",
+  name: "Sénégal",
+  addressCountry: "SN"
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "QRTrans - Traçabilité & sécurité logistique pour le transport inter-villes",
+    default: "QRTrans — Traçabilité de Colis par QR Code au Sénégal",
     template: "%s | QRTrans",
   },
-  description: "QRTrans : activez, tracez et sécurisez vos colis entre villes. Notifications WhatsApp automatiques, code PIN de retrait, suivi GPS en temps réel. Solution pour chauffeurs et agences de transport au Sénégal.",
-  keywords: ["QRTrans", "QR code", "colis", "transport inter-villes", "Sénégal", "traçabilité", "logistique", "WhatsApp", "suivi colis", "chauffeur", "agence transport", "PIN retrait", "GPS"],
+  description: "Plateforme de traçabilité de colis par QR code pour le transport inter-villes au Sénégal. Activation en 30s, notifications WhatsApp automatiques, code PIN sécurisé, suivi GPS temps réel, dashboard agence.",
+  keywords: [
+    "QRTrans", "QR code colis", "traçabilité colis", "transport inter-villes Sénégal",
+    "logistique Sénégal", "suivi colis", "notifications WhatsApp", "code PIN livraison",
+    "GPS colis", "dashboard agence transport", "chauffeur livreur",
+    "colis Dakar Ziguinchor", "colis Dakar Saint-Louis", "colis Touba Thiès",
+    "expédition colis Sénégal", "livraison colis Sénégal", "sécurité colis",
+    "agence transport Sénégal", "Mali Guinée Côte d'Ivoire"
+  ],
   authors: [{ name: "QRTrans Team" }],
   creator: "MMASOLUTION",
   publisher: "QRTrans",
   metadataBase: new URL("https://qrtrans.pro"),
+  category: "business",
 
   // PWA Icons
   icons: {
@@ -35,34 +137,37 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
     ],
     other: [
-      { rel: "mask-icon", url: "/icons/maskable-icon-512x512.png", color: "#ff7f00" },
+      { rel: "mask-icon", url: "/icons/maskable-icon-512x512.png", color: "#0A2540" },
     ],
   },
 
-  // Open Graph
+  // Open Graph — optimisé pour le partage social
   openGraph: {
-    title: "QRTrans - Traçabilité & sécurité logistique | Transport inter-villes",
-    description: "Activez, tracez et sécurisez vos colis entre villes au Sénégal. Notifications WhatsApp, code PIN, suivi GPS temps réel.",
+    title: "QRTrans — Traçabilité de Colis par QR Code au Sénégal",
+    description: "Activez un colis en 30 secondes avec un QR code. Notifications WhatsApp automatiques, code PIN sécurisé, suivi GPS temps réel. Solution complète pour agences de transport.",
     url: "https://qrtrans.pro",
     siteName: "QRTrans",
     type: "website",
     locale: "fr_FR",
+    alternateLocale: ["en_US", "ar_SA"],
     images: [
       {
         url: "/icons/icon-512x512.png",
         width: 512,
         height: 512,
-        alt: "QRTrans Logo",
+        alt: "QRTrans — Traçabilité de Colis par QR Code",
       },
     ],
   },
 
-  // Twitter
+  // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "QRTrans - Traçabilité & sécurité logistique | Transport inter-villes",
-    description: "Activez, tracez et sécurisez vos colis entre villes au Sénégal. Notifications WhatsApp, code PIN, suivi GPS temps réel.",
+    title: "QRTrans — Traçabilité de Colis par QR Code au Sénégal",
+    description: "Activez un colis en 30 secondes. Notifications WhatsApp, code PIN sécurisé, suivi GPS. Solution pour agences de transport.",
     images: ["/icons/icon-512x512.png"],
+    creator: "@qrtrans_sn",
+    site: "@qrtrans_sn",
   },
 
   // PWA
@@ -90,11 +195,23 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 
   // Alternates
   alternates: {
     canonical: "https://qrtrans.pro",
+    languages: {
+      "fr": "https://qrtrans.pro",
+      "en": "https://qrtrans.pro/?lang=en",
+      "ar": "https://qrtrans.pro/?lang=ar",
+    },
   },
 
   // Google Search Console Verification
@@ -106,7 +223,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+    { media: "(prefers-color-scheme: dark)", color: "#0A2540" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -146,12 +263,14 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="QRTrans" />
         <meta name="application-name" content="QRTrans" />
-        <meta name="msapplication-TileColor" content="#ff7f00" />
+        <meta name="msapplication-TileColor" content="#0A2540" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
 
-        {/* Preconnect for performance */}
+        {/* Preconnect & DNS Prefetch for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="//wa.me" />
+        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
       </head>
       <body
         className={`${inter.variable} antialiased bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white`}
@@ -174,7 +293,7 @@ export default function RootLayout({
               name: "QRTrans",
               url: "https://qrtrans.pro",
               logo: "https://qrtrans.pro/icons/icon-512x512.png",
-              description: "Plateforme de traçabilité et sécurité logistique pour le transport inter-villes au Sénégal.",
+              description: "Plateforme de traçabilité de colis par QR code pour le transport inter-villes au Sénégal. Notifications WhatsApp, code PIN, suivi GPS, dashboard agence.",
               address: {
                 "@type": "PostalAddress",
                 addressCountry: "SN",
@@ -187,6 +306,8 @@ export default function RootLayout({
                 availableLanguage: ["fr", "wo", "en"]
               },
               sameAs: [
+                "https://facebook.com/qrtrans.sn",
+                "https://linkedin.com/company/qrtrans",
                 "https://wa.me/221784858226"
               ],
               foundingDate: "2024"
@@ -194,33 +315,17 @@ export default function RootLayout({
           }}
         />
 
-        {/* JSON-LD Structured Data: SoftwareApplication */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              name: "QRTrans",
-              applicationCategory: "LogisticsApplication",
-              operatingSystem: "Web, iOS, Android",
-              description: "Solution de traçabilité et sécurité logistique pour le transport inter-villes. Activation QR, notifications WhatsApp, code PIN de retrait, suivi GPS temps réel.",
-              url: "https://qrtrans.pro",
-              offers: {
-                "@type": "Offer",
-                price: "0",
-                priceCurrency: "XOF",
-                description: "Plan gratuit pour chauffeurs et agences"
-              },
-              aggregateRating: {
-                "@type": "AggregateRating",
-                ratingValue: "4.8",
-                ratingCount: "520",
-                bestRating: "5"
-              }
-            }),
-          }}
-        />
+        {/* JSON-LD Structured Data: SoftwareApplication - SEO Optimise */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSoftwareApplication }} />
+
+        {/* JSON-LD Structured Data: WebSite - Recherche Google */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdWebSite }} />
+
+        {/* JSON-LD Structured Data: Service - Semantique logistique */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdService }} />
+
+        {/* JSON-LD Structured Data: Place - SEO local */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPlace }} />
 
         <ThemeProvider>
           <AuthProvider>

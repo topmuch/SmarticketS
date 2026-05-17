@@ -1,11 +1,11 @@
 {
-  "name": "QRTrans - Protection intelligente des bagages",
+  "name": "QRTrans — Traçabilité de Colis par QR Code",
   "short_name": "QRTrans",
-  "description": "Protégez vos bagages avec un autocollant QR intelligent. Sans application, sans batterie, sans GPS. Un seul scan pour la tranquillité d'esprit.",
+  "description": "Plateforme de traçabilité de colis par QR code pour le transport inter-villes. Activation en 30s, notifications WhatsApp, code PIN sécurisé, suivi GPS, dashboard agence.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#080c1a",
-  "theme_color": "#0d5e34",
+  "background_color": "#0A2540",
+  "theme_color": "#0A2540",
   "orientation": "portrait-primary",
   "scope": "/",
   "prefer_related_applications": false,
@@ -65,7 +65,7 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["travel", "utilities", "lifestyle"],
+  "categories": ["business", "logistics", "utilities"],
   "lang": "fr",
   "dir": "auto",
   "shortcuts": [
