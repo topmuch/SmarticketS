@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import ActivationHeader from '@/components/activation/ActivationHeader';
 import ActivationForm from '@/components/activation/ActivationForm';
 
-export default function ActivatePage() {
+function ActivateContent() {
   const params = useParams();
   const router = useRouter();
   const qrCode = ((params?.id as string) || '').toUpperCase().trim();
@@ -30,7 +30,7 @@ export default function ActivatePage() {
         if (res.ok && data.success && data.colis) {
           const status = data.colis.status;
 
-          // If already in_transit → redirect to arrival page
+          // If already in_transit → redirect to retrieve page
           if (status === 'in_transit') {
             router.replace(`/retrieve/${qrCode}`);
             return;
@@ -75,5 +75,21 @@ export default function ActivatePage() {
         <ActivationForm qrCode={qrCode} lang={lang} />
       </main>
     </div>
+  );
+}
+
+export default function ActivatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
+          <div className="flex items-center justify-center py-32">
+            <Loader2 className="w-8 h-8 text-white animate-spin" />
+          </div>
+        </div>
+      }
+    >
+      <ActivateContent />
+    </Suspense>
   );
 }

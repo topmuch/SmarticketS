@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Copy, ExternalLink, RotateCcw, ArrowRight, Truck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { CheckCircle, Copy, RotateCcw, ArrowRight, Truck, MessageCircle } from 'lucide-react';
 import { createDepartureLinks, formatDateFR, formatTime } from '@/lib/wame';
 
 interface SuccessScreenProps {
@@ -21,6 +22,8 @@ interface SuccessScreenProps {
   waReceiverUrl?: string;
   lang: 'fr' | 'en';
   onReset: () => void;
+  /** 'none' = both buttons active, 'sender' = sender done, 'receiver' = receiver done */
+  notified?: 'none' | 'sender' | 'receiver';
   // New baggage fields
   baggageType: string;
   baggageTypeOther?: string;
@@ -51,6 +54,7 @@ export default function SuccessScreen({
   waReceiverUrl,
   lang,
   onReset,
+  notified: notifiedProp = 'none',
   baggageType,
   baggageTypeOther,
   baggageWeight,
@@ -84,6 +88,30 @@ export default function SuccessScreen({
   const links = createDepartureLinks(vars);
   const senderLink = waSenderUrl || links.sender;
   const receiverLink = waReceiverUrl || links.receiver;
+
+  const router = useRouter();
+  const [notified, setNotified] = useState<'none' | 'sender' | 'receiver'>(notifiedProp);
+
+  // ─── Navigate to /sending page for WhatsApp notification ───
+  const handleNotify = useCallback(
+    (waLink: string, name: string, type: 'sender' | 'receiver') => {
+      // If both notified, go to retrieve page; otherwise come back here
+      const otherNotified = notified !== 'none' && notified !== type;
+      const callback = otherNotified
+        ? `/retrieve/${reference}`
+        : `/activate/${reference}?notified=${type}`;
+
+      const params = new URLSearchParams({
+        waLink,
+        to: name,
+        type,
+        callback,
+        suivi: `/suivi/${reference}`,
+      });
+      router.push(`/sending?${params.toString()}`);
+    },
+    [notified, reference, router],
+  );
 
   const [copied, setCopied] = useState(false);
 
@@ -212,26 +240,39 @@ export default function SuccessScreen({
         </p>
       </div>
 
-      {/* WhatsApp Buttons */}
+      {/* WhatsApp Buttons — redirect via /sending page */}
       <div className="space-y-3">
-        <a
-          href={senderLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full h-12 sm:h-[56px] bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-bold text-sm sm:text-lg shadow-lg shadow-green-500/25 transition-all no-underline"
-        >
-          🟢 {t("NOTIFIER L'EXPÉDITEUR", 'NOTIFY SENDER')}
-          <ExternalLink className="w-3.5 h-3.5 opacity-50" />
-        </a>
-        <a
-          href={receiverLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full h-12 sm:h-[56px] bg-[#0077B6] hover:bg-[#005f8d] active:bg-[#004a6e] text-white rounded-xl font-bold text-sm sm:text-lg shadow-lg shadow-blue-500/25 transition-all no-underline"
-        >
-          🔵 {t('NOTIFIER LE DESTINATAIRE', 'NOTIFY RECEIVER')}
-          <ExternalLink className="w-3.5 h-3.5 opacity-50" />
-        </a>
+        {notified === 'sender' ? (
+          <div className="flex items-center justify-center gap-3 w-full h-12 sm:h-[56px] bg-white/10 border border-white/20 rounded-xl text-white/50">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-bold text-sm sm:text-lg">✅ {t('EXPÉDITEUR NOTIFIÉ', 'SENDER NOTIFIED')}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => handleNotify(senderLink, senderName, 'sender')}
+            className="flex items-center justify-center gap-2 w-full h-12 sm:h-[56px] bg-[#FF6B35] hover:bg-[#e55a28] active:bg-[#d04e1f] text-white rounded-xl font-bold text-sm sm:text-lg shadow-lg shadow-orange-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <MessageCircle className="w-5 h-5" />
+            {t("NOTIFIER L'EXPÉDITEUR", 'NOTIFY SENDER')}
+          </button>
+        )}
+
+        {notified === 'receiver' ? (
+          <div className="flex items-center justify-center gap-3 w-full h-12 sm:h-[56px] bg-white/10 border border-white/20 rounded-xl text-white/50">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-bold text-sm sm:text-lg">✅ {t('DESTINATAIRE NOTIFIÉ', 'RECEIVER NOTIFIED')}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => handleNotify(receiverLink, receiverName, 'receiver')}
+            className="flex items-center justify-center gap-2 w-full h-12 sm:h-[56px] bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-bold text-sm sm:text-lg shadow-lg shadow-green-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <MessageCircle className="w-5 h-5" />
+            {t('NOTIFIER LE DESTINATAIRE', 'NOTIFY RECEIVER')}
+          </button>
+        )}
       </div>
 
       {/* Transition to retrieval */}

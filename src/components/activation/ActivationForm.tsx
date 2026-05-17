@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import VoyageSection from './VoyageSection';
 import SenderSection from './SenderSection';
@@ -15,6 +16,10 @@ interface ActivationFormProps {
 }
 
 export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
+  const searchParams = useSearchParams();
+  const notifiedParam = searchParams.get('notified') as 'sender' | 'receiver' | null;
+  const isReturningFromNotify = notifiedParam === 'sender' || notifiedParam === 'receiver';
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
@@ -193,6 +198,15 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
         setWaSenderUrl(data.wa_sender || '');
         setWaReceiverUrl(data.wa_receiver || '');
         setSuccess(true);
+        // Store in sessionStorage for returning from /sending page
+        try {
+          sessionStorage.setItem(`activation_${qrCode}`, JSON.stringify({
+            transportType, company, departureCity, arrivalCity, departureDate, departureTime,
+            pickupAddress, estimatedArrival, paymentStatus, senderName, senderPhone: senderPhone.replace(/\s/g, ''),
+            receiverName, receiverPhone: receiverPhone.replace(/\s/g, ''), wa_sender: data.wa_sender, wa_receiver: data.wa_receiver,
+            baggageType, baggageTypeOther, baggageWeight, isFragile,
+          }));
+        } catch { /* noop */ }
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (['already_in_transit', 'already_delivered', 'already_active'].includes(data.error)) {
         setErrorCode(data.error);
@@ -251,8 +265,42 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
     setSenderPhoneError(null);
     setReceiverPhoneError(null);
     setDriverPhoneError(null);
+    // Clear sessionStorage
+    try { sessionStorage.removeItem(`activation_${qrCode}`); } catch { /* noop */ }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // ─── Restore success state when returning from /sending ───
+  useEffect(() => {
+    if (isReturningFromNotify && !success) {
+      try {
+        const stored = sessionStorage.getItem(`activation_${qrCode}`);
+        if (stored) {
+          const data = JSON.parse(stored);
+          setTransportType(data.transportType || '');
+          setCompany(data.company || '');
+          setDepartureCity(data.departureCity || '');
+          setArrivalCity(data.arrivalCity || '');
+          setDepartureDate(data.departureDate || '');
+          setDepartureTime(data.departureTime || '');
+          setPickupAddress(data.pickupAddress || '');
+          setEstimatedArrival(data.estimatedArrival || '');
+          setPaymentStatus(data.paymentStatus || '');
+          setSenderName(data.senderName || '');
+          setSenderPhone(data.senderPhone || '');
+          setReceiverName(data.receiverName || '');
+          setReceiverPhone(data.receiverPhone || '');
+          setWaSenderUrl(data.wa_sender || '');
+          setWaReceiverUrl(data.wa_receiver || '');
+          setBaggageType(data.baggageType || '');
+          setBaggageTypeOther(data.baggageTypeOther || '');
+          setBaggageWeight(data.baggageWeight || '');
+          setIsFragile(data.isFragile || false);
+          setSuccess(true);
+        }
+      } catch { /* noop */ }
+    }
+  }, [isReturningFromNotify, qrCode, success]);
 
   // Success state
   if (success) {
@@ -273,6 +321,7 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
         waReceiverUrl={waReceiverUrl}
         lang={lang}
         onReset={handleReset}
+        notified={isReturningFromNotify ? notifiedParam : 'none'}
         // New baggage fields
         baggageType={baggageType}
         baggageTypeOther={baggageTypeOther}
