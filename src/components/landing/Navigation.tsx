@@ -7,9 +7,9 @@ import { QrCode, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navLinks = [
-  { label: 'Solutions', href: '#services' },
+  { label: 'Accueil', href: '#top' },
   { label: 'Processus', href: '#process' },
-  { label: 'Contact', href: '#footer' },
+  { label: 'Contact', href: '/contact' },
 ];
 
 export default function Navigation() {
@@ -24,10 +24,13 @@ export default function Navigation() {
 
   const handleNavClick = useCallback((href: string) => {
     setIsOpen(false);
-    if (href.startsWith('#')) {
+    if (href.startsWith('#') && href !== '#top') {
       const el = document.querySelector(href);
       el?.scrollIntoView({ behavior: 'smooth' });
+    } else if (href === '#top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    // External links (like /contact) navigate normally via <Link>
   }, []);
 
   const isOnHero = !scrolled;
@@ -54,39 +57,31 @@ export default function Navigation() {
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick(link.href);
-                }}
-                className={`text-sm font-medium transition-colors duration-200 relative after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-[#FF6B35] after:transition-all after:duration-300 hover:after:w-full ${
-                  isOnHero
-                    ? 'text-white/90 hover:text-white after:bg-white/60'
-                    : 'text-[#475569] hover:text-[#0A2540]'
-                }`}
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const isPage = link.href.startsWith('/');
+              const LinkTag = isPage ? Link : 'a';
+              const props = isPage
+                ? { href: link.href, onClick: () => setIsOpen(false) }
+                : { href: link.href, onClick: (e: React.MouseEvent) => { e.preventDefault(); handleNavClick(link.href); } };
+
+              return (
+                <LinkTag
+                  key={link.label}
+                  {...props}
+                  className={`text-sm font-medium transition-colors duration-200 relative after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-[#FF6B35] after:transition-all after:duration-300 hover:after:w-full ${
+                    isOnHero
+                      ? 'text-white/90 hover:text-white after:bg-white/60'
+                      : 'text-[#475569] hover:text-[#0A2540]'
+                  }`}
+                >
+                  {link.label}
+                </LinkTag>
+              );
+            })}
           </div>
 
-          {/* Desktop CTA buttons */}
+          {/* Desktop CTA button */}
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/agence/connexion">
-              <Button
-                variant="ghost"
-                className={`text-sm font-medium border rounded-lg transition-all duration-300 ${
-                  isOnHero
-                    ? 'text-white border-white/30 hover:border-white/60 hover:bg-white/10'
-                    : 'text-[#475569] border-[#E2E8F0] hover:border-[#0A2540]/20 hover:bg-white'
-                }`}
-              >
-                Espace Agence
-              </Button>
-            </Link>
             <Link href="/devenir-partenaire">
               <Button className="bg-[#FF6B35] hover:bg-[#e65a28] text-white font-medium text-sm rounded-lg px-5 shadow-[0_4px_12px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)] transition-all hover:scale-[1.02]">
                 Devenir Partenaire
@@ -115,25 +110,32 @@ export default function Navigation() {
               className="md:hidden py-4 border-t border-[#E2E8F0] bg-white/98 backdrop-blur-xl"
             >
               <div className="flex flex-col gap-3">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="text-[#0A2540] hover:text-[#FF6B35] font-medium py-2 text-lg"
-                    onClick={() => handleNavClick(link.href)}
-                  >
-                    {link.label}
-                  </a>
-                ))}
+                {navLinks.map((link) => {
+                  const isPage = link.href.startsWith('/');
+                  if (isPage) {
+                    return (
+                      <Link
+                        key={link.label}
+                        href={link.href}
+                        onClick={() => setIsOpen(false)}
+                        className="text-[#0A2540] hover:text-[#FF6B35] font-medium py-2 text-lg"
+                      >
+                        {link.label}
+                      </Link>
+                    );
+                  }
+                  return (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className="text-[#0A2540] hover:text-[#FF6B35] font-medium py-2 text-lg"
+                      onClick={() => handleNavClick(link.href)}
+                    >
+                      {link.label}
+                    </a>
+                  );
+                })}
                 <hr className="border-[#E2E8F0]" />
-                <Link href="/agence/connexion" onClick={() => setIsOpen(false)}>
-                  <Button
-                    variant="ghost"
-                    className="w-full text-[#475569] border border-[#E2E8F0] justify-start rounded-lg"
-                  >
-                    Espace Agence
-                  </Button>
-                </Link>
                 <Link href="/devenir-partenaire" onClick={() => setIsOpen(false)}>
                   <Button className="w-full bg-[#FF6B35] hover:bg-[#e65a28] text-white font-medium rounded-lg">
                     Devenir Partenaire
