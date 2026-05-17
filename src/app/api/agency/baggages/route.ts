@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
       scanned: normalizedBaggages.filter(b => b.status === 'scanned').length,
       lost: normalizedBaggages.filter(b => b.status === 'lost').length,
       found: normalizedBaggages.filter(b => b.status === 'found').length,
+      delivered: normalizedBaggages.filter(b => b.status === 'delivered').length,
+      inTransit: normalizedBaggages.filter(b => b.status === 'in_transit').length,
     };
 
     return NextResponse.json({

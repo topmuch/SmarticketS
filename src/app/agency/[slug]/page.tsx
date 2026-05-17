@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import { isActive } from '@/lib/status';
+import { isActive, isInTransit } from '@/lib/status';
 import { Luggage, MapPin, Clock, CheckCircle, QrCode, Phone, Mail, Globe, Search } from 'lucide-react';
 
 // Page params type
@@ -22,7 +22,7 @@ export default async function PublicAgencyPage({ params }: PageProps) {
     include: {
       baggages: {
         where: {
-          status: { in: ['active', 'scanned', 'found'] },
+          status: { in: ['active', 'scanned', 'in_transit'] },
         },
         orderBy: { createdAt: 'desc' },
         take: 100, // Limit to 100 baggages
@@ -41,7 +41,7 @@ export default async function PublicAgencyPage({ params }: PageProps) {
   // Stats - include all protected baggages
   const totalBaggages = agency.baggages.length;
   const activeBaggages = agency.baggages.filter(b => isActive(b.status)).length;
-  const foundBaggages = agency.baggages.filter(b => b.status === 'found').length;
+  const inTransitBaggages = agency.baggages.filter(b => b.status === 'in_transit').length;
   const scannedBaggages = agency.baggages.filter(b => b.status === 'scanned').length;
 
   // Get contact info from first user or agency
@@ -101,11 +101,11 @@ export default async function PublicAgencyPage({ params }: PageProps) {
             <p className="text-slate-500 dark:text-slate-400 text-sm">Scannés</p>
           </div>
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-xl flex items-center justify-center mb-3">
-              <Search className="w-5 h-5 text-green-500" />
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center mb-3">
+              <Search className="w-5 h-5 text-blue-500" />
             </div>
-            <p className="text-2xl font-bold text-slate-800 dark:text-white">{foundBaggages}</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Retrouvés</p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-white">{inTransitBaggages}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">En transit</p>
           </div>
         </div>
 
@@ -160,11 +160,11 @@ export default async function PublicAgencyPage({ params }: PageProps) {
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         baggage.status === 'active' 
                           ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
-                          : baggage.status === 'found'
-                          ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400'
+                          : baggage.status === 'in_transit'
+                          ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
                           : 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
                       }`}>
-                        {baggage.status === 'active' ? 'Actif' : baggage.status === 'found' ? 'Retrouvé' : 'Scanné'}
+                        {baggage.status === 'active' ? 'Actif' : baggage.status === 'in_transit' ? 'En transit' : 'Scanné'}
                       </span>
                       <span className="text-sm text-slate-400 dark:text-slate-500 hidden sm:block">
                         {baggage.baggageType === 'cabine' ? 'Cabine' : 'Soute'} #{baggage.baggageIndex}

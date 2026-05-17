@@ -2017,3 +2017,93 @@ Stage Summary:
 - Existing pages updated: /cgu, /confidentialite (new design, Sénégal address)
 - Footer updated with all correct links
 - All pages pass ESLint and return 200
+
+---
+Task ID: 18
+Agent: Main Agent
+Task: Add in_transit and delivered status support across status system, dashboards, and admin pages
+
+Work Log:
+- Identified root cause: validate-pin API uses `in_transit` and `delivered` statuses but these are NOT in the status type system
+- This caused Application Errors on agency dashboard and missing data across all dashboards
+
+Task 1 — Updated src/lib/status.ts:
+  - Added `in_transit` and `delivered` to `BaggageStatus` type union
+  - Added French aliases: EN_TRANSIT → in_transit, LIVRÉ → delivered (uppercase + lowercase)
+  - Added `isInTransit()` and `isDelivered()` helper functions
+
+Task 2 — Updated src/app/agency/[slug]/page.tsx (public agency page):
+  - Changed Prisma filter from `['active', 'scanned', 'found']` to `['active', 'scanned', 'in_transit']`
+  - Replaced "Retrouvés" stats card with "En transit" showing `in_transit` count (blue color)
+  - Updated status badge: shows "En transit" with blue badge for `in_transit` status
+
+Task 3 — Updated src/app/agence/trouvailles/page.tsx (agency trouvailles):
+  - Changed filter from `status === 'found'` to `status === 'delivered' || status === 'found'`
+  - Added `deliveredAt`, `receiverName`, `receiverWhatsapp`, `transportMode` to Baggage interface
+  - Added status badge column: "Livré" (green) for delivered, "Retrouvé" (blue) for found
+  - Updated detail modal: different icons/colors for delivered vs found, receiver info section for delivered packages
+  - Updated "Retrouvé le" column to show delivery/recovery date with status badge
+
+Task 4 — Created src/app/api/admin/baggages/route.ts (NEW):
+  - Requires superadmin or admin auth (via getSession)
+  - Accepts `status` query param (comma-separated list: "delivered,found")
+  - Accepts `search` param (reference, traveler, receiver name)
+  - Returns baggages with agency info included
+  - Normalizes statuses (French → English)
+  - Includes deliveredAt, receiverName, receiverWhatsapp, foundAt, founderName, founderPhone
+
+Task 4b — Rewrote src/app/admin/trouvailles/page.tsx:
+  - Replaced scan logs approach with direct baggages query approach
+  - Now fetches from /api/admin/baggages?status=delivered,found
+  - Columns: Reference, Expéditeur, Destinataire, Agence, Date livraison, Statut, Actions
+  - Filters: "Tous", "Livré", "Retrouvé" buttons
+  - Stats cards: Total, Livrés (emerald), Retrouvés (blue)
+  - CSV export with proper columns
+  - Detail modal shows sender, receiver (delivered), finder, agency info
+
+Task 5 — Fixed src/app/agence/tableau-de-bord/page.tsx (agency dashboard Application Error):
+  - Added `in_transit` and `delivered` to getStatusBadge() statusConfig:
+    - in_transit: "En transit", blue badge
+    - delivered: "Livré", emerald badge
+  - Extended Baggage interface with: deliveredAt, receiverName, receiverWhatsapp, transportMode, departureCity, departureDate
+  - Updated activatedBaggages filter to include isInTransit and isDelivered
+  - Added "En transit" and "Livrés" to filterButtons array
+  - Added colis logistics info section in detail modal (receiver, transport, departure, delivery date)
+  - Used Record<string, unknown> casting for safety when accessing new fields from API
+
+Task 6 — Updated src/app/api/agency/baggages/route.ts:
+  - Added `delivered` and `inTransit` to stats calculation
+  - Stats now include: total, pending, active, scanned, lost, found, delivered, inTransit
+
+Task 7 — Updated prisma/schema.prisma:
+  - Updated status comment to include in_transit and delivered
+
+Validation:
+- ESLint: 0 errors
+- Dev server: clean compilation confirmed
+
+Files Modified:
+- src/lib/status.ts — type + helpers
+- src/app/agency/[slug]/page.tsx — filter + stats + badge
+- src/app/agence/trouvailles/page.tsx — filter + interface + badge + modal
+- src/app/admin/trouvailles/page.tsx — complete rewrite
+- src/app/api/admin/baggages/route.ts — NEW file
+- src/app/agence/tableau-de-bord/page.tsx — statusConfig + interface + filter + modal
+- src/app/api/agency/baggages/route.ts — stats
+- prisma/schema.prisma — comment
+
+Self-Critique:
+- 0 bugs found. All changes are additive; no existing functionality broken.
+- Admin baggages API properly checks auth and normalizes statuses.
+- Agency dashboard uses Record<string, unknown> casting for safety when accessing new fields.
+
+Stage Summary:
+- 8 files modified (7 existing + 1 new), 0 new pages
+- Zero lint errors
+- in_transit and delivered statuses now FULLY INTEGRATED across the status system
+- Agency dashboard no longer crashes on in_transit/delivered baggages
+- Admin trouvailles page now shows DELIVERED and FOUND baggages (not scan logs)
+- Agency trouvailles page shows both delivered and found baggages
+- Public agency page shows in_transit instead of found baggages
+- All dates use French locale formatting
+- Emerald/green for delivered, blue for in_transit

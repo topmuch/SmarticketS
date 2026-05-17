@@ -83,7 +83,7 @@ model Baggage {
   whatsappOwner     String?
   baggageIndex      Int       @default(1) // 1, 2, 3 (order: 1 = cabine)
   baggageType       String    @default("cabine") // "cabine" or "soute"
-  status            String    @default("pending_activation") // pending_activation, active, scanned, lost, found, blocked
+  status            String    @default("pending_activation") // pending_activation, active, scanned, lost, found, blocked, in_transit, delivered
 
   // TRANSPORT-FEATURE: Multi-context transport mode (flight/train/boat/bus)
   transportMode     String    @default("flight") // "flight" | "train" | "boat" | "bus"

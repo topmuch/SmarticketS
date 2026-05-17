@@ -6,7 +6,7 @@
  *
  * Ce module fournit une normalisation centralisée utilisée partout.
  *
- * Format standard (english) : pending_activation | active | scanned | lost | found | blocked | expired
+ * Format standard (english) : pending_activation | active | scanned | lost | found | blocked | expired | in_transit | delivered
  */
 
 // ═══════════════════════════════════════════════════════
@@ -21,7 +21,9 @@ export type BaggageStatus =
   | 'lost'
   | 'found'
   | 'blocked'
-  | 'expired';
+  | 'expired'
+  | 'in_transit'
+  | 'delivered';
 
 // ═══════════════════════════════════════════════════════
 //  ALIASES
@@ -36,6 +38,8 @@ const STATUS_ALIASES: Record<string, BaggageStatus> = {
   TROUVÉ: 'found',
   BLOQUÉ: 'blocked',
   EXPIRÉ: 'expired',
+  EN_TRANSIT: 'in_transit',
+  LIVRÉ: 'delivered',
   // Lowercase French
   en_attente: 'pending_activation',
   actif: 'active',
@@ -44,6 +48,8 @@ const STATUS_ALIASES: Record<string, BaggageStatus> = {
   trouvé: 'found',
   bloqué: 'blocked',
   expiré: 'expired',
+  en_transit: 'in_transit',
+  livré: 'delivered',
 };
 
 // ═══════════════════════════════════════════════════════
@@ -93,6 +99,20 @@ export function isLost(status: string | null | undefined): boolean {
  */
 export function isFound(status: string | null | undefined): boolean {
   return normalizeStatus(status) === 'found';
+}
+
+/**
+ * Check if status is "in_transit" (any variant).
+ */
+export function isInTransit(status: string | null | undefined): boolean {
+  return normalizeStatus(status) === 'in_transit';
+}
+
+/**
+ * Check if status is "delivered" (any variant).
+ */
+export function isDelivered(status: string | null | undefined): boolean {
+  return normalizeStatus(status) === 'delivered';
 }
 
 /**

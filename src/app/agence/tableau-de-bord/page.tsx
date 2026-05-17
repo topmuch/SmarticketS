@@ -26,7 +26,7 @@ import {
   Plus
 } from "lucide-react";
 import { useAgency } from '../layout';
-import { isActive, isPending, isLost, isFound, normalizeStatus } from '@/lib/status';
+import { isActive, isPending, isLost, isFound, isInTransit, isDelivered, normalizeStatus } from '@/lib/status';
 import LatestNewsWidget from '@/components/LatestNewsWidget';
 
 interface Baggage {
@@ -47,6 +47,13 @@ interface Baggage {
   founderName: string | null;
   founderPhone: string | null;
   founderAt: string | null;
+  // Colis logistics fields
+  deliveredAt: string | null;
+  receiverName: string | null;
+  receiverWhatsapp: string | null;
+  transportMode: string | null;
+  departureCity: string | null;
+  departureDate: string | null;
 }
 
 interface Stats {
@@ -492,7 +499,7 @@ export default function AgencyDashboardPage() {
   // TEST: Search filters across both sections simultaneously
   // FIX: Include lost/found/blocked in activated so NO baggage vanishes from UI
   const activatedBaggages = filteredBaggages.filter(b =>
-    isActive(b.status) || b.travelerFirstName !== null || isLost(b.status) || isFound(b.status) || normalizeStatus(b.status) === 'blocked'
+    isActive(b.status) || isInTransit(b.status) || isDelivered(b.status) || b.travelerFirstName !== null || isLost(b.status) || isFound(b.status) || normalizeStatus(b.status) === 'blocked'
   );
   // FIX: Check BOTH travelerFirstName AND travelerLastName for null
   const pendingBaggages = filteredBaggages.filter(b =>
@@ -578,6 +585,8 @@ export default function AgencyDashboardPage() {
       lost: { label: 'Perdu', className: 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400' },
       found: { label: 'Retrouvé', className: 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400' },
       blocked: { label: 'Bloqué', className: 'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400' },
+      in_transit: { label: 'En transit', className: 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' },
+      delivered: { label: 'Livré', className: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
       // French statuses (legacy DB compatibility)
       EN_ATTENTE: { label: 'En attente', className: 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400' },
       ACTIF: { label: 'Actif', className: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
@@ -599,6 +608,8 @@ export default function AgencyDashboardPage() {
   const filterButtons = [
     { id: 'all', label: 'Tous' },
     { id: 'active', label: 'Activés' },
+    { id: 'in_transit', label: 'En transit' },
+    { id: 'delivered', label: 'Livrés' },
     { id: 'pending_activation', label: 'En attente' },
     { id: 'scanned', label: 'Scannés' },
     { id: 'lost', label: 'Perdus' },
@@ -1299,6 +1310,54 @@ export default function AgencyDashboardPage() {
                 <p className="text-slate-500 dark:text-slate-400 text-sm">Expire le</p>
                 <p className="text-slate-800 dark:text-white">{formatDate(selectedBaggage.expiresAt)}</p>
               </div>
+
+              {/* Colis Logistics Information */}
+              {(selectedBaggage as Record<string, unknown>).receiverName || (selectedBaggage as Record<string, unknown>).deliveredAt || (selectedBaggage as Record<string, unknown>).transportMode || (selectedBaggage as Record<string, unknown>).departureCity ? (
+                <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                  <p className="text-blue-700 dark:text-blue-400 font-medium text-sm mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Informations logistique
+                  </p>
+                  <div className="space-y-2">
+                    {(selectedBaggage as Record<string, unknown>).receiverName && (
+                      <div className="flex justify-between">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">Destinataire</p>
+                        <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.receiverName)}</p>
+                      </div>
+                    )}
+                    {(selectedBaggage as Record<string, unknown>).receiverWhatsapp && (
+                      <div className="flex justify-between">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">WhatsApp destinataire</p>
+                        <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.receiverWhatsapp)}</p>
+                      </div>
+                    )}
+                    {(selectedBaggage as Record<string, unknown>).transportMode && (
+                      <div className="flex justify-between">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">Mode de transport</p>
+                        <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.transportMode)}</p>
+                      </div>
+                    )}
+                    {(selectedBaggage as Record<string, unknown>).departureCity && (
+                      <div className="flex justify-between">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">Ville de départ</p>
+                        <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.departureCity)}</p>
+                      </div>
+                    )}
+                    {(selectedBaggage as Record<string, unknown>).departureDate && (
+                      <div className="flex justify-between">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">Date de départ</p>
+                        <p className="text-slate-800 dark:text-white font-medium">{formatDate(String(selectedBaggage.departureDate))}</p>
+                      </div>
+                    )}
+                    {(selectedBaggage as Record<string, unknown>).deliveredAt && (
+                      <div className="flex justify-between">
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">Date de livraison</p>
+                        <p className="text-emerald-600 dark:text-emerald-400 font-medium">{formatDateTime(String(selectedBaggage.deliveredAt))}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
                 <Link
