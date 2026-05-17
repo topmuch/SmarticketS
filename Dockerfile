@@ -2,7 +2,7 @@
 FROM node:20-alpine
 
 # Cache buster - increment to force rebuild
-ARG CACHEBUST=10
+ARG CACHEBUST=11
 
 # Install required packages
 RUN apk add --no-cache git libc6-compat sqlite
@@ -15,7 +15,11 @@ RUN git clone --branch main --depth 1 https://github.com/topmuch/qrtrans.git /ap
     cp -r /app/tmp/. /app/ && rm -rf /app/tmp && \
     echo "--- Build context files ---" && ls -la /app/package.json /app/bun.lock
 
-# Install dependencies
+# ⚠️ CRITICAL: Force development mode during build so devDependencies are installed
+# (typescript, prisma, next, tailwindcss, etc. are needed for `bun run build`)
+ENV NODE_ENV=development
+
+# Install ALL dependencies (including devDependencies)
 RUN bun install
 
 # Generate Prisma Client
