@@ -96,6 +96,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://qrtrans.pro",
   },
+
+  // Google Search Console Verification
+  verification: {
+    google: "89137c0360e6b581",
+  },
 };
 
 export const viewport: Viewport = {
