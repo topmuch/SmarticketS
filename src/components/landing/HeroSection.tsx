@@ -89,26 +89,22 @@ export default function HeroSection() {
         {/* Tracking bar */}
         <FadeIn delay={0.3}>
           <form onSubmit={handleSubmit} className="mt-10 max-w-xl mx-auto">
-            <div className="flex items-center bg-white rounded-xl border-2 border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.15)] focus-within:border-[#FF6B35]/60 focus-within:shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-all duration-300 overflow-hidden backdrop-blur-sm">
+            <div className="flex items-center bg-white rounded-2xl border-2 border-white/40 shadow-[0_8px_40px_rgba(0,0,0,0.25)] focus-within:border-[#FF6B35] focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden">
               <div className="relative flex-1 flex items-center">
-                <Search className="absolute left-4 w-5 h-5 text-[#475569]/50" />
+                <Search className="absolute left-4 w-5 h-5 text-[#64748B]" />
                 <input
                   type="text"
                   value={refValue}
                   onChange={handleChange}
                   placeholder="Entrez votre référence colis (ex: TRSP-2026-0042)"
-                  className="w-full pl-12 pr-4 py-4 text-sm font-medium bg-transparent text-[#0A2540] placeholder:text-[#475569]/50 focus:outline-none"
+                  className="w-full pl-12 pr-4 py-5 text-base font-semibold bg-transparent text-[#0A2540] placeholder:text-[#94A3B8] focus:outline-none"
                   maxLength={16}
                 />
               </div>
               <button
                 type="submit"
                 disabled={!isValid}
-                className={`flex items-center gap-2 px-6 py-4 font-semibold text-sm transition-all duration-300 ${
-                  isValid
-                    ? 'bg-[#FF6B35] hover:bg-[#e65a28] text-white'
-                    : 'bg-[#F8FAFC] text-[#475569]/40 cursor-not-allowed'
-                }`}
+                className="flex items-center gap-2 px-7 py-5 font-bold text-sm bg-[#FF6B35] hover:bg-[#e65a28] text-white shadow-[0_4px_16px_rgba(255,107,53,0.4)] hover:shadow-[0_6px_20px_rgba(255,107,53,0.5)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 Suivre le trajet
                 <ArrowRight className="w-4 h-4" />
