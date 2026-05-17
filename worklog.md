@@ -1885,3 +1885,29 @@ Stage Summary:
 - page.tsx updated with main-content ID for accessibility
 - Zero lint errors, clean dev server compilation
 - All 9 landing page sections + navigation + WhatsApp float fully operational
+---
+Task ID: 1
+Agent: Main
+Task: Add Demo tab to navigation + create scrolling banner below hero + create /demo page
+
+Work Log:
+- Read current Navigation.tsx, page.tsx, HeroSection.tsx, Footer.tsx
+- Added 'Demo' link to navLinks array in Navigation.tsx (route: /demo)
+- Created ScrollingBanner component with Framer Motion infinite marquee animation
+- Banner uses navy (#0A2540) background with orange/green dot separators
+- Keywords: Qrcode livraison, Livraison notifiée, Bagage protégé, Client notifié, Propriétaire notifié, Code de livraison client, Suivi en temps réel, PIN sécurisé
+- Added ScrollingBanner between HeroSection and ServicesSection on page.tsx
+- Created /demo page with interactive 5-step demo walkthrough
+- Demo steps: QR Scan → Activation Form → PIN & WhatsApp Notifications → Tracking & Validation → Dashboard
+- Each step has info card (left) + visual mockup (right) layout
+- Progress bar is sticky below nav, clickable steps
+- Navigation: Previous/Next/Restart buttons
+- All mockups are animated with Framer Motion (scan line, PIN reveal, route animation, etc.)
+- ESLint passes with zero errors
+- Dev server confirms /demo returns 200 and / homepage renders correctly
+
+Stage Summary:
+- Navigation now has 4 items: Accueil, Processus, Demo, Contact + Devenir Partenaire button
+- Scrolling banner component: src/components/landing/ScrollingBanner.tsx
+- Demo page: src/app/demo/page.tsx + src/app/demo/DemoContent.tsx
+- All changes compile and serve successfully

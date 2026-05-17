@@ -2,6 +2,7 @@
 
 import Navigation from '@/components/landing/Navigation';
 import HeroSection from '@/components/landing/HeroSection';
+import ScrollingBanner from '@/components/landing/ScrollingBanner';
 import ServicesSection from '@/components/landing/ServicesSection';
 import ProcessSection from '@/components/landing/ProcessSection';
 import WhyQRTransSection from '@/components/landing/WhyQRTransSection';
@@ -17,6 +18,7 @@ export default function HomePage() {
       <Navigation />
       <main id="main-content">
         <HeroSection />
+        <ScrollingBanner />
         <ServicesSection />
         <ProcessSection />
         <WhyQRTransSection />
