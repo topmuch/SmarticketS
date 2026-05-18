@@ -73,7 +73,7 @@ export default function GenererQRPage() {
   // Bulk form
   const [bulkForm, setBulkForm] = useState({
     type: 'voyageur' as 'voyageur',
-    agencyId: '',
+    agencyId: 'none',
     totalQrCount: 200,
   });
 
@@ -182,7 +182,7 @@ export default function GenererQRPage() {
         payload = {
           context: 'bulk',
           type: bulkForm.type,
-          agencyId: bulkForm.agencyId || undefined,
+          agencyId: bulkForm.agencyId !== 'none' ? bulkForm.agencyId : undefined,
           totalQrCount: bulkForm.totalQrCount,
         };
       }
@@ -327,7 +327,7 @@ export default function GenererQRPage() {
                       <SelectValue placeholder="Sans agence" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                      <SelectItem value="">Sans agence</SelectItem>
+                      <SelectItem value="none">Sans agence</SelectItem>
                       {agencies.filter(a => a.active).map((agency) => (
                         <SelectItem key={agency.id} value={agency.id}>
                           {agency.name}
