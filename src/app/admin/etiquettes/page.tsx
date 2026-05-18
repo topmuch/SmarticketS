@@ -17,7 +17,10 @@ import {
   FileText,
   Building2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Archive,
+  Image as ImageIcon,
+  Loader2,
 } from "lucide-react";
 
 interface QRSet {
@@ -69,7 +72,11 @@ export default function EtiquettesPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedSet, setSelectedSet] = useState<QRSet | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Download states
+  const [downloadingSet, setDownloadingSet] = useState<string | null>(null);
+  const [downloadingSingle, setDownloadingSingle] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<string>('');
 
   useEffect(() => {
     fetchSets();
@@ -93,7 +100,7 @@ export default function EtiquettesPage() {
 
       // Filter to only show sets matching the active tab type
       const filteredSets = setsWithStatus.filter((set: QRSet) => set.type === activeTab);
-      
+
       setSets(filteredSets);
       setStats(data.stats);
 
@@ -120,7 +127,7 @@ export default function EtiquettesPage() {
           agencyName,
           sets: [],
           totalQr: 0,
-          isExpanded: true, // Expanded by default
+          isExpanded: true,
         });
       }
 
@@ -129,7 +136,6 @@ export default function EtiquettesPage() {
       group.totalQr += set.qrCount;
     });
 
-    // Sort: agencies with name first, then "Sans agence"
     return Array.from(groups.values()).sort((a, b) => {
       if (a.agencyId === null) return 1;
       if (b.agencyId === null) return -1;
@@ -144,9 +150,9 @@ export default function EtiquettesPage() {
   };
 
   const toggleAgencyGroup = (agencyId: string | null) => {
-    setAgencyGroups(prev => 
-      prev.map(group => 
-        group.agencyId === agencyId 
+    setAgencyGroups(prev =>
+      prev.map(group =>
+        group.agencyId === agencyId
           ? { ...group, isExpanded: !group.isExpanded }
           : group
       )
@@ -174,112 +180,75 @@ export default function EtiquettesPage() {
     }
   };
 
-  const handleDownloadPDF = async (set: QRSet) => {
-    setIsDownloading(true);
-    setSelectedSet(set);
+  // ─── Bulk Download (ZIP) ───
+  const handleBulkDownload = async (set: QRSet) => {
+    setDownloadingSet(set.setId);
+    setDownloadProgress(`Génération de ${set.qrCount} QR codes...`);
 
     try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
+      const response = await fetch('/api/qrcodes/download-set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: set.setId, format: 'png' }),
+      });
 
-      const qrSize = 300;
-      const padding = 40;
-      const headerHeight = 100;
-
-      const cols = Math.min(set.qrCount, 3);
-      const rows = Math.ceil(set.qrCount / 3);
-
-      canvas.width = cols * qrSize + (cols + 1) * padding;
-      canvas.height = headerHeight + rows * qrSize + (rows + 1) * padding + 60;
-
-      // Background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Header
-      ctx.fillStyle = set.type === 'hajj' ? '#059669' : '#f59e0b';
-      ctx.fillRect(0, 0, canvas.width, headerHeight);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('QRTrans - Étiquettes', canvas.width / 2, 35);
-
-      ctx.font = '16px Arial';
-      ctx.fillText(`${set.setId} | ${set.type === 'hajj' ? 'Hajj 2026' : 'Voyageur'} | ${set.qrCount} QR`, canvas.width / 2, 65);
-      if (set.agencyName) {
-        ctx.font = '14px Arial';
-        ctx.fillText(`Agence: ${set.agencyName}`, canvas.width / 2, 85);
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Erreur lors du téléchargement');
       }
 
-      // Generate QR codes
-      for (let i = 0; i < set.references.length; i++) {
-        const col = i % 3;
-        const row = Math.floor(i / 3);
-        const x = padding + col * (qrSize + padding);
-        const y = headerHeight + padding + row * (qrSize + padding);
+      setDownloadProgress('Création du fichier ZIP...');
 
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(x, y, qrSize, qrSize);
-
-        const qrUrl = `${window.location.origin}/scan/${set.references[i]}`;
-        const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        const qrSvg = <QRCodeSVG value={qrUrl} size={qrSize - 40} level="H" fgColor={set.type === 'hajj' ? '#059669' : '#f59e0b'} />;
-
-        // Use a promise-based approach to render SVG to canvas
-        const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${qrSize - 40}" height="${qrSize - 40}">
-          <rect width="100%" height="100%" fill="white"/>
-          ${generateQRPath(qrUrl, qrSize - 40, set.type === 'hajj' ? '#059669' : '#f59e0b')}
-        </svg>`;
-
-        const img = new Image();
-        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(svgBlob);
-
-        await new Promise<void>((resolve) => {
-          img.onload = () => {
-            ctx.drawImage(img, x + 20, y + 20, qrSize - 40, qrSize - 40);
-            URL.revokeObjectURL(url);
-            resolve();
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            resolve();
-          };
-          img.src = url;
-        });
-
-        // Reference label
-        ctx.fillStyle = '#1e293b';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(set.references[i], x + qrSize / 2, y + qrSize - 15);
-      }
-
-      // Footer
-      ctx.fillStyle = '#64748b';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Généré le ${new Date().toLocaleDateString('fr-FR')} | QRTrans.com`, canvas.width / 2, canvas.height - 20);
-
-      // Download
-      const link = document.createElement('a');
-      link.download = `QRTrans-${set.setId}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-
-      setIsDownloading(false);
+      // Download the ZIP file
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `QRTrans-${set.setId}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      setIsDownloading(false);
-      alert('Erreur lors de la génération');
+      console.error('Bulk download error:', error);
+      alert(error instanceof Error ? error.message : 'Erreur lors du téléchargement');
+    } finally {
+      setDownloadingSet(null);
+      setDownloadProgress('');
     }
   };
 
-  // Simple QR path generator fallback
-  const generateQRPath = (url: string, size: number, color: string): string => {
-    return `<text x="50%" y="50%" text-anchor="middle" fill="${color}" font-size="10">${url}</text>`;
+  // ─── Single QR Download (PNG) ───
+  const handleSingleDownload = async (reference: string) => {
+    setDownloadingSingle(reference);
+
+    try {
+      const response = await fetch('/api/qrcodes/download-single', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference, format: 'png', size: 600 }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Erreur lors du téléchargement');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reference}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Single download error:', error);
+      alert(error instanceof Error ? error.message : 'Erreur lors du téléchargement');
+    } finally {
+      setDownloadingSingle(null);
+    }
   };
 
   const handleShareSet = async (set: QRSet) => {
@@ -360,6 +329,14 @@ export default function EtiquettesPage() {
           </span>
         </button>
       </div>
+
+      {/* Download progress bar */}
+      {downloadProgress && (
+        <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
+          <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium text-emerald-700">{downloadProgress}</p>
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
@@ -470,12 +447,18 @@ export default function EtiquettesPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
+                          {/* Bulk download (ZIP) */}
                           <button
-                            onClick={() => handleDownloadPDF(set)}
-                            className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
-                            title="Télécharger"
+                            onClick={() => handleBulkDownload(set)}
+                            disabled={downloadingSet === set.setId}
+                            className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Télécharger tout en ZIP"
                           >
-                            <Download className="w-4 h-4" />
+                            {downloadingSet === set.setId ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                            ) : (
+                              <Archive className="w-4 h-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => handleShareSet(set)}
@@ -508,7 +491,8 @@ export default function EtiquettesPage() {
       {/* Detail Modal */}
       {showDetailModal && selectedSet && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white">{selectedSet.setId}</h2>
@@ -527,40 +511,96 @@ export default function EtiquettesPage() {
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
-            <div className="p-6">
-              {/* QR Codes Grid */}
-              <div
-                ref={qrRef}
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
-              >
-                {selectedSet.references.map((ref, index) => (
-                  <div
-                    key={ref}
-                    className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-center"
-                  >
-                    <QRCodeSVG
-                      value={`${typeof window !== 'undefined' ? window.location.origin : ''}/scan/${ref}`}
-                      size={120}
-                      level="H"
-                      includeMargin={true}
-                      bgColor="#f8fafc"
-                      fgColor={selectedSet.type === 'hajj' ? '#059669' : '#f59e0b'}
-                    />
-                    <p className="text-slate-800 dark:text-white font-mono font-bold mt-2 text-sm">
-                      {ref}
-                    </p>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs">
-                      {selectedSet.type === 'hajj' 
-                        ? (index === 0 ? 'Cabine' : `Soute #${index}`)
-                        : `Colis #${index + 1}`
-                      }
-                    </p>
+
+            <div className="p-6 space-y-6">
+              {/* ─── Bulk Download Section ─── */}
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Archive className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-bold text-emerald-800 text-sm uppercase tracking-wider">
+                    Téléchargement en lot
+                  </h3>
+                </div>
+                <p className="text-sm text-emerald-700">
+                  Téléchargez les <strong>{selectedSet.qrCount}</strong> QR codes en un seul fichier ZIP.
+                  Chaque QR code est un fichier PNG individuel (400×400px, haute qualité).
+                </p>
+                <button
+                  onClick={() => handleBulkDownload(selectedSet)}
+                  disabled={downloadingSet === selectedSet.setId}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold transition-colors disabled:cursor-not-allowed"
+                >
+                  {downloadingSet === selectedSet.setId ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Génération en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="w-5 h-5" />
+                      Télécharger tout ({selectedSet.qrCount} QR) en ZIP
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* ─── QR Codes Grid (with individual download) ─── */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-slate-500" />
+                    <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider">
+                      QR codes individuels
+                    </h3>
                   </div>
-                ))}
+                  <p className="text-xs text-slate-400">Cliquez sur un QR pour le télécharger</p>
+                </div>
+
+                <div
+                  ref={qrRef}
+                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
+                >
+                  {selectedSet.references.map((ref, index) => (
+                    <button
+                      key={ref}
+                      onClick={() => handleSingleDownload(ref)}
+                      disabled={downloadingSingle === ref}
+                      className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 text-center hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-300 border-2 border-transparent transition-all group disabled:opacity-50"
+                      title={`Télécharger ${ref}`}
+                    >
+                      <div className="relative inline-block">
+                        <QRCodeSVG
+                          value={`${typeof window !== 'undefined' ? window.location.origin : ''}/scan/${ref}`}
+                          size={90}
+                          level="H"
+                          includeMargin={true}
+                          bgColor="#f8fafc"
+                          fgColor={selectedSet.type === 'hajj' ? '#059669' : '#f59e0b'}
+                        />
+                        {/* Download overlay on hover */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Download className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      <p className="text-slate-800 dark:text-white font-mono font-bold mt-2 text-xs truncate">
+                        {ref}
+                      </p>
+                      <p className="text-slate-500 dark:text-slate-400 text-[10px]">
+                        {selectedSet.type === 'hajj'
+                          ? (index === 0 ? 'Cabine' : `Soute #${index}`)
+                          : `Colis #${index + 1}`
+                        }
+                      </p>
+                      {downloadingSingle === ref && (
+                        <Loader2 className="w-4 h-4 text-emerald-500 animate-spin mx-auto mt-1" />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Info */}
-              <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
                   <p className="text-slate-500 dark:text-slate-400 text-sm">Créé le</p>
                   <p className="text-slate-800 dark:text-white font-medium">{formatDate(selectedSet.createdAt)}</p>
@@ -568,24 +608,34 @@ export default function EtiquettesPage() {
                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
                   <p className="text-slate-500 dark:text-slate-400 text-sm">Statut</p>
                   <p className="text-slate-800 dark:text-white font-medium capitalize">
-                    {selectedSet.activationStatus === 'activated' ? 'Activé' : 
+                    {selectedSet.activationStatus === 'activated' ? 'Activé' :
                      selectedSet.activationStatus === 'partial' ? 'Partiel' : 'Nouveau'}
                   </p>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="mt-6 flex gap-3">
+              {/* Bottom Actions */}
+              <div className="flex gap-3">
                 <button
-                  onClick={() => handleDownloadPDF(selectedSet)}
-                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                  onClick={() => handleBulkDownload(selectedSet)}
+                  disabled={downloadingSet === selectedSet.setId}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl transition-colors flex items-center justify-center gap-2 font-bold disabled:cursor-not-allowed"
                 >
-                  <FileText className="w-4 h-4" />
-                  Télécharger PDF
+                  {downloadingSet === selectedSet.setId ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Génération...
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="w-4 h-4" />
+                      Télécharger ZIP ({selectedSet.qrCount})
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => handleShareSet(selectedSet)}
-                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
                 >
                   <Share2 className="w-4 h-4" />
                   Partager
