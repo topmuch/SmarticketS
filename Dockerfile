@@ -2,11 +2,13 @@
 FROM node:20-alpine
 
 # Cache buster - increment to force rebuild
-ARG CACHEBUST=13
+ARG CACHEBUST=14
 
 # Install required packages (Alpine correct package names)
 # sqlite = CLI tool + shared library (needed for runtime migrations)
-RUN apk add --no-cache git sqlite
+# build-base = gcc/make for native module compilation (sharp, qrcode optional deps)
+# vips = image processing library (sharp dependency)
+RUN apk add --no-cache git sqlite build-base vips-dev
 RUN npm install -g bun
 
 WORKDIR /app
@@ -58,6 +60,9 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=file:/app/data/qrtrans.db
 ENV NODE_ENV=production
+
+# Runtime dependencies for sharp (libvips shared libs)
+RUN apk add --no-cache vips
 
 # Health check — Coolify expects the container to respond on its port
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
