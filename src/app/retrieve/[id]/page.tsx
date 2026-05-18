@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   QrCode,
@@ -113,32 +113,6 @@ const formatDateTime = (dateStr: string | null) => {
     });
   } catch { return ''; }
 };
-
-const formatTime = (dateStr: string | null) => {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleTimeString('fr-FR', {
-      hour: '2-digit', minute: '2-digit',
-    });
-  } catch { return ''; }
-};
-
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function getTimelineIcon(type: string): { icon: string; color: string } {
-  if (type === 'scan') return { icon: '📱', color: 'text-blue-500' };
-  if (type === 'event') return { icon: '📋', color: 'text-gray-500' };
-  return { icon: '📍', color: 'text-gray-400' };
-}
 
 function getTimelineLineIcon(title: string): { icon: string; bg: string } {
   const t = title.toLowerCase();
@@ -910,10 +884,7 @@ function RetrieveContent() {
     (waLink: string, name: string, type: 'sender' | 'receiver') => {
       notificationSound.unlock();
 
-      const otherNotified = notifiedParam === 'sender' || notifiedParam === 'receiver';
-      const callback = otherNotified
-        ? `/retrieve/${reference}?notified=${type}`
-        : `/retrieve/${reference}?notified=${type}`;
+      const callback = `/retrieve/${reference}?notified=${type}`;
 
       const p = new URLSearchParams({
         waLink,
@@ -924,7 +895,7 @@ function RetrieveContent() {
       });
       router.push(`/sending?${p.toString()}`);
     },
-    [notifiedParam, reference, router],
+    [reference, router],
   );
 
   // ─── Restore success on return from /sending ───
