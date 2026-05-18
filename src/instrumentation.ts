@@ -3,14 +3,12 @@
  *
  * Runs once at server startup (before any API route or page is served).
  * Ensures all required database columns exist via raw SQL ALTER TABLE.
- * This is the single source of truth for runtime schema migrations.
+ *
+ * ⚠️  CRITICAL: This file MUST NEVER throw an unhandled error.
+ *    If register() throws, the entire Next.js server fails to start,
+ *    causing Internal Server Error on ALL pages including login.
  */
 
-import { PrismaClient } from '@prisma/client';
-
-// All columns that may be missing on older databases.
-// The migration script runs BEFORE any Prisma query, so the ORM always sees
-// the correct schema regardless of the order of container startup steps.
 const REQUIRED_COLUMNS: { table: string; column: string; type: string }[] = [
   // ── EmailSettings ──
   { table: 'EmailSettings', column: 'recipientColisEmail', type: 'TEXT' },
@@ -74,65 +72,70 @@ const REQUIRED_COLUMNS: { table: string; column: string; type: string }[] = [
   { table: 'ScanLog', column: 'finderPhone', type: 'TEXT' },
 ];
 
-async function syncDatabaseSchema() {
-  const prisma = new PrismaClient();
-
+export async function register() {
+  // ⚠️  This outer try/catch MUST catch everything.
+  //    An unhandled rejection here prevents the Next.js server from
+  //    starting → Internal Server Error on every page.
   try {
-    // Get all existing table names
-    const tables = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
-      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    );
-    const tableSet = new Set(tables.map((t) => t.name));
-
-    if (tableSet.size === 0) {
-      console.log('[instrumentation] No tables found — Prisma will create them on first query');
+    // Only run in Node.js runtime (not Edge runtime)
+    if (process.env.NEXT_RUNTIME !== 'nodejs') {
       return;
     }
 
-    let added = 0;
+    console.log('[instrumentation] Starting database schema sync…');
 
-    for (const col of REQUIRED_COLUMNS) {
-      if (!tableSet.has(col.table)) {
-        // Table doesn't exist yet — Prisma db push / create will handle it
-        continue;
-      }
+    // Dynamic import so we don't crash if @prisma/client is missing
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
 
-      // Check if column already exists
-      const columns = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
-        `PRAGMA table_info("${col.table}")`
+    try {
+      const tables = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
       );
-      const colSet = new Set(columns.map((c) => c.name));
+      const tableSet = new Set(tables.map((t) => t.name));
 
-      if (colSet.has(col.column)) {
-        continue;
+      if (tableSet.size === 0) {
+        console.log('[instrumentation] No tables found — Prisma will create them on first query');
+        return;
       }
 
-      // Add the missing column
-      try {
-        await prisma.$executeRawUnsafe(
-          `ALTER TABLE "${col.table}" ADD COLUMN "${col.column}" ${col.type}`
-        );
-        added++;
-        console.log(`[instrumentation] ✅ Added ${col.table}.${col.column}`);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(`[instrumentation] ⚠️  Failed to add ${col.table}.${col.column}: ${msg}`);
+      let added = 0;
+
+      for (const col of REQUIRED_COLUMNS) {
+        if (!tableSet.has(col.table)) continue;
+
+        try {
+          const columns = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+            `PRAGMA table_info("${col.table}")`
+          );
+          const colSet = new Set(columns.map((c) => c.name));
+
+          if (colSet.has(col.column)) continue;
+
+          await prisma.$executeRawUnsafe(
+            `ALTER TABLE "${col.table}" ADD COLUMN "${col.column}" ${col.type}`
+          );
+          added++;
+          console.log(`[instrumentation] Added ${col.table}.${col.column}`);
+        } catch (colErr: unknown) {
+          const msg = colErr instanceof Error ? colErr.message : String(colErr);
+          console.error(`[instrumentation] Skipped ${col.table}.${col.column}: ${msg}`);
+        }
       }
+
+      if (added > 0) {
+        console.log(`[instrumentation] Schema sync complete — ${added} column(s) added`);
+      } else {
+        console.log('[instrumentation] Schema already up to date');
+      }
+    } finally {
+      await prisma.$disconnect().catch(() => {});
     }
 
-    if (added > 0) {
-      console.log(`[instrumentation] Schema sync complete — ${added} column(s) added`);
-    }
+    console.log('[instrumentation] Ready ✓');
   } catch (err: unknown) {
+    // Swallow ALL errors — log but NEVER rethrow
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[instrumentation] Schema sync error: ${msg}`);
-  } finally {
-    await prisma.$disconnect();
+    console.error(`[instrumentation] Non-fatal error (server will continue): ${msg}`);
   }
-}
-
-export async function register() {
-  console.log('[instrumentation] Server starting — running database schema sync…');
-  await syncDatabaseSchema();
-  console.log('[instrumentation] Ready ✓');
 }

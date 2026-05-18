@@ -5,6 +5,41 @@ import nodemailer from 'nodemailer';
 // Email provider types
 export type EmailProvider = 'console' | 'smtp';
 
+// ── Lazy column migration (safety net if instrumentation.ts didn't run) ──
+let _migrationRan = false;
+const EMAIL_COLUMNS = [
+  { column: 'recipientColisEmail', type: 'TEXT' },
+  { column: 'recipientSystemEmail', type: 'TEXT' },
+  { column: 'lastTestAt', type: 'DATETIME' },
+  { column: 'lastTestStatus', type: 'TEXT' },
+  { column: 'lastTestError', type: 'TEXT' },
+  { column: 'isActive', type: 'BOOLEAN DEFAULT 1' },
+];
+
+async function ensureEmailColumns() {
+  if (_migrationRan) return;
+  _migrationRan = true;
+  try {
+    const cols = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+      `PRAGMA table_info("EmailSettings")`
+    );
+    const colSet = new Set(cols.map(c => c.name));
+    for (const col of EMAIL_COLUMNS) {
+      if (colSet.has(col.column)) continue;
+      try {
+        await prisma.$executeRawUnsafe(
+          `ALTER TABLE "EmailSettings" ADD COLUMN "${col.column}" ${col.type}`
+        );
+        console.log(`[email:ensureColumns] Added EmailSettings.${col.column}`);
+      } catch (e) {
+        console.error(`[email:ensureColumns] Failed ${col.column}:`, e);
+      }
+    }
+  } catch (e) {
+    console.error('[email:ensureColumns] Error:', e);
+  }
+}
+
 // Email settings interface
 export interface EmailConfig {
   provider: EmailProvider;
@@ -44,6 +79,8 @@ export function generateCode(): string {
 // Get email settings from database (auto-creates defaults if missing)
 export async function getEmailSettings(): Promise<EmailConfig | null> {
   try {
+    // Ensure columns exist before querying (lazy migration)
+    await ensureEmailColumns();
     let settings = await prisma.emailSettings.findFirst();
     if (!settings) {
       // Auto-create default settings so the table is never empty
@@ -79,6 +116,8 @@ export async function getEmailSettings(): Promise<EmailConfig | null> {
 // Save email settings to database
 export async function saveEmailSettings(config: Partial<EmailConfig>): Promise<EmailConfig | null> {
   try {
+    // Ensure columns exist before querying (lazy migration)
+    await ensureEmailColumns();
     const existing = await prisma.emailSettings.findFirst();
     
     if (existing) {
