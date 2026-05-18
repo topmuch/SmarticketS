@@ -266,10 +266,13 @@ async function generateBulkBaggages(options: {
     });
   }
 
-  // Insert all at once for performance
-  if (baggageData.length > 0) {
+  // Insert in batches of 50 to avoid SQLite variable limit (max 999 per query)
+  // 50 records × ~10 fields = ~500 params per batch (well under limit)
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < baggageData.length; i += BATCH_SIZE) {
+    const batch = baggageData.slice(i, i + BATCH_SIZE);
     await db.baggage.createMany({
-      data: baggageData,
+      data: batch,
       skipDuplicates: true,
     });
   }
