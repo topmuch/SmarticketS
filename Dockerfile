@@ -2,13 +2,12 @@
 FROM node:20-alpine
 
 # Cache buster - increment to force rebuild
-ARG CACHEBUST=14
+ARG CACHEBUST=15
 
 # Install required packages (Alpine correct package names)
 # sqlite = CLI tool + shared library (needed for runtime migrations)
-# build-base = gcc/make for native module compilation (sharp, qrcode optional deps)
-# vips = image processing library (sharp dependency)
-RUN apk add --no-cache git sqlite build-base vips-dev
+# build-base = gcc/make for native module compilation (prisma, etc.)
+RUN apk add --no-cache git sqlite build-base
 RUN npm install -g bun
 
 WORKDIR /app
@@ -42,6 +41,12 @@ RUN cp -r node_modules/.prisma .next/standalone/node_modules/.prisma
 RUN cp -r node_modules/@prisma/client .next/standalone/node_modules/@prisma/client
 RUN cp -r node_modules/@prisma/engines .next/standalone/node_modules/@prisma/engines 2>/dev/null || true
 
+# Copy qrcode + pngjs + dijkstrajs into standalone (needed for download API)
+RUN cp -r node_modules/qrcode .next/standalone/node_modules/qrcode 2>/dev/null || true
+RUN cp -r node_modules/pngjs .next/standalone/node_modules/pngjs 2>/dev/null || true
+RUN cp -r node_modules/dijkstrajs .next/standalone/node_modules/dijkstrajs 2>/dev/null || true
+RUN cp -r node_modules/jszip .next/standalone/node_modules/jszip 2>/dev/null || true
+
 # Copy prisma schema for reference
 RUN mkdir -p .next/standalone/prisma
 RUN cp prisma/schema.prisma .next/standalone/prisma/schema.prisma
@@ -60,9 +65,6 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=file:/app/data/qrtrans.db
 ENV NODE_ENV=production
-
-# Runtime dependencies for sharp (libvips shared libs)
-RUN apk add --no-cache vips
 
 # Health check — Coolify expects the container to respond on its port
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
