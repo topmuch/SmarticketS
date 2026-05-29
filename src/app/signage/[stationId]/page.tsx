@@ -141,7 +141,7 @@ export default function SignagePage() {
     fetchDepartures();
     const interval = setInterval(fetchDepartures, 15000); // Polling toutes les 15s
     return () => clearInterval(interval);
-  }, [stationId, playBoardingAlert]);
+  }, [stationId, soundEnabled, playBoardingAlert]);
 
   // Format countdown
   const formatCountdown = (min: number) => {

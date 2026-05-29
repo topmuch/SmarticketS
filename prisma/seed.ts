@@ -24,6 +24,7 @@ async function main() {
     { key: 'languages', value: 'fr,en,ar' },
     { key: 'default_language', value: 'fr' },
     { key: 'currency', value: 'EUR' },
+    { key: 'boardingAlertThresholdMinutes', value: '5' },
   ];
 
   for (const setting of settings) {
@@ -91,8 +92,10 @@ async function main() {
   ];
 
   for (let i = 0; i < hajjReferences.length; i++) {
-    await prisma.baggage.create({
-      data: {
+    await prisma.baggage.upsert({
+      where: { reference: hajjReferences[i] },
+      update: {},
+      create: {
         reference: hajjReferences[i],
         type: 'hajj',
         agencyId: agency.id,
@@ -104,8 +107,10 @@ async function main() {
   }
 
   // Voyageur baggage (activated)
-  await prisma.baggage.create({
-    data: {
+  await prisma.baggage.upsert({
+    where: { reference: 'VOL25-DEMO01' },
+    update: {},
+    create: {
       reference: 'VOL25-DEMO01',
       type: 'voyageur',
       agencyId: null,
@@ -117,13 +122,15 @@ async function main() {
       baggageIndex: 1,
       baggageType: 'cabine',
       status: 'active',
-      expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days
+      expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     },
   });
 
   // Hajj baggage (activated)
-  await prisma.baggage.create({
-    data: {
+  await prisma.baggage.upsert({
+    where: { reference: 'HAJJ25-ACTIVE' },
+    update: {},
+    create: {
       reference: 'HAJJ25-ACTIVE',
       type: 'hajj',
       agencyId: agency.id,
@@ -133,13 +140,15 @@ async function main() {
       baggageIndex: 1,
       baggageType: 'cabine',
       status: 'active',
-      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
     },
   });
 
   // Lost baggage
-  await prisma.baggage.create({
-    data: {
+  await prisma.baggage.upsert({
+    where: { reference: 'HAJJ25-LOST01' },
+    update: {},
+    create: {
       reference: 'HAJJ25-LOST01',
       type: 'hajj',
       agencyId: agency.id,
@@ -154,6 +163,188 @@ async function main() {
       lastLocation: 'Aéroport de Jeddah',
     },
   });
+
+  // ═══════════════════════════════════════════════════════════
+  // Create sample Routes
+  // ═══════════════════════════════════════════════════════════
+  console.log('Creating sample routes...');
+
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const routeData = [
+    { name: 'Dakar ↔ Mbour', origin: 'Dakar', destination: 'Mbour', isRoundTrip: true, durationMinutes: 90, distanceKm: 80, price: 5000 },
+    { name: 'Dakar ↔ Saint-Louis', origin: 'Dakar', destination: 'Saint-Louis', isRoundTrip: true, durationMinutes: 270, distanceKm: 265, price: 15000 },
+    { name: 'Dakar ↔ Ziguinchor', origin: 'Dakar', destination: 'Ziguinchor', isRoundTrip: false, durationMinutes: 600, distanceKm: 500, price: 25000 },
+    { name: 'Dakar ↔ Thiès', origin: 'Dakar', destination: 'Thiès', isRoundTrip: true, durationMinutes: 75, distanceKm: 70, price: 3500 },
+    { name: 'Dakar ↔ Touba', origin: 'Dakar', destination: 'Touba', isRoundTrip: true, durationMinutes: 180, distanceKm: 195, price: 7000 },
+    { name: 'Dakar ↔ Kaolack', origin: 'Dakar', destination: 'Kaolack', isRoundTrip: true, durationMinutes: 240, distanceKm: 190, price: 10000 },
+  ];
+
+  const routes: Record<string, string> = {};
+  for (const rd of routeData) {
+    const route = await prisma.route.upsert({
+      where: { id: `${agency.id}-route-${rd.origin}-${rd.destination}` },
+      update: {},
+      create: {
+        id: `${agency.id}-route-${rd.origin}-${rd.destination}`,
+        name: rd.name,
+        origin: rd.origin,
+        destination: rd.destination,
+        isRoundTrip: rd.isRoundTrip,
+        durationMinutes: rd.durationMinutes,
+        distanceKm: rd.distanceKm,
+        price: rd.price,
+        agencyId: agency.id,
+      },
+    });
+    routes[rd.name] = route.id;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Create sample Departures (today's schedule)
+  // ═══════════════════════════════════════════════════════════
+  console.log('Creating sample departures...');
+
+  const departureData = [
+    // Dakar → Mbour (multiple departures today)
+    { routeName: 'Dakar ↔ Mbour', lineNumber: 'Ligne 1', hours: [6, 7, 8, 9, 10, 12, 14, 16, 18], platforms: ['A1', 'A2', 'A1', 'A2', 'A1', 'A3', 'A1', 'A2', 'A3'] },
+    // Dakar → Saint-Louis
+    { routeName: 'Dakar ↔ Saint-Louis', lineNumber: 'Ligne 2', hours: [7, 9, 20, 22], platforms: ['B1', 'B1', 'B2', 'B2'] },
+    // Dakar → Thiès
+    { routeName: 'Dakar ↔ Thiès', lineNumber: 'Ligne 3', hours: [6, 7, 8, 10, 12, 15, 17, 19], platforms: ['C1', 'C2', 'C1', 'C2', 'C1', 'C2', 'C1', 'C2'] },
+    // Dakar → Touba
+    { routeName: 'Dakar ↔ Touba', lineNumber: 'Ligne 5', hours: [6, 7, 8, 20, 22], platforms: ['D1', 'D2', 'D1', 'D1', 'D2'] },
+    // Dakar → Kaolack
+    { routeName: 'Dakar ↔ Kaolack', lineNumber: 'Ligne 6', hours: [7, 8, 10, 14, 18], platforms: ['E1', 'E2', 'E1', 'E2', 'E1'] },
+    // Dakar → Ziguinchor
+    { routeName: 'Dakar ↔ Ziguinchor', lineNumber: 'Ligne 7', hours: [8, 20], platforms: ['F1', 'F2'] },
+  ];
+
+  for (const dd of departureData) {
+    const routeId = routes[dd.routeName];
+    if (!routeId) continue;
+
+    for (let i = 0; i < dd.hours.length; i++) {
+      const scheduledTime = new Date(today);
+      scheduledTime.setHours(dd.hours[i], 0, 0, 0);
+
+      const isPast = scheduledTime.getTime() < now.getTime() - 30 * 60000;
+      const seats = Math.floor(Math.random() * 30) + 5;
+
+      await prisma.departure.upsert({
+        where: { id: `dep-${routeId}-${dd.hours[i]}` },
+        update: {},
+        create: {
+          id: `dep-${routeId}-${dd.hours[i]}`,
+          routeId,
+          lineNumber: dd.lineNumber,
+          destination: routeData.find((r) => r.name === dd.routeName)?.destination || '',
+          scheduledTime,
+          platform: dd.platforms[i] || '-',
+          availableSeats: isPast ? 0 : seats,
+          totalSeats: 45,
+          status: isPast ? 'DEPARTED' : 'SCHEDULED',
+          departureType: 'OUTBOUND',
+          agencyId: agency.id,
+        },
+      });
+
+      // For round-trip routes, create a return departure in the evening
+      const routeInfo = routeData.find((r) => r.name === dd.routeName);
+      if (routeInfo?.isRoundTrip && dd.hours[i] <= 12) {
+        const returnHour = dd.hours[i] + 8 + Math.floor(Math.random() * 3);
+        if (returnHour <= 23) {
+          const returnTime = new Date(today);
+          returnTime.setHours(returnHour, 30, 0, 0);
+
+          const isReturnPast = returnTime.getTime() < now.getTime() - 30 * 60000;
+
+          await prisma.departure.upsert({
+            where: { id: `dep-${routeId}-ret-${dd.hours[i]}` },
+            update: {},
+            create: {
+              id: `dep-${routeId}-ret-${dd.hours[i]}`,
+              routeId,
+              lineNumber: dd.lineNumber,
+              destination: routeInfo.origin,
+              scheduledTime: returnTime,
+              platform: dd.platforms[i] || '-',
+              availableSeats: isReturnPast ? 0 : Math.floor(Math.random() * 25) + 10,
+              totalSeats: 45,
+              status: isReturnPast ? 'DEPARTED' : 'SCHEDULED',
+              departureType: 'RETURN',
+              agencyId: agency.id,
+            },
+          });
+        }
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Create sample PassengerTickets
+  // ═══════════════════════════════════════════════════════════
+  console.log('Creating sample passenger tickets...');
+
+  const mbourDep = await prisma.departure.findFirst({
+    where: {
+      routeId: routes['Dakar ↔ Mbour'],
+      departureType: 'OUTBOUND',
+      status: 'SCHEDULED',
+    },
+  });
+
+  if (mbourDep) {
+    await prisma.passengerTicket.upsert({
+      where: { id: 'demo-ticket-1' },
+      update: {},
+      create: {
+        id: 'demo-ticket-1',
+        baggageId: null,
+        agencyId: agency.id,
+        departureId: mbourDep.id,
+        passengerName: 'Mamadou Diallo',
+        passengerPhone: '771234567',
+        destination: 'Mbour',
+        seatNumber: '12A',
+        departureTime: mbourDep.scheduledTime,
+        controlCode: '123456',
+        ticketStatus: 'ACTIVE',
+        documentType: 'CNI',
+        documentNumber: 'SN123456',
+        passengerAge: 28,
+        luggageCount: 1,
+        luggageWeightKg: 12,
+        luggageFee: 0,
+      },
+    });
+
+    await prisma.passengerTicket.upsert({
+      where: { id: 'demo-ticket-2' },
+      update: {},
+      create: {
+        id: 'demo-ticket-2',
+        baggageId: null,
+        agencyId: agency.id,
+        departureId: mbourDep.id,
+        passengerName: 'Aminata Fall',
+        passengerPhone: '789876543',
+        destination: 'Mbour',
+        seatNumber: '8B',
+        departureTime: mbourDep.scheduledTime,
+        controlCode: '654321',
+        ticketStatus: 'ACTIVE',
+        documentType: 'PASSPORT',
+        documentNumber: 'PS987654',
+        passengerAge: 34,
+        luggageCount: 2,
+        luggageWeightKg: 22,
+        luggageFee: 1400,
+      },
+    });
+  }
 
   console.log('✅ Seed completed successfully!');
   console.log('');
