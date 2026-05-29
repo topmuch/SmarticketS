@@ -2,13 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Ticket, Package, ArrowRight, QrCode } from 'lucide-react';
+import { motion } from 'framer-motion';
 import ActivationHeader from '@/components/activation/ActivationHeader';
-import ActivationForm from '@/components/activation/ActivationForm';
-import TicketActivationForm from '@/components/activation/TicketActivationForm';
 import { notificationSound } from '@/lib/notification-sound';
 
-// API pour récupérer les données du QR (existant + category)
+// API pour récupérer les données du QR
 async function fetchBaggageData(qrCode: string) {
   const res = await fetch(`/api/arrivee/${encodeURIComponent(qrCode)}`);
   if (!res.ok) return null;
@@ -16,37 +15,25 @@ async function fetchBaggageData(qrCode: string) {
   return data;
 }
 
-function ActivateContent() {
+function ActivateChoiceContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const qrCode = ((params?.id as string) || '').toUpperCase().trim();
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
-  const [mode, setMode] = useState<'parcel' | 'ticket' | 'hajj'>('parcel');
   const [baggageData, setBaggageData] = useState<any>(null);
-  const [agencyId, setAgencyId] = useState<string>('');
+  const hasQrCode = qrCode.length > 0;
   const [checking, setChecking] = useState(true);
-  const [checkError, setCheckError] = useState(false);
-
-  // Check if we're returning from /sending (WhatsApp notification flow)
-  const notifiedParam = searchParams.get('notified');
-  const isReturningFromNotify = notifiedParam === 'sender' || notifiedParam === 'receiver';
+  const [notFound, setNotFound] = useState(!hasQrCode);
 
   // Pre-load audio on page mount
   useEffect(() => {
     notificationSound.unlock();
   }, []);
 
-  // Status-based routing: check if colis is already in_transit → redirect to retrieve
+  // Check status and auto-redirect based on category
   useEffect(() => {
-    if (!qrCode) {
-      setChecking(false);
-      return;
-    }
-
-    // Skip status check when returning from WhatsApp notification flow
-    if (isReturningFromNotify) {
-      setChecking(false);
+    if (!hasQrCode) {
       return;
     }
 
@@ -56,36 +43,40 @@ function ActivateContent() {
 
         if (data?.success && data?.colis) {
           setBaggageData(data);
-          setAgencyId(data.colis.agencyId || '');
           const status = data.colis.status;
-
-          // Auto-détection du mode selon la catégorie du baggage
           const category = data.colis.category;
-          if (category === 'ticket') setMode('ticket');
-          else if (category === 'hajj') setMode('hajj');
-          else setMode('parcel');
 
-          // If already in_transit → redirect to retrieve page
-          if (status === 'in_transit') {
+          // If already in_transit → redirect to retrieve
+          if (status === 'in_transit' || status === 'delivered') {
             router.replace(`/retrieve/${qrCode}`);
             return;
           }
 
-          // If already delivered → redirect to retrieve page
-          if (status === 'delivered') {
-            router.replace(`/retrieve/${qrCode}`);
+          // Auto-redirect based on category
+          if (category === 'ticket') {
+            router.replace(`/activate/ticket/${qrCode}`);
             return;
           }
+          // Default: parcel
+          if (category === 'parcel') {
+            router.replace(`/activate/parcel/${qrCode}`);
+            return;
+          }
+
+          // No category set → show choice page
+          setChecking(false);
+        } else {
+          setNotFound(true);
         }
       } catch {
-        // If check fails, let user continue with form (colis might be pending_activation)
+        // If check fails, let user continue with choice page
       } finally {
         setChecking(false);
       }
     };
 
     checkStatus();
-  }, [qrCode, router, isReturningFromNotify]);
+  }, [hasQrCode, qrCode, router]);
 
   // Loading: checking status
   if (checking) {
@@ -102,65 +93,120 @@ function ActivateContent() {
     );
   }
 
+  // Not found
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
+        <ActivationHeader qrCode={qrCode} onLangChange={setLang} currentLang={lang} />
+        <div className="flex items-center justify-center py-24 sm:py-32">
+          <div className="text-center space-y-4 px-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-red-500/20 rounded-full">
+              <QrCode className="w-10 h-10 text-red-400" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              QR Code introuvable
+            </h2>
+            <p className="text-sm text-white/70">
+              Ce code ne correspond à aucun colis ou ticket enregistré.
+            </p>
+            <p className="text-xs font-mono text-white/50">#{qrCode}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const agencyId = baggageData?.colis?.agencyId || '';
+  const baggageId = baggageData?.colis?.id || '';
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
       <ActivationHeader qrCode={qrCode} onLangChange={setLang} currentLang={lang} />
 
-      <main className="max-w-[600px] mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24">
-        {/* Switch de mode Ticket / Colis / Hajj */}
-        {!isReturningFromNotify && (
-          <div className="mb-6">
-            <div className="flex gap-1 p-1 bg-gray-800/60 rounded-xl inline-flex">
-              <button
-                onClick={() => setMode('parcel')}
-                className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                  mode === 'parcel'
-                    ? 'bg-white shadow-lg text-gray-900'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                📦 Colis
-              </button>
-              <button
-                onClick={() => setMode('ticket')}
-                className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                  mode === 'ticket'
-                    ? 'bg-white shadow-lg text-gray-900'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                🎫 Ticket
-              </button>
-              <button
-                onClick={() => setMode('hajj')}
-                className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                  mode === 'hajj'
-                    ? 'bg-white shadow-lg text-gray-900'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                ✈️ Hajj
-              </button>
-            </div>
-          </div>
-        )}
+      <main className="max-w-[600px] mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Title */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-8 sm:mb-12"
+        >
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
+            {lang === 'fr' ? 'Que souhaitez-vous activer ?' : 'What do you want to activate?'}
+          </h2>
+          <p className="text-sm sm:text-base text-white/60">
+            {lang === 'fr'
+              ? 'Choisissez le type d\'activation pour ce code QR'
+              : 'Choose the activation type for this QR code'}
+          </p>
+        </motion.div>
 
-        {/* Formulaire dynamique selon le mode */}
-        {isReturningFromNotify ? (
-          // Mode retour depuis WhatsApp: afficher le formulaire colis existant
-          // ActivationForm gère la restoration depuis sessionStorage
-          <ActivationForm qrCode={qrCode} lang={lang} />
-        ) : mode === 'ticket' ? (
-          <TicketActivationForm
-            baggageId={baggageData?.colis?.id || qrCode}
-            agencyId={agencyId}
-            reference={qrCode}
-          />
-        ) : mode === 'hajj' ? (
-          <ActivationForm qrCode={qrCode} lang={lang} />
-        ) : (
-          <ActivationForm qrCode={qrCode} lang={lang} />
-        )}
+        {/* Choice Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          {/* Ticket Card */}
+          <motion.button
+            onClick={() => router.push(`/activate/ticket/${qrCode}`)}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="group relative bg-gradient-to-br from-emerald-600/80 to-emerald-800/80 hover:from-emerald-500 hover:to-emerald-700 border-2 border-emerald-400/30 hover:border-emerald-300/60 rounded-2xl p-6 sm:p-8 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/20 active:scale-[0.98]"
+          >
+            <div className="flex flex-col items-center sm:items-start gap-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
+                <Ticket className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white mb-1">
+                  🎫 Ticket
+                </h3>
+                <p className="text-sm text-white/70 leading-snug">
+                  {lang === 'fr'
+                    ? 'Activer un billet de transport passager'
+                    : 'Activate a passenger transport ticket'}
+                </p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all self-center sm:self-end" />
+            </div>
+          </motion.button>
+
+          {/* Colis Card */}
+          <motion.button
+            onClick={() => router.push(`/activate/parcel/${qrCode}`)}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="group relative bg-gradient-to-br from-orange-500/80 to-orange-700/80 hover:from-orange-400 hover:to-orange-600 border-2 border-orange-400/30 hover:border-orange-300/60 rounded-2xl p-6 sm:p-8 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/20 active:scale-[0.98]"
+          >
+            <div className="flex flex-col items-center sm:items-start gap-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
+                <Package className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white mb-1">
+                  📦 Colis
+                </h3>
+                <p className="text-sm text-white/70 leading-snug">
+                  {lang === 'fr'
+                    ? 'Activer l\'envoi d\'un colis entre deux villes'
+                    : 'Activate a parcel shipment between cities'}
+                </p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all self-center sm:self-end" />
+            </div>
+          </motion.button>
+        </div>
+
+        {/* Info */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="mt-8 sm:mt-12 text-center"
+        >
+          <p className="text-xs text-white/40 font-mono">
+            {lang === 'fr' ? 'Référence' : 'Reference'}: #{qrCode}
+          </p>
+        </motion.div>
       </main>
     </div>
   );
@@ -177,7 +223,7 @@ export default function ActivatePage() {
         </div>
       }
     >
-      <ActivateContent />
+      <ActivateChoiceContent />
     </Suspense>
   );
 }

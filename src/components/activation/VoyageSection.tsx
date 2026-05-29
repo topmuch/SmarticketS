@@ -1,6 +1,6 @@
 'use client';
 
-import { Bus, Truck, MapPin, Clock, CreditCard, Phone } from 'lucide-react';
+import { Bus, MapPin, Clock, CreditCard, Phone } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -57,38 +57,14 @@ export default function VoyageSection({
       </h2>
 
       <div className="space-y-4 sm:space-y-5">
-        {/* Transport Type Toggle */}
+        {/* Transport Type — BUS */}
         <div className="space-y-1.5">
           <Label className="text-sm sm:text-base font-semibold text-white">
-            {t('Type de Transport', 'Transport Type')} <span className="text-yellow-300">*</span>
+            {t('Type de Transport', 'Transport Type')}
           </Label>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={() => setTransportType('GP')}
-              aria-pressed={transportType === 'GP'}
-              className={`flex items-center justify-center gap-1.5 sm:gap-2 h-12 sm:h-14 rounded-xl border-2 text-sm sm:text-base font-bold transition-all ${
-                transportType === 'GP'
-                  ? 'border-white bg-white/25 text-white shadow-sm shadow-black/10'
-                  : 'border-white/30 text-white hover:border-white/50'
-              }`}
-            >
-              <Truck className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              GP 🚛
-            </button>
-            <button
-              type="button"
-              onClick={() => setTransportType('BUS')}
-              aria-pressed={transportType === 'BUS'}
-              className={`flex items-center justify-center gap-1.5 sm:gap-2 h-12 sm:h-14 rounded-xl border-2 text-sm sm:text-base font-bold transition-all ${
-                transportType === 'BUS'
-                  ? 'border-white bg-white/25 text-white shadow-sm shadow-black/10'
-                  : 'border-white/30 text-white hover:border-white/50'
-              }`}
-            >
-              <Bus className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              BUS 🚌
-            </button>
+          <div className="flex items-center justify-center gap-2 h-12 sm:h-14 rounded-xl border-2 border-white bg-white/25 text-white shadow-sm shadow-black/10 text-sm sm:text-base font-bold">
+            <Bus className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+            BUS 🚌
           </div>
         </div>
 

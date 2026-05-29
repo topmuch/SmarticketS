@@ -26,7 +26,7 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
   const [errorMessage, setErrorMessage] = useState('');
 
   // Voyage (Card 1)
-  const [transportType, setTransportType] = useState('');
+  const [transportType, setTransportType] = useState('BUS');
   const [company, setCompany] = useState('');
   const [departureCity, setDepartureCity] = useState('');
   const [arrivalCity, setArrivalCity] = useState('');
@@ -79,7 +79,6 @@ export default function ActivationForm({ qrCode, lang }: ActivationFormProps) {
 
   const validateAll = (): string | null => {
     // Card 1: Itinerary
-    if (!transportType) return t('Sélectionnez le type de transport.', 'Select the transport type.');
     if (!company.trim()) return t('Saisissez la compagnie.', 'Enter the transport company.');
     if (!departureCity.trim()) return t('Saisissez la ville de départ.', 'Enter the departure city.');
     if (!arrivalCity.trim()) return t("Saisissez la ville d'arrivée.", 'Enter the arrival city.');

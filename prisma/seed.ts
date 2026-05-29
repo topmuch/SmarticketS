@@ -20,7 +20,7 @@ async function main() {
     { key: 'company_email', value: 'contact@smartickets.com' },
     { key: 'seo_title', value: 'SmarticketS - Protection intelligente des bagages' },
     { key: 'seo_description', value: 'Protégez vos bagages avec un autocollant QR intelligent. Sans application, sans batterie, sans GPS.' },
-    { key: 'seo_keywords', value: 'QR, bagage, voyage, hajj, protection, sticker' },
+    { key: 'seo_keywords', value: 'QR, bagage, voyage, protection, sticker' },
     { key: 'languages', value: 'fr,en,ar' },
     { key: 'default_language', value: 'fr' },
     { key: 'currency', value: 'EUR' },
@@ -81,32 +81,8 @@ async function main() {
     },
   });
 
-  // Create sample baggages
+  // Create sample Voyageur baggage (activated)
   console.log('Creating sample baggages...');
-  
-  // Hajj baggages (3 per pilgrim)
-  const hajjReferences = [
-    'HAJJ25-MLQGY7',
-    'HAJJ25-K9X2P4',
-    'HAJJ25-ABC123',
-  ];
-
-  for (let i = 0; i < hajjReferences.length; i++) {
-    await prisma.baggage.upsert({
-      where: { reference: hajjReferences[i] },
-      update: {},
-      create: {
-        reference: hajjReferences[i],
-        type: 'hajj',
-        agencyId: agency.id,
-        baggageIndex: i + 1,
-        baggageType: i === 0 ? 'cabine' : 'soute',
-        status: 'pending_activation',
-      },
-    });
-  }
-
-  // Voyageur baggage (activated)
   await prisma.baggage.upsert({
     where: { reference: 'VOL25-DEMO01' },
     update: {},
@@ -126,41 +102,33 @@ async function main() {
     },
   });
 
-  // Hajj baggage (activated)
+  // Create sample parcel baggage (pending activation — for testing colis flow)
   await prisma.baggage.upsert({
-    where: { reference: 'HAJJ25-ACTIVE' },
+    where: { reference: 'COLIS25-DEMO01' },
     update: {},
     create: {
-      reference: 'HAJJ25-ACTIVE',
-      type: 'hajj',
+      reference: 'COLIS25-DEMO01',
+      type: 'voyageur',
+      category: 'parcel',
       agencyId: agency.id,
-      travelerFirstName: 'Ahmed',
-      travelerLastName: 'Diop',
-      whatsappOwner: '+221784858226',
       baggageIndex: 1,
-      baggageType: 'cabine',
-      status: 'active',
-      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+      baggageType: 'soute',
+      status: 'pending_activation',
     },
   });
 
-  // Lost baggage
+  // Create sample ticket baggage (pending activation — for testing ticket flow)
   await prisma.baggage.upsert({
-    where: { reference: 'HAJJ25-LOST01' },
+    where: { reference: 'TKT25-PENDING' },
     update: {},
     create: {
-      reference: 'HAJJ25-LOST01',
-      type: 'hajj',
+      reference: 'TKT25-PENDING',
+      type: 'voyageur',
+      category: 'ticket',
       agencyId: agency.id,
-      travelerFirstName: 'Fatou',
-      travelerLastName: 'Ndiaye',
-      whatsappOwner: '+22177123456',
       baggageIndex: 1,
-      baggageType: 'cabine',
-      status: 'lost',
-      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-      lastScanDate: new Date(),
-      lastLocation: 'Aéroport de Jeddah',
+      baggageType: 'soute',
+      status: 'pending_activation',
     },
   });
 
@@ -306,6 +274,7 @@ async function main() {
         id: 'demo-baggage-1',
         reference: 'TKT-DEMO-001',
         type: 'voyageur',
+        category: 'ticket',
         agencyId: agency.id,
         travelerFirstName: 'Mamadou',
         travelerLastName: 'Diallo',
@@ -325,6 +294,7 @@ async function main() {
         id: 'demo-baggage-2',
         reference: 'TKT-DEMO-002',
         type: 'voyageur',
+        category: 'ticket',
         agencyId: agency.id,
         travelerFirstName: 'Aminata',
         travelerLastName: 'Fall',
@@ -396,8 +366,10 @@ async function main() {
   console.log('');
   console.log('📱 Test QR codes:');
   console.log('  VOL25-DEMO01 - Active traveler baggage');
-  console.log('  HAJJ25-ACTIVE - Active Hajj baggage');
-  console.log('  HAJJ25-LOST01 - Lost Hajj baggage');
+  console.log('  COLIS25-DEMO01 - Pending parcel (for colis activation)');
+  console.log('  TKT25-PENDING - Pending ticket (for ticket activation)');
+  console.log('  TKT-DEMO-001 - Active ticket (Mamadou Diallo, ctrl: 123456)');
+  console.log('  TKT-DEMO-002 - Active ticket (Aminata Fall, ctrl: 654321)');
 }
 
 main()

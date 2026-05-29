@@ -1,14 +1,19 @@
 'use client';
 
-import { QrCode, Truck, Globe } from 'lucide-react';
+import { QrCode, Globe } from 'lucide-react';
 
 interface ActivationHeaderProps {
   qrCode: string;
   onLangChange: (lang: 'fr' | 'en') => void;
   currentLang: 'fr' | 'en';
+  /** Optional title override — defaults to 'Activation' */
+  title?: string;
 }
 
-export default function ActivationHeader({ qrCode, onLangChange, currentLang }: ActivationHeaderProps) {
+export default function ActivationHeader({ qrCode, onLangChange, currentLang, title }: ActivationHeaderProps) {
+  const defaultTitle = currentLang === 'fr' ? 'Activation' : 'Activation';
+  const displayTitle = title || defaultTitle;
+
   return (
     <header className="bg-[#8b5cf6] text-white sticky top-0 z-50 safe-area-inset-top">
       {/* Top row */}
@@ -26,14 +31,6 @@ export default function ActivationHeader({ qrCode, onLangChange, currentLang }: 
           </div>
         </div>
 
-        {/* Badge Chauffeur — responsive text */}
-        <div className="hidden xs:flex items-center gap-1.5 sm:gap-2 border-2 border-dashed border-white rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2">
-          <Truck className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white shrink-0" />
-          <span className="text-[10px] sm:text-lg font-bold text-white uppercase leading-tight">
-            {currentLang === 'fr' ? 'Chauffeur' : 'Driver'}
-          </span>
-        </div>
-
         {/* Lang */}
         <button
           onClick={() => onLangChange(currentLang === 'fr' ? 'en' : 'fr')}
@@ -49,7 +46,7 @@ export default function ActivationHeader({ qrCode, onLangChange, currentLang }: 
       <div className="border-t border-white/10">
         <div className="max-w-[600px] mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <h1 className="text-base sm:text-2xl font-extrabold text-white uppercase leading-tight">
-            📦 {currentLang === 'fr' ? 'Activation du Colis' : 'Package Activation'}
+            {displayTitle}
           </h1>
         </div>
       </div>

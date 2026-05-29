@@ -103,7 +103,7 @@ export default function SuccessScreen({
       const otherNotified = notified !== 'none' && notified !== type;
       const callback = otherNotified
         ? `/retrieve/${reference}`
-        : `/activate/${reference}?notified=${type}`;
+        : `/activate/parcel/${reference}?notified=${type}`;
 
       const params = new URLSearchParams({
         waLink,
