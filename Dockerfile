@@ -1,5 +1,6 @@
 # ============================================================
 # SmarticketS — Multi-stage Dockerfile for Coolify
+# Coolify clones the repo, so we use COPY (not git clone)
 # ============================================================
 
 # ── Stage 1: Build ──
@@ -13,9 +14,13 @@ RUN npm install -g bun
 
 WORKDIR /app
 
-# Clone the repository
-RUN git clone --branch main --depth 1 https://github.com/topmuch/SmarticketS.git /app/tmp && \
-    cp -r /app/tmp/. /app/ && rm -rf /app/tmp
+# Copy source code (Coolify already cloned the repo)
+COPY package.json bun.lock ./
+COPY prisma ./prisma/
+COPY scripts ./scripts/
+COPY public ./public/
+COPY src ./src/
+COPY next.config.ts tsconfig.json postcss.config.mjs tailwind.config.ts components.json ./
 
 # Install ALL dependencies (including devDependencies) for build
 ENV NODE_ENV=development
@@ -85,11 +90,11 @@ USER nextjs
 
 EXPOSE 3000
 
-# Health check
+# HEALTH CHECK
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-# Start command: sync DB schema then start server
+# START COMMAND: sync DB schema then start server
 CMD ["sh", "-c", "\
   mkdir -p /app/data /app/public/uploads && \
   echo '>>> [1/3] Syncing database schema...' && \
