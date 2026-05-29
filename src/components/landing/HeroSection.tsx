@@ -43,8 +43,8 @@ export default function HeroSection() {
       {/* Full-width background image 16:9 */}
       <div className="absolute inset-0">
         <Image
-          src="/images/hero-qrcode.png"
-          alt="Chauffeur SmarticketS scannant un QR code sur une valise avant remise au destinataire"
+          src="/images/hero-bus-smartickets.jpg"
+          alt="Bus de transport inter-villes SmarticketS avec billets et colis QR code"
           fill
           priority
           className="object-cover object-center"
@@ -63,7 +63,7 @@ export default function HeroSection() {
         <FadeIn>
           <div className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 bg-white/15 backdrop-blur-md border border-white/25 rounded-full">
             <span className="text-sm font-medium text-white tracking-wide">
-              🇸🇳 Solution de traçabilité certifiée pour le transport inter-villes
+              🇸🇳 Billets + Colis — Gestion complète pour le transport inter-villes
             </span>
           </div>
         </FadeIn>
@@ -71,9 +71,9 @@ export default function HeroSection() {
         {/* H1 */}
         <FadeIn delay={0.1}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 leading-[1.08] tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
-            La fiabilité logistique,
+            Billets & Colis,
             <br />
-            augmentée par la technologie{' '}
+            simplifiés par la technologie{' '}
             <span className="text-[#FF6B35] drop-shadow-[0_2px_8px_rgba(255,107,53,0.4)]">QR</span>
           </h1>
         </FadeIn>
@@ -81,8 +81,8 @@ export default function HeroSection() {
         {/* Subtitle */}
         <FadeIn delay={0.2}>
           <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed drop-shadow-[0_1px_6px_rgba(0,0,0,0.25)]">
-            Activez, tracez et sécurisez vos colis entre villes. Notifications
-            WhatsApp automatiques, code PIN de retrait, suivi GPS en temps réel.
+            Vendez des billets, expédiez des colis et suivez tout en temps réel.
+            Notifications WhatsApp, validation billets, code PIN de retrait sécurisé.
           </p>
         </FadeIn>
 
@@ -96,7 +96,7 @@ export default function HeroSection() {
                   type="text"
                   value={refValue}
                   onChange={handleChange}
-                  placeholder="Entrez votre référence colis (ex: TRSP-2026-0042)"
+                  placeholder="Entrez votre réf. billet ou colis (ex: DKR-2026-0042)"
                   className="w-full pl-12 pr-4 py-5 text-base font-semibold bg-transparent text-[#0A2540] placeholder:text-[#94A3B8] focus:outline-none"
                   maxLength={16}
                 />
@@ -106,7 +106,7 @@ export default function HeroSection() {
                 disabled={!isValid}
                 className="flex items-center gap-2 px-7 py-5 font-bold text-sm bg-[#FF6B35] hover:bg-[#e65a28] text-white shadow-[0_4px_16px_rgba(255,107,53,0.4)] hover:shadow-[0_6px_20px_rgba(255,107,53,0.5)] transition-all duration-300 disabled:cursor-not-allowed"
               >
-                Suivre le colis
+                Suivre
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -139,9 +139,9 @@ export default function HeroSection() {
         <FadeIn delay={0.5}>
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-12">
             {[
-              '✅ 10 000+ colis tracés',
-              '✅ 500+ chauffeurs certifiés',
-              '✅ 98% de livraisons sans incident',
+              '✅ Billets & Colis unifiés',
+              '✅ 500+ transporteurs certifiés',
+              '✅ 98% de trajets sans incident',
             ].map((badge) => (
               <span
                 key={badge}
