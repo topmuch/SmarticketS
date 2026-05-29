@@ -1,11 +1,11 @@
 # ============================================================
-# SmarticketS — Multi-stage Dockerfile for Coolify (lightweight)
+# SmarticketS — Multi-stage Dockerfile for Coolify
 # ============================================================
 
 # ── Stage 1: Build ──
 FROM node:20-alpine AS builder
 
-ARG CACHEBUST=18
+ARG CACHEBUST=1
 
 # Install required packages for building
 RUN apk add --no-cache git sqlite build-base
@@ -14,7 +14,7 @@ RUN npm install -g bun
 WORKDIR /app
 
 # Clone the repository
-RUN git clone --branch main --depth 1 https://github.com/topmuch/smartickets.git /app/tmp && \
+RUN git clone --branch main --depth 1 https://github.com/topmuch/SmarticketS.git /app/tmp && \
     cp -r /app/tmp/. /app/ && rm -rf /app/tmp
 
 # Install ALL dependencies (including devDependencies) for build
@@ -32,7 +32,7 @@ RUN bun run build
 # ── Stage 2: Production (minimal image) ──
 FROM node:20-alpine AS runner
 
-ARG CACHEBUST=18
+ARG CACHEBUST=1
 
 # Only install runtime essentials
 RUN apk add --no-cache sqlite-libs
@@ -71,6 +71,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/mailparser ./node_mo
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/iconv-lite ./node_modules/iconv-lite
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/he ./node_modules/he
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/mimetic ./node_modules/mimetic 2>/dev/null || true
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/encodeurl ./node_modules/encodeurl 2>/dev/null || true
 
 # Copy Prisma schema + migration script
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
@@ -88,11 +89,11 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-# Start command
+# Start command: sync DB schema then start server
 CMD ["sh", "-c", "\
   mkdir -p /app/data /app/public/uploads && \
   echo '>>> [1/3] Syncing database schema...' && \
-  (npx prisma db push --skip-generate --accept-data-loss 2>&1 && echo '    ✅ Schema synced' || echo '    ⚠️ Schema sync issue') && \
+  (npx prisma db push --skip-generate --accept-data-loss 2>&1 && echo '    Schema synced' || echo '    Schema sync warning') && \
   echo '>>> [2/3] Running column migrations...' && \
   node scripts/migrate-db.js 2>&1 && \
   echo '>>> [3/3] Starting server...' && \

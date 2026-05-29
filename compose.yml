@@ -1,0 +1,58 @@
+# ============================================================
+# SmarticketS — Coolify Docker Compose
+# Usage: Import this file in Coolify as a new service
+# ============================================================
+
+services:
+  smartickets:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartickets-app
+    ports:
+      - "3000:3000"
+    environment:
+      # ─── Core ───
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/qrtrans.db
+      - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL:-https://your-domain.com}
+      # ─── Auth ───
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-me-in-production}
+      - NEXTAUTH_URL=${NEXT_PUBLIC_BASE_URL:-https://your-domain.com}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-in-production}
+      # ─── PayPal (optional) ───
+      - PAYPAL_MODE=${PAYPAL_MODE:-sandbox}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+      # ─── SMTP Email (optional) ───
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@smartickets.com}
+      # ─── WAKIT WhatsApp API (optional) ───
+      - WAKIT_API_KEY=${WAKIT_API_KEY:-}
+      - WAKIT_BASE_URL=${WAKIT_BASE_URL:-https://api.wakit.ai/v1}
+      - WAKIT_PHONE_NUMBER_ID=${WAKIT_PHONE_NUMBER_ID:-}
+      # ─── Groq AI (optional) ───
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_AI_ENABLED=${GROQ_AI_ENABLED:-true}
+      - GROQ_CHAT_ENABLED=${GROQ_CHAT_ENABLED:-true}
+      - GROQ_SCAN_GUARD_ENABLED=${GROQ_SCAN_GUARD_ENABLED:-true}
+      - GROQ_AUTO_TRANSLATE_ENABLED=${GROQ_AUTO_TRANSLATE_ENABLED:-true}
+    volumes:
+      - smartickets_data:/app/data
+      - smartickets_uploads:/app/public/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  smartickets_data:
+    driver: local
+  smartickets_uploads:
+    driver: local
