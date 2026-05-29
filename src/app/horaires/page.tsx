@@ -112,6 +112,12 @@ export default function HorairesPage() {
   const [data, setData] = useState<ScheduleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [originUrl, setOriginUrl] = useState('');
+
+  // Get origin URL on mount (avoids hydration mismatch with SSR)
+  useEffect(() => {
+    setOriginUrl(window.location.origin);
+  }, []);
 
   // Filters
   const [origin, setOrigin] = useState('');
@@ -641,7 +647,7 @@ export default function HorairesPage() {
         )}
 
         {/* ─── QR Code Affichage Gare Section ─────────────────────── */}
-        {data && data.filters.agencies.length > 0 && (
+        {originUrl && data && data.filters.agencies.length > 0 && (
           <motion.div
             variants={itemVariants}
             className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-6 sm:p-8 shadow-xl"
@@ -665,23 +671,25 @@ export default function HorairesPage() {
               <div className="flex flex-col items-center gap-3">
                 <div className="bg-white p-4 rounded-xl shadow-lg">
                   <QRCodeSVG
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signage/${data.filters.agencies[0]?.id || 'demo'}`}
+                    value={`${originUrl}/signage/${data.filters.agencies[0]?.id || 'demo'}`}
                     size={140}
                     fgColor="#1e3a8a"
                     bgColor="#ffffff"
                     level="H"
+                    includeMargin={false}
                   />
                 </div>
-                {data.filters.agencies.length > 0 && (
-                  <a
-                    href={`/signage/${data.filters.agencies[0].id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-white underline text-sm font-medium"
-                  >
-                    Voir l&apos;affichage →
-                  </a>
-                )}
+                <p className="text-xs text-slate-400 font-mono max-w-[180px] text-center break-all leading-relaxed">
+                  {originUrl}/signage/{data.filters.agencies[0]?.id || 'demo'}
+                </p>
+                <a
+                  href={`/signage/${data.filters.agencies[0].id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#FF6B35] hover:text-[#FFB347] underline text-sm font-semibold transition-colors"
+                >
+                  Voir l&apos;affichage →
+                </a>
               </div>
             </div>
           </motion.div>
