@@ -455,3 +455,34 @@ Stage Summary:
 - Auth system works for agency, driver, and admin roles
 - Ticket validation correctly handles valid, used, and unknown codes
 - Auto-route creation and round-trip departure generation verified
+
+---
+Task ID: signage-fix
+Agent: Main Agent
+Task: Fix connection between superadmin signage config and transport agency signage display
+
+Work Log:
+- Investigated root cause: CSS variables --primary and --secondary in /signage/[stationId]/page.tsx were HARDCODED (#0f172a, #1e293b) instead of reading from API settings
+- Fixed /src/app/signage/[stationId]/page.tsx:
+  - CSS variables --primary and --secondary now dynamically set from data.primaryColor and data.secondaryColor (via template literal in styled-jsx)
+  - Logo now displayed in header when logoUrl is configured (with .brand-logo CSS class)
+  - Fallback defaults preserved: --primary: #0f172a, --secondary: #1e293b when no settings exist
+- Updated /src/app/agence/layout.tsx:
+  - Added "Affichage Gare" menu item with Monitor icon to transport agency sidebar
+  - Links to /signage/[agencyId] and opens in new tab (external link)
+  - Added ExternalLink icon indicator for external links
+  - Added agencyId prop to Sidebar component, passed from AgencyRootLayout
+  - Updated MenuItem interface with optional `external` flag
+  - Updated link rendering to handle external links (target="_blank", no sidebar close)
+- Runtime tests:
+  - PUT /api/admin/signage/settings → 200, saves custom colors (#d4380d, #fa8c16) + station "Gare de Pikine" ✅
+  - GET /api/admin/signage/settings → 200, returns saved values ✅
+  - GET /api/signage/demo-agency-1/departures → 200, returns updated primaryColor, secondaryColor, stationName, tickerMessages ✅
+  - GET /admin/signage → 200, admin config page renders ✅
+  - Lint: 0 new errors (only pre-existing scripts/migrate-db.js) ✅
+
+Stage Summary:
+- Root cause found: CSS variables were hardcoded, settings from superadmin never applied visually
+- 2 files modified (signage display page + agency layout)
+- Superadmin config (colors, station name, logo, ticker) now correctly propagates to signage display
+- Transport agency sidebar now has "Affichage Gare" link to view the live display

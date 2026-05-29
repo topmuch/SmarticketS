@@ -254,13 +254,16 @@ export default function SignageKioskPage() {
   }
 
   const stationName = data.stationName || 'Gare Routière';
+  const primaryColor = data.primaryColor || '#0f172a';
+  const secondaryColor = data.secondaryColor || '#1e293b';
+  const logoUrl = data.logoUrl || '';
 
   return (
     <>
       <style jsx>{`
         :root {
-          --primary: #0f172a;
-          --secondary: #1e293b;
+          --primary: ${primaryColor};
+          --secondary: ${secondaryColor};
           --accent: #f59e0b;
           --success: #10b981;
           --muted: #94a3b8;
@@ -304,6 +307,18 @@ export default function SignageKioskPage() {
           border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
           font-weight: 800; font-size: clamp(1rem, 2vh, 1.2rem); color: #0f172a;
+          overflow: hidden;
+        }
+        .brand-icon img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+        .brand-logo {
+          width: clamp(32px, 4vh, 48px);
+          height: clamp(32px, 4vh, 48px);
+          border-radius: 8px;
+          object-fit: contain;
         }
         .brand h1 { font-size: clamp(1.2rem, 2.5vh, 2rem); letter-spacing: 0.5px; }
 
@@ -470,7 +485,11 @@ export default function SignageKioskPage() {
         {/* ─── HEADER ─── */}
         <header className="s-header">
           <div className="brand">
-            <div className="brand-icon">ST</div>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="brand-logo" />
+            ) : (
+              <div className="brand-icon">ST</div>
+            )}
             <h1>SmartTicketQR</h1>
           </div>
           <div className="station">

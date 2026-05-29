@@ -26,6 +26,7 @@ import {
   Copy,
   ShoppingCart,
   Bus,
+  Monitor,
 } from "lucide-react";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,10 +66,11 @@ interface MenuItem {
   icon: React.ReactNode;
   href: string;
   badge?: number;
+  external?: boolean;
 }
 
 // Modern Sidebar Component - Orange Theme with Black Buttons
-function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agencySlug }: { isOpen: boolean; setIsOpen: (open: boolean) => void; unreadMessages?: number; onLogout: () => void; userName: string; agencySlug: string }) {
+function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agencySlug, agencyId }: { isOpen: boolean; setIsOpen: (open: boolean) => void; unreadMessages?: number; onLogout: () => void; userName: string; agencySlug: string; agencyId: string }) {
   const pathname = usePathname();
   
   const menuItems: MenuItem[] = [
@@ -79,6 +81,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
     { label: "Colis Livrés", icon: <CheckCircle className="w-5 h-5" />, href: "/agence/trouvailles" },
     { label: "Perdus", icon: <AlertTriangle className="w-5 h-5" />, href: "/agence/perdus" },
     { label: "Rapports", icon: <BarChart3 className="w-5 h-5" />, href: "/agence/rapports" },
+    { label: "Affichage Gare", icon: <Monitor className="w-5 h-5" />, href: `/signage/${agencyId}`, external: true },
     { label: "Profil", icon: <User className="w-5 h-5" />, href: "/agence/profil" },
   ];
 
@@ -135,13 +138,16 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-1">
             {menuItems.map((item, index) => {
-              const isActive = pathname === item.href || 
-                (item.href !== '/agence/tableau-de-bord' && pathname.startsWith(item.href));
+              const isActive = !item.external && (
+                pathname === item.href || 
+                (item.href !== '/agence/tableau-de-bord' && pathname.startsWith(item.href))
+              );
               
               return (
                 <li key={index}>
                   <Link
                     href={item.href}
+                    {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                     className={`
                       relative flex items-center gap-3 px-4 py-2.5 rounded-xl
                       transition-all duration-200 group
@@ -150,7 +156,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
                         : 'bg-black text-white hover:bg-black/80'
                       }
                     `}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => !item.external && setIsOpen(false)}
                   >
                     <span className="shrink-0 text-white">
                       {item.icon}
@@ -160,6 +166,9 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
                       <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
                         {item.badge}
                       </span>
+                    )}
+                    {item.external && (
+                      <ExternalLink className="h-3.5 w-3.5 text-white/60 shrink-0" />
                     )}
                   </Link>
                 </li>
@@ -457,7 +466,7 @@ export default function AgencyRootLayout({
       userEmail: user.email
     }}>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex transition-colors duration-300">
-        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} unreadMessages={unreadMessages} onLogout={handleLogout} userName={user.name || 'Agence'} agencySlug={agencySlug} />
+        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} unreadMessages={unreadMessages} onLogout={handleLogout} userName={user.name || 'Agence'} agencySlug={agencySlug} agencyId={agencyId} />
 
         <div className="flex-1 flex flex-col min-w-0">
           <Header unreadMessages={unreadMessages} onMenuClick={() => setSidebarOpen(true)} userName={user.name || 'Agence'} agencySlug={agencySlug} />
