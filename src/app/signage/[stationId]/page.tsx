@@ -13,14 +13,10 @@ interface Departure {
   destination: string;
   scheduledTime: string;
   effectiveTime: string;
-  platform: string;
-  status: string;
+  status: string; // computed status from API: SCHEDULED | BOARDING | DEPARTED | CANCELLED
   delayMinutes: number;
-  availableSeats: number;
-  totalSeats: number;
-  occupancy: number;
   countdownMin: number;
-  companyName: string;
+  shouldPlayAlert: boolean;
 }
 
 interface TickerMessage {
@@ -41,15 +37,30 @@ interface StationData {
   secondaryColor: string;
 }
 
+interface SignageAd {
+  id: string;
+  title: string;
+  mediaType: 'IMAGE' | 'VIDEO';
+  mediaUrl: string;
+  duration: number;
+  interval: number;
+  isActive: boolean;
+  priority: number;
+  startDate: string;
+  endDate: string | null;
+  views: number;
+  createdBy: string;
+}
+
 /* ══════════════════════════════════════════════
    Status display config
    ══════════════════════════════════════════════ */
 const STATUS_MAP: Record<string, { label: string; css: string }> = {
-  SCHEDULED: { label: 'À l\'heure', css: 'on-time' },
-  BOARDING: { label: 'EMBARQUEMENT', css: 'boarding' },
-  DELAYED: { label: 'Retard', css: 'delayed' },
-  DEPARTED: { label: 'Parti', css: 'departed' },
-  CANCELLED: { label: 'Annulé', css: 'departed' },
+  SCHEDULED: { label: 'À l\'heure', css: 'sig-status--ontime' },
+  BOARDING: { label: 'EMBARQUEMENT', css: 'sig-status--boarding' },
+  DELAYED: { label: 'Retard', css: 'sig-status--delayed' },
+  DEPARTED: { label: 'Parti', css: 'sig-status--departed' },
+  CANCELLED: { label: 'Annulé', css: 'sig-status--departed' },
 };
 
 /* ══════════════════════════════════════════════
@@ -109,14 +120,8 @@ const DepartureRow = memo(function DepartureRow({ dep }: { dep: Departure }) {
     >
       {/* Time */}
       <div className="sig-row__time">{dep.effectiveTime}</div>
-      {/* Line */}
-      <div className="sig-row__line">
-        <span className="sig-line-badge">{dep.lineNumber}</span>
-      </div>
       {/* Destination */}
       <div className="sig-row__dest">{dep.destination}</div>
-      {/* Platform */}
-      <div className="sig-row__quai">{dep.platform}</div>
       {/* Status */}
       <div className="sig-row__status">
         <span className={`sig-status ${statusCfg.css}`}>{statusCfg.label}</span>
@@ -141,17 +146,25 @@ export default function SignageKioskPage() {
   const searchParams = useSearchParams();
   const stationId = params.stationId as string;
   const isDebug = searchParams.get('debug') === '1';
-  // Always kiosk mode — no menus, no scrollbars, fullscreen
-  const isKiosk = true;
 
   const [data, setData] = useState<StationData | null>(null);
   const [currentTime, setCurrentTime] = useState('00:00:00');
   const [currentDate, setCurrentDate] = useState('Chargement...');
   const [lastUpdate, setLastUpdate] = useState('');
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [offline, setOffline] = useState(false);
-  const prevBoardingRef = useRef<Set<string>>(new Set());
-  const prevDataRef = useRef<StationData | null>(null);
+
+  // Ad rotation state
+  const [ads, setAds] = useState<SignageAd[]>([]);
+  const [activeAd, setActiveAd] = useState<SignageAd | null>(null);
+  const [showAdOverlay, setShowAdOverlay] = useState(false);
+  const adIntervalTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const adDisplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAdShownRef = useRef<number>(Date.now());
+
+  // Alert tracking — ding-dong plays once per transition
+  const alertedDeparturesRef = useRef<Set<string>>(new Set());
+
+  // Cursor auto-hide
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cursorHidden, setCursorHidden] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -163,9 +176,10 @@ export default function SignageKioskPage() {
         requestFullscreen(rootRef.current);
       }
     };
-    // Try to auto-enter fullscreen on first user interaction
     const handleFirstInteraction = () => {
       goFullscreen();
+      // Also init audio on first interaction (browser policy)
+      initAudio();
       document.removeEventListener('click', handleFirstInteraction);
       document.removeEventListener('touchstart', handleFirstInteraction);
       document.removeEventListener('keydown', handleFirstInteraction);
@@ -210,7 +224,6 @@ export default function SignageKioskPage() {
 
   // ─── Auto-hide cursor in kiosk mode ──────────────────────────
   useEffect(() => {
-    if (!isKiosk) return;
     const hideCursor = () => setCursorHidden(true);
     const showCursor = () => {
       setCursorHidden(false);
@@ -225,7 +238,55 @@ export default function SignageKioskPage() {
       document.removeEventListener('touchstart', showCursor);
       if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
     };
-  }, [isKiosk]);
+  }, []);
+
+  // ─── Fetch ads once on mount ────────────────────────────────
+  useEffect(() => {
+    const fetchAds = async () => {
+      try {
+        const res = await fetch('/api/signage-ads');
+        if (res.ok) {
+          const json = await res.json();
+          setAds(json as SignageAd[]);
+        }
+      } catch {
+        // Ads are non-critical — swallow error
+      }
+    };
+    fetchAds();
+  }, []);
+
+  // ─── Ad rotation system ───────────────────────────────────
+  // Show a random ad every N minutes, for ad.duration seconds full-screen
+  useEffect(() => {
+    if (ads.length === 0) return;
+
+    // Find the shortest interval among all ads
+    const minInterval = Math.min(...ads.map(a => a.interval));
+
+    const triggerAdRotation = () => {
+      if (showAdOverlay) return; // Already showing an ad
+      // Pick a random active ad
+      const randomAd = ads[Math.floor(Math.random() * ads.length)];
+      setActiveAd(randomAd);
+      setShowAdOverlay(true);
+
+      // Hide after ad.duration seconds
+      if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
+      adDisplayTimerRef.current = setTimeout(() => {
+        setShowAdOverlay(false);
+        setActiveAd(null);
+      }, randomAd.duration * 1000);
+    };
+
+    // Start interval timer
+    adIntervalTimerRef.current = setInterval(triggerAdRotation, minInterval * 60 * 1000);
+
+    return () => {
+      if (adIntervalTimerRef.current) clearInterval(adIntervalTimerRef.current);
+      if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
+    };
+  }, [ads, showAdOverlay]);
 
   // ─── Poll departures every 15s ─────────────────────────────
   useEffect(() => {
@@ -239,21 +300,16 @@ export default function SignageKioskPage() {
           setOffline(false);
           setData(json);
           setLastUpdate(new Date().toLocaleTimeString('fr-FR'));
-          if (json.alertSoundEnabled === false) setSoundEnabled(false);
-          if (prevDataRef.current) {
-            const currentBoarding: Set<string> = new Set(
-              json.departures
-                .filter((d: Departure) => d.status === 'BOARDING')
-                .map((d: Departure) => d.id)
-            );
-            currentBoarding.forEach((id) => {
-              if (!prevBoardingRef.current.has(id) && soundEnabled) {
+
+          // ─── Ding-dong: play once when shouldPlayAlert transitions ───
+          if (json.alertSoundEnabled !== false) {
+            for (const dep of json.departures) {
+              if (dep.shouldPlayAlert && !alertedDeparturesRef.current.has(dep.id)) {
+                alertedDeparturesRef.current.add(dep.id);
                 playDingDong();
               }
-            });
-            prevBoardingRef.current = currentBoarding;
+            }
           }
-          prevDataRef.current = json;
         }
       } catch {
         setOffline(true);
@@ -263,7 +319,7 @@ export default function SignageKioskPage() {
     fetchDepartures();
     const interval = setInterval(fetchDepartures, 15000);
     return () => clearInterval(interval);
-  }, [stationId, soundEnabled]);
+  }, [stationId]);
 
   // ─── Ticker messages ───────────────────────────────────────
   const activeTicker = useMemo(() => {
@@ -276,20 +332,31 @@ export default function SignageKioskPage() {
   // ─── Loading state ──────────────────────────────────────────
   if (!data) {
     return (
-      <div className="sig-kiosk" style={{ background: '#f8fafc' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div className="sig-spinner" />
-            <p style={{ color: '#94a3b8', fontSize: '1.2rem', fontFamily: 'var(--sig-font)' }}>Chargement des départs...</p>
-          </div>
+      <div className="sig-kiosk">
+        <div className="sig-kiosk-loading">
+          <div className="sig-spinner" />
+          <p className="sig-kiosk-loading-text">Chargement des départs...</p>
         </div>
         <style jsx global>{`
           @keyframes sig-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          .sig-kiosk {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            width: 100vw; height: 100vh; height: 100dvh;
+            overflow: hidden; position: fixed; inset: 0;
+            background: #f8fafc;
+          }
           .sig-spinner {
             width: 48px; height: 48px; border-radius: 50%;
             border: 4px solid #e2e8f0; border-top-color: #f59e0b;
             animation: sig-spin 1s linear infinite;
             margin: 0 auto 1rem;
+          }
+          .sig-kiosk-loading {
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh;
+          }
+          .sig-kiosk-loading-text {
+            color: #94a3b8; font-size: 1.2rem; text-align: center;
           }
         `}</style>
       </div>
@@ -302,7 +369,7 @@ export default function SignageKioskPage() {
   const logoUrl = data.logoUrl || '';
 
   return (
-    <div ref={rootRef} className="sig-kiosk">
+    <div className="sig-kiosk" ref={rootRef}>
       <style jsx global>{`
         /* ═══ CSS VARIABLES ═══ */
         :root {
@@ -423,9 +490,11 @@ export default function SignageKioskPage() {
           overflow: hidden;
           min-height: 0;
         }
+
+        /* ═══ BOARD HEADER — 3 columns: Heure | Destination | Statut ═══ */
         .sig-board-head {
           display: grid;
-          grid-template-columns: 1fr 0.7fr 2fr 0.7fr 1.2fr;
+          grid-template-columns: 1fr 3fr 1.5fr;
           background: var(--sig-secondary);
           color: white;
           padding: clamp(0.5rem, 1.2vh, 1rem) clamp(0.6rem, 1.5vw, 1.5rem);
@@ -436,7 +505,7 @@ export default function SignageKioskPage() {
           flex-shrink: 0;
         }
 
-        /* ═══ ROWS ═══ */
+        /* ═══ ROWS — 3 columns ═══ */
         .sig-board-body { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
         .sig-board-body::-webkit-scrollbar { width: 4px; }
         .sig-board-body::-webkit-scrollbar-track { background: transparent; }
@@ -444,7 +513,7 @@ export default function SignageKioskPage() {
 
         .sig-row {
           display: grid;
-          grid-template-columns: 1fr 0.7fr 2fr 0.7fr 1.2fr;
+          grid-template-columns: 1fr 3fr 1.5fr;
           padding: clamp(0.4rem, 1vh, 1rem) clamp(0.6rem, 1.5vw, 1.5rem);
           border-bottom: 1px solid #e2e8f0;
           align-items: center;
@@ -460,8 +529,7 @@ export default function SignageKioskPage() {
           font-weight: 800;
           animation: sig-pulse 1.5s infinite;
         }
-        .sig-row--boarding .sig-row__time,
-        .sig-row--boarding .sig-line-badge { color: #064e3b; }
+        .sig-row--boarding .sig-row__time { color: #064e3b; }
         .sig-row--departed { opacity: 0.4; background: #f8fafc; }
 
         @keyframes sig-pulse {
@@ -470,13 +538,7 @@ export default function SignageKioskPage() {
         }
 
         .sig-row__time { font-family: var(--sig-mono); font-weight: 700; }
-        .sig-line-badge {
-          background: #e2e8f0; padding: 0.2em 0.5em;
-          border-radius: 5px; font-weight: 700;
-          font-size: 0.75em; display: inline-block;
-        }
-        .sig-row__dest { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sig-row__quai { text-align: center; font-weight: 600; color: var(--sig-muted); font-size: 0.85em; }
+        .sig-row__dest { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 0.5rem; }
 
         .sig-status {
           text-align: right; font-weight: 700;
@@ -484,10 +546,45 @@ export default function SignageKioskPage() {
           border-radius: 16px; display: inline-block;
           white-space: nowrap;
         }
-        .sig-status.on-time { background: #dcfce7; color: #166534; }
-        .sig-status.boarding { background: var(--sig-success); color: white; }
-        .sig-status.delayed { background: #fee2e2; color: #991b1b; }
-        .sig-status.departed { background: #f1f5f9; color: #64748b; }
+        .sig-status--ontime { background: #dcfce7; color: #166534; }
+        .sig-status--boarding { background: var(--sig-success); color: white; animation: sig-status-glow 1s infinite; }
+        .sig-status--delayed { background: #fee2e2; color: #991b1b; }
+        .sig-status--departed { background: #f1f5f9; color: #64748b; }
+
+        @keyframes sig-status-glow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+          50% { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.3); }
+        }
+
+        /* ═══ AD OVERLAY ═══ */
+        .sig-ad-overlay {
+          position: fixed; inset: 0; z-index: 100;
+          background: #000;
+          display: flex; align-items: center; justify-content: center;
+          animation: sig-ad-fadein 0.6s ease;
+          cursor: none;
+        }
+        .sig-ad-overlay img {
+          max-width: 100%; max-height: 100%;
+          object-fit: contain;
+        }
+        .sig-ad-overlay video {
+          max-width: 100%; max-height: 100%;
+          object-fit: contain;
+        }
+        .sig-ad-progress {
+          position: absolute; bottom: 0; left: 0; height: 4px;
+          background: var(--sig-accent);
+          animation: sig-ad-progress linear forwards;
+        }
+        .sig-ad-label {
+          position: absolute; top: clamp(8px, 2vh, 20px); right: clamp(8px, 2vw, 24px);
+          background: rgba(0,0,0,0.6); color: white;
+          padding: 4px 12px; border-radius: 4px;
+          font-size: clamp(0.6rem, 1vh, 0.85rem); font-weight: 600;
+        }
+        @keyframes sig-ad-fadein { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes sig-ad-progress { from { width: 0; } to { width: 100%; } }
 
         /* ═══ FOOTER ═══ */
         .sig-footer {
@@ -513,24 +610,64 @@ export default function SignageKioskPage() {
         }
         .sig-qr-label { font-weight: 700; font-size: clamp(0.6rem, 1.2vh, 0.9rem); text-align: center; }
 
+        /* ═══ OFFLINE BADGE ═══ */
+        .sig-offline {
+          position: fixed; top: 10px; right: 10px;
+          background: #ef4444; color: white;
+          padding: 8px 16px; border-radius: 8px;
+          font-weight: 700; font-size: 14px; z-index: 200;
+          animation: sig-blink 1s infinite;
+        }
+        @keyframes sig-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* ═══ EMPTY STATE ═══ */
+        .sig-empty {
+          text-align: center; padding: clamp(2rem, 5vh, 4rem);
+          color: #94a3b8; font-size: clamp(1rem, 2vh, 1.5rem);
+        }
+
+        /* ═══ LAST UPDATE ═══ */
+        .sig-last-update {
+          position: fixed; bottom: 10px; left: 10px;
+          background: rgba(0,0,0,0.5); color: white;
+          padding: 4px 10px; border-radius: 4px;
+          font-size: 10px; z-index: 50;
+        }
+
+        /* ═══ DEBUG CONTROLS ═══ */
+        .sig-debug {
+          position: fixed; bottom: 20px; right: 20px;
+          background: white; padding: 0.8rem; border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          display: flex; gap: 8px; z-index: 200; flex-direction: column;
+        }
+        .sig-debug-btn {
+          padding: 8px 14px; border: none; border-radius: 6px;
+          cursor: pointer; font-weight: 600; font-size: 0.85rem;
+        }
+        .sig-debug-btn--sim { background: var(--sig-success); color: white; }
+        .sig-debug-btn--ding { background: var(--sig-accent); color: #0f172a; }
+        .sig-debug-btn--reset { background: #e2e8f0; color: var(--sig-primary); }
+        .sig-debug-btn--ad { background: #6366f1; color: white; }
+
         /* ═══ RESPONSIVE: Mobile (< 640px) ═══ */
         @media (max-width: 639px) {
           .sig-brand h1 { display: none; }
           .sig-station span { display: none; }
           .sig-header { padding: 0.4rem 0.6rem; }
           .sig-board-head {
-            grid-template-columns: 0.8fr 0.6fr 2.5fr 0.6fr 1.5fr;
+            grid-template-columns: 1fr 3fr 1.5fr;
             padding: 0.4rem 0.5rem;
             font-size: 0.55rem;
             letter-spacing: 0;
           }
           .sig-row {
-            grid-template-columns: 0.8fr 0.6fr 2.5fr 0.6fr 1.5fr;
+            grid-template-columns: 1fr 3fr 1.5fr;
             padding: 0.35rem 0.5rem;
             font-size: 0.8rem;
             min-height: 32px;
           }
-          .sig-line-badge { padding: 0.1em 0.3em; font-size: 0.65em; }
+          .sig-row__dest { padding: 0 0.2rem; }
           .sig-status { padding: 0.2em 0.4em; font-size: 0.6em; }
           .sig-qr-text h3 { font-size: 0.7rem; }
           .sig-qr-text p { display: none; }
@@ -539,6 +676,7 @@ export default function SignageKioskPage() {
           .sig-footer { padding: 0.4rem 0.5rem; }
           .sig-main { padding: 0.3rem; }
           .sig-board { border-radius: 6px; }
+          .sig-ad-label { font-size: 0.55rem; padding: 3px 8px; }
         }
 
         /* ═══ RESPONSIVE: Tablet (640px – 1023px) ═══ */
@@ -572,19 +710,24 @@ export default function SignageKioskPage() {
             padding: 1.2rem 2.5rem;
             font-size: 1.3rem;
             letter-spacing: 1px;
+            grid-template-columns: 1fr 3fr 1.5fr;
           }
           .sig-row {
             padding: 1.2rem 2.5rem;
             font-size: 2.2rem;
             min-height: 100px;
+            grid-template-columns: 1fr 3fr 1.5fr;
           }
-          .sig-line-badge { padding: 0.3em 0.8em; font-size: 0.8em; border-radius: 8px; }
+          .sig-row__dest { padding: 0 1rem; }
           .sig-status { padding: 0.5em 1em; font-size: 0.85em; border-radius: 24px; }
           .sig-qr-img { width: 120px; height: 120px; }
           .sig-qr-label { font-size: 1.2rem; }
           .sig-qr-text h3 { font-size: 2.2rem; }
           .sig-qr-text p { font-size: 1.3rem; }
           .sig-footer { padding: 1.5rem 3rem; }
+          .sig-ad-label { font-size: 1rem; padding: 6px 16px; }
+          .sig-ad-progress { height: 6px; }
+          .sig-last-update { font-size: 14px; padding: 6px 14px; bottom: 16px; left: 16px; }
         }
 
         /* ═══ RESPONSIVE: 4K (≥ 2560px) ═══ */
@@ -596,154 +739,166 @@ export default function SignageKioskPage() {
           .sig-station h2 { font-size: 4rem; }
           .sig-clock { font-size: 6rem; }
           .sig-ticker-wrap { padding: 1.5rem 0; font-size: 2rem; }
-          .sig-board-head { padding: 1.5rem 3rem; font-size: 1.6rem; }
+          .sig-board-head {
+            padding: 1.5rem 3rem; font-size: 1.6rem;
+            grid-template-columns: 1fr 3fr 1.5fr;
+          }
           .sig-row {
             padding: 1.5rem 3rem;
             font-size: 2.8rem;
             min-height: 120px;
+            grid-template-columns: 1fr 3fr 1.5fr;
           }
+          .sig-row__dest { padding: 0 1.5rem; }
           .sig-footer { padding: 2rem 4rem; }
+          .sig-qr-img { width: 150px; height: 150px; }
+          .sig-qr-text h3 { font-size: 2.8rem; }
+          .sig-qr-text p { font-size: 1.6rem; }
+          .sig-qr-label { font-size: 1.5rem; }
+          .sig-ad-label { font-size: 1.3rem; padding: 8px 20px; }
+          .sig-ad-progress { height: 8px; }
+          .sig-last-update { font-size: 18px; padding: 8px 18px; bottom: 24px; left: 24px; }
         }
-
-        /* ═══ OFFLINE BADGE ═══ */
-        .sig-offline {
-          position: fixed; top: 10px; right: 10px;
-          background: #ef4444; color: white;
-          padding: 8px 16px; border-radius: 8px;
-          font-weight: 700; font-size: 14px; z-index: 100;
-          animation: sig-blink 1s infinite;
-        }
-        @keyframes sig-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-        /* ═══ EMPTY STATE ═══ */
-        .sig-empty {
-          text-align: center; padding: clamp(2rem, 5vh, 4rem);
-          color: #94a3b8; font-size: clamp(1rem, 2vh, 1.5rem);
-        }
-
-        /* ═══ DEBUG CONTROLS ═══ */
-        .sig-debug {
-          position: fixed; bottom: 20px; right: 20px;
-          background: white; padding: 0.8rem; border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          display: flex; gap: 8px; z-index: 100; flex-direction: column;
-        }
-        .sig-debug-btn {
-          padding: 8px 14px; border: none; border-radius: 6px;
-          cursor: pointer; font-weight: 600; font-size: 0.85rem;
-        }
-        .sig-debug-btn--sim { background: var(--sig-success); color: white; }
-        .sig-debug-btn--ding { background: var(--sig-accent); color: #0f172a; }
-        .sig-debug-btn--reset { background: #e2e8f0; color: var(--sig-primary); }
       `}</style>
 
-      <div className="sig-kiosk" ref={rootRef}>
-        {/* Offline Badge */}
-        {offline && <div className="sig-offline">⚠️ Hors ligne</div>}
+      {/* Offline Badge */}
+      {offline && <div className="sig-offline">⚠️ Hors ligne</div>}
 
-        {/* ─── HEADER ─── */}
-        <header className="sig-header">
-          <div className="sig-brand">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="sig-brand-logo" />
-            ) : (
-              <div className="sig-brand-icon">ST</div>
-            )}
-            <h1>SmartTicketQR</h1>
-          </div>
-          <div className="sig-station">
-            <h2>{stationName}</h2>
-            <span>Dakar, Sénégal</span>
-          </div>
-          <div className="sig-clock-box">
-            <div className="sig-clock">{currentTime}</div>
-            <div className="sig-date">{currentDate}</div>
-          </div>
-        </header>
-
-        {/* ─── TICKER ─── */}
-        <div className="sig-ticker-wrap">
-          <div className="sig-ticker">{activeTicker}</div>
+      {/* ─── AD OVERLAY (full-screen ad rotation) ─── */}
+      {showAdOverlay && activeAd && (
+        <div className="sig-ad-overlay">
+          {activeAd.mediaType === 'VIDEO' ? (
+            <video
+              src={activeAd.mediaUrl}
+              autoPlay
+              muted
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          ) : (
+            <img src={activeAd.mediaUrl} alt={activeAd.title} />
+          )}
+          <div className="sig-ad-label">📢 Publicité</div>
+          <div
+            className="sig-ad-progress"
+            style={{ animationDuration: `${activeAd.duration}s` }}
+          />
         </div>
+      )}
 
-        {/* ─── MAIN BOARD ─── */}
-        <main className="sig-main">
-          <div className="sig-board">
-            <div className="sig-board-head">
-              <div>Heure</div>
-              <div>Ligne</div>
-              <div>Destination</div>
-              <div>Quai</div>
-              <div style={{ textAlign: 'right' }}>Statut</div>
-            </div>
-            <div className="sig-board-body">
-              {data.departures.length === 0 ? (
-                <div className="sig-empty">Aucun départ prévu</div>
-              ) : (
-                data.departures.map((dep) => (
-                  <DepartureRow key={dep.id} dep={dep} />
-                ))
-              )}
-            </div>
-          </div>
-        </main>
+      {/* ─── HEADER ─── */}
+      <header className="sig-header">
+        <div className="sig-brand">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="sig-brand-logo" />
+          ) : (
+            <div className="sig-brand-icon">ST</div>
+          )}
+          <h1>SmartTicketQR</h1>
+        </div>
+        <div className="sig-station">
+          <h2>{stationName}</h2>
+          <span>Dakar, Sénégal</span>
+        </div>
+        <div className="sig-clock-box">
+          <div className="sig-clock">{currentTime}</div>
+          <div className="sig-date">{currentDate}</div>
+        </div>
+      </header>
 
-        {/* ─── FOOTER ─── */}
-        <footer className="sig-footer">
-          <div className="sig-qr-text">
-            <h3>📱 Scannez pour suivre votre trajet</h3>
-            <p>Traçabilité sécurisée 24/7 • SmartTicketQR</p>
-          </div>
-          <div className="sig-qr-box">
-            <div className="sig-qr-img">
-              <QRCodeSVG
-                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signage/${stationId}`}
-                size={80}
-                fgColor="#0f172a"
-                bgColor="#ffffff"
-                level="M"
-                includeMargin={false}
-              />
-            </div>
-            <div className="sig-qr-label">TRACKING</div>
-          </div>
-        </footer>
-
-        {/* ─── DEBUG CONTROLS (only when ?debug=1) ─── */}
-        {isDebug && (
-          <div className="sig-debug">
-            <button
-              className="sig-debug-btn sig-debug-btn--sim"
-              onClick={() => {
-                if (!data) return;
-                const firstScheduled = data.departures.find(d => d.status === 'SCHEDULED');
-                if (firstScheduled) playDingDong();
-              }}
-            >
-              ▶️ Simuler Embarquement
-            </button>
-            <button className="sig-debug-btn sig-debug-btn--ding" onClick={playDingDong}>
-              🔊 Test Sonore
-            </button>
-            <button
-              className="sig-debug-btn sig-debug-btn--reset"
-              onClick={() => {
-                prevBoardingRef.current = new Set();
-                prevDataRef.current = null;
-              }}
-            >
-              🔄 Reset
-            </button>
-            <button
-              className="sig-debug-btn sig-debug-btn--ding"
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              style={{ background: soundEnabled ? '#10b981' : '#e2e8f0', color: soundEnabled ? 'white' : '#0f172a' }}
-            >
-              🔔 Son {soundEnabled ? 'ON' : 'OFF'}
-            </button>
-          </div>
-        )}
+      {/* ─── TICKER ─── */}
+      <div className="sig-ticker-wrap">
+        <div className="sig-ticker">{activeTicker}</div>
       </div>
+
+      {/* ─── MAIN BOARD ─── */}
+      <main className="sig-main">
+        <div className="sig-board">
+          {/* 3 columns only: Heure | Destination | Statut */}
+          <div className="sig-board-head">
+            <div>Heure</div>
+            <div>Destination</div>
+            <div style={{ textAlign: 'right' }}>Statut</div>
+          </div>
+          <div className="sig-board-body">
+            {data.departures.length === 0 ? (
+              <div className="sig-empty">Aucun départ prévu</div>
+            ) : (
+              data.departures.map((dep) => (
+                <DepartureRow key={dep.id} dep={dep} />
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* ─── FOOTER ─── */}
+      <footer className="sig-footer">
+        <div className="sig-qr-text">
+          <h3>📱 Scannez pour suivre votre trajet</h3>
+          <p>Traçabilité sécurisée 24/7 • SmartTicketQR</p>
+        </div>
+        <div className="sig-qr-box">
+          <div className="sig-qr-img">
+            <QRCodeSVG
+              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signage/${stationId}`}
+              size={80}
+              fgColor="#0f172a"
+              bgColor="#ffffff"
+              level="M"
+              includeMargin={false}
+            />
+          </div>
+          <div className="sig-qr-label">TRACKING</div>
+        </div>
+      </footer>
+
+      {/* ─── Last update indicator ─── */}
+      {lastUpdate && (
+        <div className="sig-last-update">
+          Dernière MAJ: {lastUpdate}
+        </div>
+      )}
+
+      {/* ─── DEBUG CONTROLS (only when ?debug=1) ─── */}
+      {isDebug && (
+        <div className="sig-debug">
+          <button
+            className="sig-debug-btn sig-debug-btn--sim"
+            onClick={playDingDong}
+          >
+            ▶️ Test Son Ding-Dong
+          </button>
+          <button
+            className="sig-debug-btn sig-debug-btn--ad"
+            onClick={() => {
+              if (ads.length > 0) {
+                const randomAd = ads[Math.floor(Math.random() * ads.length)];
+                setActiveAd(randomAd);
+                setShowAdOverlay(true);
+                if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
+                adDisplayTimerRef.current = setTimeout(() => {
+                  setShowAdOverlay(false);
+                  setActiveAd(null);
+                }, randomAd.duration * 1000);
+              }
+            }}
+          >
+            📢 Test Publicité ({ads.length} ads)
+          </button>
+          <button
+            className="sig-debug-btn sig-debug-btn--reset"
+            onClick={() => {
+              alertedDeparturesRef.current = new Set();
+            }}
+          >
+            🔄 Reset Alerts
+          </button>
+          <div style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>
+            Ads: {ads.length} | Alerted: {alertedDeparturesRef.current.size}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

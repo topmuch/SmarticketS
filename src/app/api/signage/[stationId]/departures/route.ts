@@ -9,15 +9,13 @@ export async function GET(
     const { stationId } = await params;
     const now = new Date();
 
-    // Début de journée (00:00)
+    // Début et fin de journée
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
-
-    // Fin de journée (23:59:59)
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Récupérer les départs de la gare (via agencyId = stationId)
+    // Récupérer les départs de la gare
     const departures = await db.departure.findMany({
       where: {
         agencyId: stationId,
@@ -27,28 +25,23 @@ export async function GET(
         },
       },
       include: {
-        agency: {
-          select: { name: true },
-        },
+        agency: { select: { name: true } },
       },
       orderBy: { scheduledTime: 'asc' },
     });
 
-    // ─── Read signage settings ──────────────────────────────────────────
+    // ─── Read signage settings ──────────────────────────────────
     const signageSettings = await db.setting.findMany({
       where: { key: { startsWith: 'signage_' } },
     });
-
     const settingsMap: Record<string, string> = {};
     for (const s of signageSettings) {
       settingsMap[s.key] = s.value;
     }
 
     const stationName = settingsMap['signage_stationName'] || 'Gare Routière';
-    const alertThreshold = parseInt(settingsMap['signage_alertThresholdMinutes'] || '5') || 5;
     const alertSoundEnabled = settingsMap['signage_alertSoundEnabled'] !== 'false';
 
-    // Ticker messages
     let tickerMessages: { id: string; text: string; priority: string; active: boolean }[] = [];
     try {
       tickerMessages = JSON.parse(settingsMap['signage_tickerMessages'] || '[]');
@@ -56,59 +49,72 @@ export async function GET(
       tickerMessages = [];
     }
 
-    // Logo and colors (defaults match admin settings defaults)
     const logoUrl = settingsMap['signage_logoUrl'] || '';
     const primaryColor = settingsMap['signage_primaryColor'] || '#0f172a';
     const secondaryColor = settingsMap['signage_secondaryColor'] || '#1e293b';
 
-    // ─── Calcul dynamique des statuts ────────────────────────────────────
-    const processed = departures.map(dep => {
+    // ─── Calcul dynamique des statuts (LOGIQUE CORRIGÉE) ───────
+    const processed: {
+      id: string;
+      lineNumber: string;
+      destination: string;
+      scheduledTime: string;
+      effectiveTime: string;
+      status: string;
+      delayMinutes: number;
+      countdownMin: number;
+      shouldPlayAlert: boolean;
+    }[] = [];
+
+    for (const dep of departures) {
       const scheduled = new Date(dep.scheduledTime);
-      const effectiveTime = new Date(scheduled.getTime() + dep.delayMinutes * 60000);
-      const effectiveDiff = Math.floor((effectiveTime.getTime() - now.getTime()) / 60000);
+      const delayMinutes = dep.delayMinutes || 0;
+      const effectiveTime = new Date(scheduled.getTime() + delayMinutes * 60000);
+      const diffMin = Math.floor((effectiveTime.getTime() - now.getTime()) / 60000);
 
-      let status = dep.status;
+      let computedStatus: string;
+      let shouldPlayAlert = false;
 
-      // Auto-recalcul si le statut est encore SCHEDULED
-      if (status === 'SCHEDULED') {
-        if (effectiveDiff < -15) {
-          status = 'DEPARTED';
-        } else if (effectiveDiff >= 0 && effectiveDiff <= 10) {
-          status = 'BOARDING';
-        }
+      if (diffMin > 5) {
+        // Plus de 5 min avant → À l'heure
+        computedStatus = 'SCHEDULED';
+      } else if (diffMin > 0 && diffMin <= 5) {
+        // Entre 0 et 5 min avant → Embarquement (déclencher alerte)
+        computedStatus = 'BOARDING';
+        shouldPlayAlert = true;
+      } else if (diffMin <= 0 && diffMin > -3) {
+        // De l'heure exacte jusqu'à +3 min → Embarquement continue
+        computedStatus = 'BOARDING';
+        shouldPlayAlert = false;
+      } else if (diffMin <= -3 && diffMin > -15) {
+        // De +3 min à +15 min → Parti
+        computedStatus = 'DEPARTED';
+        shouldPlayAlert = false;
+      } else if (diffMin <= -15) {
+        // Plus de 15 min après → Ne pas afficher (archivé)
+        continue; // skip this departure
+      } else {
+        computedStatus = 'SCHEDULED';
       }
 
-      // Si DELAYED, recalculer le countdown avec le retard
-      const countdownMin = status === 'DEPARTED'
-        ? Math.abs(effectiveDiff)
-        : Math.max(0, effectiveDiff);
+      // Si le depart a été manuellement marqué CANCELLED, le garder
+      if (dep.status === 'CANCELLED') {
+        computedStatus = 'CANCELLED';
+        shouldPlayAlert = false;
+      }
 
-      // Taux de remplissage
-      const occupancy = dep.totalSeats > 0
-        ? Math.round(((dep.totalSeats - dep.availableSeats) / dep.totalSeats) * 100)
-        : 0;
-
-      return {
+      processed.push({
         id: dep.id,
         lineNumber: dep.lineNumber,
         destination: dep.destination,
         scheduledTime: scheduled.toTimeString().slice(0, 5),
         effectiveTime: effectiveTime.toTimeString().slice(0, 5),
-        platform: dep.platform || '-',
-        status,
-        delayMinutes: dep.delayMinutes,
-        availableSeats: dep.availableSeats,
-        totalSeats: dep.totalSeats,
-        occupancy,
-        countdownMin,
-        companyName: dep.agency.name,
-      };
-    });
-
-    // Filtrer les départs déjà partis depuis plus de 30 min
-    const filtered = processed.filter(dep =>
-      !(dep.status === 'DEPARTED' && dep.countdownMin > 30)
-    );
+        status: computedStatus,
+        delayMinutes,
+        countdownMin: computedStatus === 'DEPARTED' ? Math.abs(diffMin) : Math.max(0, diffMin),
+        shouldPlayAlert,
+      });
+    }
 
     return NextResponse.json({
       stationId,
@@ -120,18 +126,16 @@ export async function GET(
         month: 'long',
         year: 'numeric',
       }),
-      departures: filtered,
-      totalDepartures: filtered.length,
-      boardingCount: filtered.filter(d => d.status === 'BOARDING').length,
-      delayedCount: filtered.filter(d => d.status === 'DELAYED').length,
-      alertThreshold,
+      departures: processed,
+      totalDepartures: processed.length,
+      boardingCount: processed.filter(d => d.status === 'BOARDING').length,
+      departedCount: processed.filter(d => d.status === 'DEPARTED').length,
       alertSoundEnabled,
       tickerMessages,
       logoUrl,
       primaryColor,
       secondaryColor,
     });
-
   } catch (error) {
     console.error('[/api/signage/departures] GET error:', error);
     return NextResponse.json(

@@ -27,7 +27,8 @@ import {
   TrendingUp,
   Newspaper,
   Activity,
-  Monitor
+  Monitor,
+  Tv
 } from "lucide-react";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -116,6 +117,9 @@ function Sidebar({
 
     // Affichage Gare — Signage configuration
     { label: "Affichage Gare", icon: <Monitor className="w-5 h-5" />, href: "/admin/signage", permission: PERMISSIONS.VIEW_SETTINGS },
+
+    // Publicités Affichage Gare (Kiosk ads)
+    { label: "Pubs Affichage Gare", icon: <Tv className="w-5 h-5" />, href: "/admin/signage-ads", roles: ['superadmin'] },
 
     // Reports
     { label: "Rapports", icon: <BarChart3 className="w-5 h-5" />, href: "/admin/rapports", permission: PERMISSIONS.VIEW_REPORTS },
