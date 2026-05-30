@@ -197,6 +197,10 @@ export default function SignageKioskPage() {
   const [showAdOverlay, setShowAdOverlay] = useState(false);
   const adIntervalTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const adDisplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const adsLoadedRef = useRef(false); // track if ads have been fetched at least once
+  const lastAdShowTimeRef = useRef<number>(0); // track when last ad was shown (to prevent back-to-back)
+  const showAdOverlayRef = useRef(false); // ref mirror for showAdOverlay (avoids stale closure)
+  const [adShowCount, setAdShowCount] = useState(0); // count ad displays for debug
 
   // Alert tracking — ding-dong plays once per transition
   const alertedDeparturesRef = useRef<Set<string>>(new Set());
@@ -276,46 +280,67 @@ export default function SignageKioskPage() {
     };
   }, []);
 
-  // ─── Fetch ads once on mount ───────────────────────────
+  // ─── Fetch ads once on mount (re-fetch every 5 min silently) ──
   useEffect(() => {
     const fetchAds = async () => {
       try {
         const res = await fetch('/api/signage-ads');
         if (res.ok) {
           const json = await res.json();
-          setAds(json as SignageAd[]);
+          const parsed = (json as SignageAd[]) || [];
+          setAds(parsed);
+          adsLoadedRef.current = true;
         }
       } catch {
-        // Ads non-critical
+        // Ads non-critical — fail silently
       }
     };
     fetchAds();
+    // Re-fetch ads every 5 minutes to pick up new ones
+    const refetchInterval = setInterval(fetchAds, 5 * 60 * 1000);
+    return () => clearInterval(refetchInterval);
   }, []);
 
-  // ─── Ad rotation system ──────────────────────────────
+  // ─── Ad rotation engine (stable — uses refs, no dependency on showAdOverlay state) ──
   useEffect(() => {
     if (ads.length === 0) return;
-    const minInterval = Math.min(...ads.map(a => a.interval));
 
-    const triggerAdRotation = () => {
-      if (showAdOverlay) return;
+    const minInterval = Math.min(...ads.map(a => a.interval)) * 60 * 1000; // ms
+
+    const showAd = () => {
+      const now = Date.now();
+      // Guard: prevent showing if another ad just finished (grace period 5s)
+      if (now - lastAdShowTimeRef.current < 5000) return;
+      // Guard: prevent showing if already showing
+      if (showAdOverlayRef.current) return;
+      lastAdShowTimeRef.current = now;
+      setAdShowCount(c => c + 1);
+
       const randomAd = ads[Math.floor(Math.random() * ads.length)];
       setActiveAd(randomAd);
       setShowAdOverlay(true);
+      showAdOverlayRef.current = true;
 
       if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
       adDisplayTimerRef.current = setTimeout(() => {
         setShowAdOverlay(false);
         setActiveAd(null);
+        showAdOverlayRef.current = false;
       }, randomAd.duration * 1000);
     };
 
-    adIntervalTimerRef.current = setInterval(triggerAdRotation, minInterval * 60 * 1000);
+    // Fire first ad after 3s, then at regular intervals
+    const initialDelay = setTimeout(() => {
+      showAd();
+      adIntervalTimerRef.current = setInterval(showAd, minInterval);
+    }, 3000);
+
     return () => {
+      clearTimeout(initialDelay);
       if (adIntervalTimerRef.current) clearInterval(adIntervalTimerRef.current);
       if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
     };
-  }, [ads, showAdOverlay]);
+  }, [ads]); // re-init only when ads list changes
 
   // ─── Poll departures every 15s ─────────────────────────
   useEffect(() => {
@@ -865,17 +890,36 @@ export default function SignageKioskPage() {
             onClick={() => {
               if (ads.length > 0) {
                 const randomAd = ads[Math.floor(Math.random() * ads.length)];
+                lastAdShowTimeRef.current = Date.now();
+                setAdShowCount(c => c + 1);
+                showAdOverlayRef.current = true;
                 setActiveAd(randomAd);
                 setShowAdOverlay(true);
                 if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
                 adDisplayTimerRef.current = setTimeout(() => {
                   setShowAdOverlay(false);
                   setActiveAd(null);
+                  showAdOverlayRef.current = false;
                 }, randomAd.duration * 1000);
               }
             }}
           >
             📢 Test Publicité ({ads.length} ads)
+          </button>
+          <button
+            className="sig2-debug-btn"
+            style={{ background: '#0ea5e9' }}
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/signage-ads');
+                if (res.ok) {
+                  const json = await res.json();
+                  setAds((json as SignageAd[]) || []);
+                }
+              } catch { /* ignore */ }
+            }}
+          >
+            🔄 Refetch Ads
           </button>
           <button
             className="sig2-debug-btn sig2-debug-btn--reset"
@@ -884,7 +928,7 @@ export default function SignageKioskPage() {
             🔄 Reset Alerts
           </button>
           <div style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>
-            Départs: {outboundList.length} | Arrivées: {returnList.length} | Ads: {ads.length}
+            Départs: {outboundList.length} | Arrivées: {returnList.length} | Ads: {ads.length} | Shown: {adShowCount}
           </div>
         </div>
       )}

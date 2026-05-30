@@ -596,3 +596,35 @@ Stage Summary:
 - Verified: dashboard transporteur with type filter and departureType selector
 - Verified: round-trip auto-creation in departures API
 - Demo credentials: admin@smartickets.com/admin123, agency@smartickets.com/agence123, chauffeur@smartickets.com/driver123
+
+---
+Task ID: ad-rotation-fix
+Agent: Main Agent
+Task: Diagnose and fix ad rotation system on signage display screen
+
+Work Log:
+- Diagnosed 4 bugs in the ad rotation system:
+  1. **Zero ads in DB** — no ads existed; user thought they created one but DB was empty
+  2. **First ad never fires immediately** — setInterval only fires AFTER the full interval delay (e.g., 15 minutes), not at page load
+  3. **Circular dependency in useEffect** — [ads, showAdOverlay] dependency caused infinite re-init: showAd→setShowAdOverlay(true)→re-render→useEffect cleanup→new setInterval→showAd again
+  4. **Stale closure on showAdOverlay check** — `if (showAdOverlay) return` captured stale value from closure
+- Fixed in /src/app/signage/[stationId]/page.tsx:
+  - Separated ad fetch useEffect from rotation useEffect
+  - Added 5-minute silent re-fetch for ads (to pick up new ones without page reload)
+  - First ad fires after 3s delay (not full interval), then recurring at minInterval
+  - Added showAdOverlayRef (useRef mirror) to avoid stale closure in setInterval callback
+  - Added lastAdShowTimeRef grace period (5s) to prevent back-to-back ad displays
+  - Removed showAdOverlay from useEffect dependency array → no more circular re-init
+  - Added adShowCount state for debug panel visibility
+  - Added "🔄 Refetch Ads" button in debug panel
+  - Added "Shown: N" counter in debug panel
+- Created test ad via POST /api/signage-ads (interval=15min, duration=8sec, IMAGE, placehold.co)
+- Verified: ad created in DB, GET /api/signage-ads returns it, page compiles without errors
+- ESLint: 0 new errors (only pre-existing scripts/migrate-db.js)
+
+Stage Summary:
+- 4 bugs fixed in ad rotation system
+- Ad now displays within 3 seconds of page load, then every 15 minutes
+- Stable timer loop (no circular dependency)
+- Debug panel enhanced with ad counter and refetch button
+- Test ad "Promo SmarticketS - Test 15min" created and verified in DB
