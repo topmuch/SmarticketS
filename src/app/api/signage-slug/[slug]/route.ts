@@ -114,12 +114,12 @@ export async function GET(
       } else if (diffMin <= 5 && diffMin > -3) {
         computedStatus = 'BOARDING';
         shouldPlayAlert = diffMin > 0;
-      } else if (diffMin <= -3 && diffMin > -15) {
+      } else if (diffMin > -60) {
+        // ✅ PATCH: Garde visible 60 min après le départ (au lieu de -15)
         computedStatus = 'DEPARTED';
-      } else if (diffMin <= -15) {
-        continue; // archived, skip
       } else {
-        computedStatus = 'SCHEDULED';
+        // ARCHIVED: masqué seulement après 60 min
+        continue;
       }
 
       // Override: if manually cancelled, keep CANCELLED
@@ -173,12 +173,12 @@ export async function GET(
         computedStatus = 'SCHEDULED';
       } else if (diffMin <= 5 && diffMin > -3) {
         computedStatus = 'BOARDING';
-      } else if (diffMin <= -3 && diffMin > -15) {
+      } else if (diffMin > -60) {
+        // ✅ PATCH: Garde visible 60 min après (arrivées aussi)
         computedStatus = 'DEPARTED';
-      } else if (diffMin <= -15) {
-        continue; // archived, skip
       } else {
-        computedStatus = 'SCHEDULED';
+        // ARCHIVED: masqué après 60 min
+        continue;
       }
 
       // Override: if manually cancelled, keep CANCELLED
@@ -200,7 +200,41 @@ export async function GET(
       });
     }
 
-    // 8. Build response
+    // 8. SOLUTION 3: Anticipation du lendemain — précharger les 3 premiers départs
+    const tomorrowStart = new Date(now);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    tomorrowStart.setHours(0, 0, 0, 0);
+
+    const tomorrowEnd = new Date(tomorrowStart);
+    tomorrowEnd.setHours(23, 59, 59, 999);
+
+    const nextDayDepartures = await db.departure.findMany({
+      where: {
+        originStationId: station.id,
+        scheduledTime: { gte: tomorrowStart, lte: tomorrowEnd },
+        status: { not: 'CANCELLED' },
+      },
+      include: {
+        destinationStation: { select: { name: true } },
+      },
+      orderBy: { scheduledTime: 'asc' },
+      take: 3,
+    });
+
+    const nextDayPreview = nextDayDepartures.map((d) => ({
+      id: d.id,
+      time: new Date(d.scheduledTime).toTimeString().slice(0, 5),
+      destination: (d as Record<string, unknown>).destinationStation
+        ? ((d as Record<string, unknown>).destinationStation as { name: string }).name
+        : d.destination,
+      lineNumber: d.lineNumber,
+      isNextDay: true,
+    }));
+
+    // Determine first departure time of next day for the UI
+    const nextDayFirstDeparture = nextDayPreview.length > 0 ? nextDayPreview[0].time : null;
+
+    // 9. Build response
     return NextResponse.json({
       stationId: station.id,
       stationName: station.name,
@@ -218,6 +252,8 @@ export async function GET(
       alertSoundEnabled,
       tickerMessages,
       logoUrl,
+      nextDayPreview,
+      nextDayFirstDeparture,
     });
   } catch (error) {
     console.error('[/api/signage-slug] GET error:', error);

@@ -87,15 +87,13 @@ export async function GET(
         // De l'heure exacte jusqu'à +3 min → Embarquement continue
         computedStatus = 'BOARDING';
         shouldPlayAlert = false;
-      } else if (diffMin <= -3 && diffMin > -15) {
-        // De +3 min à +15 min → Parti
+      } else if (diffMin > -60) {
+        // ✅ PATCH: Garde visible 60 min après le départ (au lieu de -15)
         computedStatus = 'DEPARTED';
         shouldPlayAlert = false;
-      } else if (diffMin <= -15) {
-        // Plus de 15 min après → Ne pas afficher (archivé)
-        continue; // skip this departure
       } else {
-        computedStatus = 'SCHEDULED';
+        // Plus de 60 min après → Archivé, masquer
+        continue; // skip this departure
       }
 
       // Si le depart a été manuellement marqué CANCELLED, le garder

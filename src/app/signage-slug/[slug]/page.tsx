@@ -63,6 +63,14 @@ interface StationData {
   alertSoundEnabled: boolean;
   tickerMessages: TickerMessage[];
   logoUrl: string;
+  nextDayPreview?: {
+    id: string;
+    time: string;
+    destination: string;
+    lineNumber: string;
+    isNextDay: boolean;
+  }[];
+  nextDayFirstDeparture?: string | null;
 }
 
 interface SignageAd {
@@ -657,54 +665,81 @@ export default function SignageSlugPage() {
         </button>
       </div>
 
-      {/* ─── CONTENT: 2 Columns (D&eacute;parts | Arriv&eacute;es) ──── */}
-      <main className="sps-content">
-        {/* D&eacute;parts Column */}
-        <div
-          className={[
-            'sps-col',
-            activeTab === 'departures' ? 'sps-col--active' : '',
-          ].join(' ')}
-        >
-          <BoardSection
-            title="D&Eacute;PARTS"
-            count={data.departures.length}
-            accentClass="sps-board__head--depart"
+      {/* ─── CONTENT: 2 Columns OR End of Day ──── */}
+      {data.departures.length === 0 && data.arrivals.length === 0 ? (
+        /* ═══ ÉCRAN FIN DE JOURNÉE ═══ */
+        <main className="sps-eod-wrap">
+          <div className="sps-eod-moon">{'\uD83C\uDF19'}</div>
+          <h2 className="sps-eod-title">Fin des d&eacute;parts aujourd&apos;hui</h2>
+          <p className="sps-eod-sub">Merci de votre confiance. &Agrave; demain !</p>
+          {data.nextDayPreview && data.nextDayPreview.length > 0 && (
+            <div className="sps-eod-next">
+              <p className="sps-eod-next-label">Prochains d&eacute;parts demain</p>
+              {data.nextDayPreview.map((d) => (
+                <div key={d.id} className="sps-eod-next-item">
+                  <span className="sps-eod-next-time">{d.time}</span>
+                  <span className="sps-eod-next-arrow">&rarr;</span>
+                  <span className="sps-eod-next-dest">{d.destination}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.nextDayFirstDeparture && (
+            <p className="sps-eod-first">
+              Prochain d&eacute;part demain &agrave;{' '}
+              <span className="sps-eod-first-time">{data.nextDayFirstDeparture}</span>
+            </p>
+          )}
+        </main>
+      ) : (
+        <main className="sps-content">
+          {/* D&eacute;parts Column */}
+          <div
+            className={[
+              'sps-col',
+              activeTab === 'departures' ? 'sps-col--active' : '',
+            ].join(' ')}
           >
-            {data.departures.length === 0 ? (
-              <div className="sps-empty">Aucun d&eacute;part pr&eacute;vu</div>
-            ) : (
-              data.departures.map((dep) => (
-                <DepartureCard key={dep.id} dep={dep} />
-              ))
-            )}
-          </BoardSection>
-        </div>
+            <BoardSection
+              title="D&Eacute;PARTS"
+              count={data.departures.length}
+              accentClass="sps-board__head--depart"
+            >
+              {data.departures.length === 0 ? (
+                <div className="sps-empty">Aucun d&eacute;part pr&eacute;vu</div>
+              ) : (
+                data.departures.map((dep) => (
+                  <DepartureCard key={dep.id} dep={dep} />
+                ))
+              )}
+            </BoardSection>
+          </div>
 
-        {/* Arriv&eacute;es Column */}
-        <div
-          className={[
-            'sps-col',
-            activeTab === 'arrivals' ? 'sps-col--active' : '',
-          ].join(' ')}
-        >
-          <BoardSection
-            title="ARRIV&Eacute;ES"
-            count={data.arrivals.length}
-            accentClass="sps-board__head--arrive"
+          {/* Arriv&eacute;es Column */}
+          <div
+            className={[
+              'sps-col',
+              activeTab === 'arrivals' ? 'sps-col--active' : '',
+            ].join(' ')}
           >
-            {data.arrivals.length === 0 ? (
-              <div className="sps-empty">
-                Aucune arriv&eacute;e pr&eacute;vue
-              </div>
-            ) : (
-              data.arrivals.map((arr) => (
-                <ArrivalCard key={arr.id} arr={arr} />
-              ))
-            )}
-          </BoardSection>
-        </div>
-      </main>
+            <BoardSection
+              title="ARRIV&Eacute;ES"
+              count={data.arrivals.length}
+              accentClass="sps-board__head--arrive"
+            >
+              {data.arrivals.length === 0 ? (
+                <div className="sps-empty">
+                  Aucune arriv&eacute;e pr&eacute;vue
+                </div>
+              ) : (
+                data.arrivals.map((arr) => (
+                  <ArrivalCard key={arr.id} arr={arr} />
+                ))
+              )}
+            </BoardSection>
+          </div>
+        </main>
+      )}
 
       {/* ─── FOOTER ────────────────────────────────── */}
       <footer className="sps-footer">
@@ -1130,6 +1165,68 @@ const spsStyles = {
     .sps-empty {
       text-align: center; padding: clamp(2rem, 5vh, 4rem);
       color: #64748b; font-size: clamp(0.85rem, 1.5vh, 1.1rem);
+    }
+
+    /* ═══ END OF DAY SCREEN ═══ */
+    .sps-eod-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: clamp(2rem, 5vh, 4rem);
+    }
+    .sps-eod-moon {
+      font-size: clamp(3rem, 8vh, 6rem);
+      margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+      animation: sps-moon-pulse 4s ease-in-out infinite;
+    }
+    @keyframes sps-moon-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    .sps-eod-title {
+      font-size: clamp(1.3rem, 3.5vh, 2.5rem);
+      font-weight: 800; color: #f8fafc; margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .sps-eod-sub {
+      font-size: clamp(0.9rem, 2vh, 1.3rem);
+      color: #94a3b8; margin-top: clamp(0.3rem, 0.8vh, 0.6rem);
+      margin-bottom: clamp(1rem, 3vh, 2rem);
+    }
+    .sps-eod-next {
+      background: rgba(249, 115, 22, 0.08);
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      border-radius: clamp(8px, 1.5vh, 16px);
+      padding: clamp(0.8rem, 2vh, 1.5rem) clamp(1.5rem, 3vw, 2.5rem);
+      min-width: clamp(200px, 30vw, 360px);
+    }
+    .sps-eod-next-label {
+      font-size: clamp(0.6rem, 1.1vh, 0.85rem);
+      font-weight: 700; color: #f97316;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin: 0 0 clamp(0.5rem, 1vh, 0.8rem) 0;
+    }
+    .sps-eod-next-item {
+      display: flex; align-items: center; gap: clamp(0.4rem, 1vw, 0.8rem);
+      padding: clamp(0.25rem, 0.6vh, 0.5rem) 0;
+      font-size: clamp(0.8rem, 1.6vh, 1.15rem);
+    }
+    .sps-eod-next-item + .sps-eod-next-item {
+      border-top: 1px solid rgba(249, 115, 22, 0.1);
+    }
+    .sps-eod-next-time {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 700; color: #ffffff; min-width: 50px;
+    }
+    .sps-eod-next-arrow { color: #f97316; font-weight: 300; }
+    .sps-eod-next-dest { color: #e2e8f0; font-weight: 500; }
+    .sps-eod-first {
+      font-size: clamp(0.7rem, 1.3vh, 1rem);
+      color: #64748b; margin-top: clamp(0.6rem, 1.5vh, 1.2rem);
+      margin-bottom: 0;
+    }
+    .sps-eod-first-time {
+      color: #f97316; font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
     /* ═══ FOOTER ═══ */

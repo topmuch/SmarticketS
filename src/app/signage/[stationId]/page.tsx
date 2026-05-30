@@ -58,6 +58,14 @@ interface StationData {
   alertSoundEnabled: boolean;
   tickerMessages: TickerMessage[];
   logoUrl: string;
+  nextDayPreview?: {
+    id: string;
+    time: string;
+    destination: string;
+    lineNumber: string;
+    isNextDay: boolean;
+  }[];
+  nextDayFirstDeparture?: string | null;
 }
 
 interface SignageAd {
@@ -575,8 +583,33 @@ export default function SignagePremiumPage() {
         </button>
       </div>
 
-      {/* ─── CONTENT: 2 Columns ────────────────────── */}
-      <main className="sp-content">
+      {/* ─── CONTENT: 2 Columns OR End of Day ──── */}
+      {data.departures.length === 0 && data.arrivals.length === 0 ? (
+        <main className="sp-eod-wrap">
+          <div className="sp-eod-moon">{'\uD83C\uDF19'}</div>
+          <h2 className="sp-eod-title">Fin des d&eacute;parts aujourd&apos;hui</h2>
+          <p className="sp-eod-sub">Merci de votre confiance. &Agrave; demain !</p>
+          {data.nextDayPreview && data.nextDayPreview.length > 0 && (
+            <div className="sp-eod-next">
+              <p className="sp-eod-next-label">Prochains d&eacute;parts demain</p>
+              {data.nextDayPreview.map((d) => (
+                <div key={d.id} className="sp-eod-next-item">
+                  <span className="sp-eod-next-time">{d.time}</span>
+                  <span className="sp-eod-next-arrow">&rarr;</span>
+                  <span className="sp-eod-next-dest">{d.destination}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.nextDayFirstDeparture && (
+            <p className="sp-eod-first">
+              Prochain d&eacute;part demain &agrave;{' '}
+              <span className="sp-eod-first-time">{data.nextDayFirstDeparture}</span>
+            </p>
+          )}
+        </main>
+      ) : (
+        <main className="sp-content">
         {/* Départs Column */}
         <div className={['sp-col', activeTab === 'departures' ? 'sp-col--active' : ''].join(' ')}>
           <BoardSection
@@ -606,7 +639,8 @@ export default function SignagePremiumPage() {
             )}
           </BoardSection>
         </div>
-      </main>
+        </main>
+      )}
 
       {/* ─── FOOTER ────────────────────────────────── */}
       <footer className="sp-footer">
@@ -1021,6 +1055,68 @@ const spStyles = {
     .sp-empty {
       text-align: center; padding: clamp(2rem, 5vh, 4rem);
       color: #64748b; font-size: clamp(0.85rem, 1.5vh, 1.1rem);
+    }
+
+    /* ═══ END OF DAY SCREEN ═══ */
+    .sp-eod-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: clamp(2rem, 5vh, 4rem);
+    }
+    .sp-eod-moon {
+      font-size: clamp(3rem, 8vh, 6rem);
+      margin-bottom: clamp(0.8rem, 2vh, 1.5rem);
+      animation: sp-moon-pulse 4s ease-in-out infinite;
+    }
+    @keyframes sp-moon-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    .sp-eod-title {
+      font-size: clamp(1.3rem, 3.5vh, 2.5rem);
+      font-weight: 800; color: #f8fafc; margin: 0;
+      letter-spacing: 0.5px;
+    }
+    .sp-eod-sub {
+      font-size: clamp(0.9rem, 2vh, 1.3rem);
+      color: #94a3b8; margin-top: clamp(0.3rem, 0.8vh, 0.6rem);
+      margin-bottom: clamp(1rem, 3vh, 2rem);
+    }
+    .sp-eod-next {
+      background: rgba(249, 115, 22, 0.08);
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      border-radius: clamp(8px, 1.5vh, 16px);
+      padding: clamp(0.8rem, 2vh, 1.5rem) clamp(1.5rem, 3vw, 2.5rem);
+      min-width: clamp(200px, 30vw, 360px);
+    }
+    .sp-eod-next-label {
+      font-size: clamp(0.6rem, 1.1vh, 0.85rem);
+      font-weight: 700; color: #f97316;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin: 0 0 clamp(0.5rem, 1vh, 0.8rem) 0;
+    }
+    .sp-eod-next-item {
+      display: flex; align-items: center; gap: clamp(0.4rem, 1vw, 0.8rem);
+      padding: clamp(0.25rem, 0.6vh, 0.5rem) 0;
+      font-size: clamp(0.8rem, 1.6vh, 1.15rem);
+    }
+    .sp-eod-next-item + .sp-eod-next-item {
+      border-top: 1px solid rgba(249, 115, 22, 0.1);
+    }
+    .sp-eod-next-time {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 700; color: #ffffff; min-width: 50px;
+    }
+    .sp-eod-next-arrow { color: #f97316; font-weight: 300; }
+    .sp-eod-next-dest { color: #e2e8f0; font-weight: 500; }
+    .sp-eod-first {
+      font-size: clamp(0.7rem, 1.3vh, 1rem);
+      color: #64748b; margin-top: clamp(0.6rem, 1.5vh, 1.2rem);
+      margin-bottom: 0;
+    }
+    .sp-eod-first-time {
+      color: #f97316; font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
     /* ═══ FOOTER ═══ */
