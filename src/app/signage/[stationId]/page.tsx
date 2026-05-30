@@ -132,74 +132,178 @@ function playTone(freq: number, duration: number, type: OscillatorType, startTim
 }
 
 /* ══════════════════════════════════════════════
-   TTS: Annonces vocales embarquement
+   TTS: Annonces vocales embarquement (ROBUSTE)
+   Optimisé pour Mobile, TV, Kiosque
    ══════════════════════════════════════════════ */
 let announcementTimerId: ReturnType<typeof setTimeout> | null = null;
 let isAnnouncing = false;
+let voicesLoaded = false;
 
-function speakFrenchFemale(text: string) {
-  if (typeof window === 'undefined') return;
-  const synth = window.speechSynthesis;
-  if (!synth) return;
+// Charger les voix au démarrage
+function loadVoices() {
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      voicesLoaded = true;
+      console.log(`🎤 ${voices.length} voix chargées`);
+    }
+  }
+}
 
-  synth.cancel(); // Clean queue
+// Attendre que les voix soient chargées (surtout sur mobile/TV)
+if (typeof window !== 'undefined' && typeof window.speechSynthesis !== 'undefined') {
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  // Essayer de charger immédiatement + retry
+  setTimeout(loadVoices, 100);
+  setTimeout(loadVoices, 500);
+  setTimeout(loadVoices, 1000);
+}
+
+// Fonction robuste avec retry automatique
+function speakWithRetry(text: string, retryCount = 0) {
+  const maxRetries = 3;
+
+  function attemptSpeak() {
+    // Nettoyer toute lecture en cours
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    // Attendre un peu pour que le cancel soit effectif
+    setTimeout(() => {
+      const success = speakFrenchFemale(text);
+      if (!success && retryCount < maxRetries) {
+        console.warn(`⚠️ Échec lecture, tentative ${retryCount + 1}/${maxRetries}`);
+        speakWithRetry(text, retryCount + 1);
+      }
+    }, 100);
+  }
+
+  attemptSpeak();
+}
+
+// Fonction de synthèse vocale optimisée — retourne true/false
+function speakFrenchFemale(text: string): boolean {
+  if (typeof window === 'undefined' || typeof window.speechSynthesis === 'undefined') {
+    console.error('❌ Synthèse vocale non supportée');
+    return false;
+  }
+
+  // Vérifier si les voix sont chargées
+  const voices = window.speechSynthesis.getVoices();
+
+  if (voices.length === 0) {
+    console.warn('⚠️ Aucune voix disponible, forçage du chargement...');
+    window.speechSynthesis.getVoices();
+    return false;
+  }
 
   const utterance = new SpeechSynthesisUtterance(text);
+
+  // Configuration optimale pour gare
   utterance.lang = 'fr-FR';
-  utterance.rate = 0.85;   // Slightly slower for station clarity
-  utterance.pitch = 1.1;   // Slightly higher (more feminine)
-  utterance.volume = 1.0;
+  utterance.rate = 0.9;     // Vitesse normale-lente (plus claire)
+  utterance.pitch = 1.0;    // Ton neutre
+  utterance.volume = 1.0;   // Volume MAXIMUM
 
-  // Try to find a French female voice
-  const voices = synth.getVoices();
-  const femaleFrVoice = voices.find(
-    (v) =>
-      v.lang.startsWith('fr') &&
-      (v.name.toLowerCase().includes('female') ||
-        v.name.toLowerCase().includes('femme') ||
-        v.name.includes('Google') ||
-        v.name.includes('Microsoft') ||
-        v.name.includes('Samantha') ||
-        v.name.includes('Victoria') ||
-        v.name.includes('Zira') ||
-        v.name.includes('Denise') ||
-        v.name.includes('Amélie'))
-  );
-  if (femaleFrVoice) utterance.voice = femaleFrVoice;
+  // Trouver la meilleure voix française
+  const frenchVoices = voices.filter((v) => v.lang.startsWith('fr'));
 
-  utterance.onend = () => console.log('✅ Annonce terminée');
-  utterance.onerror = (e) => console.warn('⚠️ Erreur vocale:', e);
+  if (frenchVoices.length > 0) {
+    // Priorité aux voix féminines connues
+    const preferredVoices = [
+      'Google français',
+      'Microsoft Hortense',
+      'Samantha',
+      'Victoria',
+      'Amelie',
+      'Denise',
+      'Zira',
+    ];
 
-  synth.speak(utterance);
+    let selectedVoice: SpeechSynthesisVoice | null = null;
+
+    // Chercher voix préférée
+    for (const prefName of preferredVoices) {
+      selectedVoice = frenchVoices.find((v) => v.name.includes(prefName)) || null;
+      if (selectedVoice) break;
+    }
+
+    // Sinon chercher une voix Google/Microsoft
+    if (!selectedVoice) {
+      selectedVoice = frenchVoices.find((v) =>
+        v.name.includes('Google') || v.name.includes('Microsoft')
+      ) || null;
+    }
+
+    // Sinon prendre la première voix FR
+    if (!selectedVoice) {
+      selectedVoice = frenchVoices[0];
+    }
+
+    utterance.voice = selectedVoice;
+    console.log('🎤 Voix sélectionnée:', selectedVoice.name, selectedVoice.lang);
+  } else {
+    console.warn('⚠️ Aucune voix française trouvée, utilisation voix par défaut');
+  }
+
+  // Gestionnaires d'événements
+  utterance.onstart = () => console.log('▶️ Lecture commencée');
+  utterance.onend = () => console.log('✅ Lecture terminée');
+  utterance.onerror = (event) => {
+    console.error('❌ Erreur synthèse vocale:', event.error);
+    if (event.error === 'not-allowed') {
+      console.error('🚫 Permission audio refusée — Cliquez sur la page pour activer');
+    }
+  };
+
+  // Lancer la lecture
+  try {
+    window.speechSynthesis.speak(utterance);
+    console.log('🔊 Annonce lancée avec succès');
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur lors du speak:', error);
+    return false;
+  }
 }
 
 function playBoardingAnnouncement(destination: string, time: string) {
-  if (isAnnouncing) return; // Prevent overlap
+  if (isAnnouncing) {
+    console.log('🔊 Annonce déjà en cours');
+    return;
+  }
+
   isAnnouncing = true;
 
   let repeatCount = 0;
   const MAX_REPEATS = 2;
-  const INTERVAL_MS = 120000; // 2 minutes between repeats
+  const INTERVAL_MS = 120000; // 2 minutes entre les répétitions
 
   function executeRound() {
     if (repeatCount >= MAX_REPEATS) {
+      console.log('✅ Annonces terminées');
       isAnnouncing = false;
       return;
     }
 
-    // Step 1: Ding-Dong
+    console.log(`🔔 Répétition ${repeatCount + 1}/${MAX_REPEATS}`);
+
+    // 🔔 Ding-Dong
     playDingDong();
 
-    // Step 2: Voice announcement after 1s pause
+    // 🗣️ Message vocal après 1.5s
     setTimeout(() => {
       const text = `Madame, Monsieur, les passagers en direction de ${destination} sont priés de monter à bord. Le bus va partir à ${time}.`;
-      speakFrenchFemale(text);
-    }, 1000);
+      console.log('📢 Texte à lire:', text);
+      speakWithRetry(text);
+    }, 1500);
 
     repeatCount++;
 
-    // Step 3: Schedule next repeat in 2 min
+    // Programmer prochaine répétition
     if (repeatCount < MAX_REPEATS) {
+      console.log(`⏱️ Prochaine annonce dans 2 minutes`);
       announcementTimerId = setTimeout(executeRound, INTERVAL_MS);
     } else {
       isAnnouncing = false;
@@ -209,7 +313,16 @@ function playBoardingAnnouncement(destination: string, time: string) {
   executeRound();
 }
 
+// Test rapide de la voix (pour debug)
+function testVoiceOnly() {
+  console.log('🧪 Test voix en cours...');
+  initAudio();
+  const success = speakFrenchFemale('Test un deux trois. Ceci est un test de la voix de la gare.');
+  console.log('Résultat test:', success ? '✅ OK' : '❌ ÉCHEC');
+}
+
 function cancelAnnouncements() {
+  console.log('🛑 Annulation des annonces');
   if (announcementTimerId) {
     clearTimeout(announcementTimerId);
     announcementTimerId = null;
@@ -966,6 +1079,7 @@ export default function SignageKioskPage() {
         }
         .sig2-debug-btn--voice { background: #e11d48; }
         .sig2-debug-btn--voice-cancel { background: #64748b; }
+        .sig2-debug-btn--test-voice { background: #2563eb; }
       `}</style>
 
       {/* Offline Badge */}
@@ -1168,7 +1282,15 @@ export default function SignageKioskPage() {
               setTimeout(() => setIsVoiceActive(false), 280000);
             }}
           >
-            🔊 Test Annonce Vocale
+            🔊 Test Annonce Complète
+          </button>
+          <button
+            className="sig2-debug-btn sig2-debug-btn--test-voice"
+            onClick={() => {
+              testVoiceOnly();
+            }}
+          >
+            🎤 TEST VOIX
           </button>
           <button
             className="sig2-debug-btn sig2-debug-btn--voice-cancel"
