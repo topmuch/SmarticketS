@@ -552,3 +552,47 @@ Stage Summary:
 - DepartureType selector in dashboard creation form
 - All existing features preserved (kiosk mode, ads, ding-dong, ticker, QR)
 - Responsive across all screen sizes (mobile to 4K)
+
+---
+Task ID: runtime-verify
+Agent: Main Agent
+Task: Runtime verification of all SmarticketS features — signage split-screen, advertisement system, dashboard, APIs
+
+Work Log:
+- Discovered project at /home/z/my-project/ (not /home/z/qrtrans-project/ as stated in old context)
+- Verified Prisma schema: Departure.departureType (OUTBOUND/RETURN), SignageAd model, Advertisement model — all present ✅
+- Found critical bug: `html5-qrcode` package missing from node_modules, causing Turbopack compilation error that made ALL routes return 500 HTML error page
+- Fixed by running `bun add html5-qrcode` (installed v2.3.8)
+- Database was empty (no seed data) — ran `bun run prisma/seed.ts` successfully
+- Fixed seed.ts documentation typo: password was `agence123` but printed as `agency123`
+- Ran definitive 16-point runtime test suite:
+  - T1: Signage Departures API → 32 departures (13 OUTBOUND + 19 RETURN), split correctly ✅
+  - T2: Signage-ads API → HTTP 200 ✅
+  - T3: Signage Settings → stationName, threshold, sound, colors ✅
+  - T4: Auth Login (SuperAdmin) → admin@smartickets.com / admin123 ✅
+  - T5: Auth Login (Agency) → agency@smartickets.com / agence123 ✅
+  - T6: Driver Login → chauffeur@smartickets.com / driver123 ✅
+  - T7: Validate Ticket → controlCode 654321 = Aminata Fall VALIDATED ✅
+  - T8: Controller Agencies → 1 agency (Ashraf Voyages) ✅
+  - T9: Public Schedules → 6 routes ✅
+  - T10: Health API → ok ✅
+  - T11-T16: 6 page renders → all HTTP 200 ✅
+    /signage/demo-agency-1, /admin/signage, /admin/signage-ads, /horaires, /controller/validate, /agence/departs
+- Verified code content:
+  - src/app/signage/[stationId]/page.tsx: Split screen (Départs vert | Arrivées violet), orange time boxes, ticker marquee, ad overlay, kiosk mode, QR footer, CSS animations (pulse-blink, pulse-row, pulse-timebox), responsive breakpoints
+  - src/app/api/signage/[stationId]/departures/route.ts: Dynamic status computation (SCHEDULED/BOARDING/DEPARTED), departureType field, shouldPlayAlert, ticker messages from settings
+  - src/app/agence/departs/page.tsx: typeFilter (Tous/Aller/Retour), departureType selector in form (↗️ Aller vert, ↘️ Retour violet), filter logic at line 819
+  - src/app/api/admin/departures/route.ts: isRoundTrip auto-creation, departureType Zod enum, auto-return departure creation (RETURN type + 2h offset)
+  - src/app/admin/signage-ads/page.tsx: Full CRUD UI for SignageAd management
+  - src/app/api/signage-ads/route.ts: GET/POST for signage ads
+  - ESLint: only pre-existing error in scripts/migrate-db.js (unrelated)
+
+Stage Summary:
+- ALL 16 RUNTIME TESTS PASS ✅
+- Fixed: missing html5-qrcode package (critical — blocked all routes)
+- Fixed: seed password documentation typo (agency123 → agence123)
+- Verified: complete signage split-screen with all design elements
+- Verified: advertisement system (SignageAd model, CRUD API, admin page, ad rotation in signage)
+- Verified: dashboard transporteur with type filter and departureType selector
+- Verified: round-trip auto-creation in departures API
+- Demo credentials: admin@smartickets.com/admin123, agency@smartickets.com/agence123, chauffeur@smartickets.com/driver123

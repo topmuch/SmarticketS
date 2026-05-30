@@ -439,7 +439,7 @@ async function main() {
   console.log('');
   console.log('📋 Demo credentials:');
   console.log('  SuperAdmin: admin@smartickets.com / admin123');
-  console.log('  Agency: agency@smartickets.com / agency123');
+  console.log('  Agency: agency@smartickets.com / agence123');
   console.log('  Driver: chauffeur@smartickets.com / driver123');
   console.log('');
   console.log('📱 Test QR codes:');
