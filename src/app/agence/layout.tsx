@@ -32,6 +32,7 @@ import {
   Ticket,
   ScanSearch,
   ThumbsUp,
+  Activity,
 } from "lucide-react";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -114,7 +115,11 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
     
     // ─── ADMIN ───
     { label: "Rapports", icon: <BarChart3 className="w-5 h-5" />, href: "/agence/rapports", section: "ADMIN" },
-  ];
+    { label: "Analytics", icon: <Activity className="w-5 h-5" />, href: "/agence/analytics" },
+    
+    // ─── CONTROLEUR ───
+    { label: "Controleur", icon: <ScanSearch className="w-5 h-5" />, href: "/controller/validate", section: "CONTROLEUR", external: true },
+  ]
 
   return (
     <>

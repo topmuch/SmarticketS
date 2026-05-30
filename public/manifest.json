@@ -89,6 +89,20 @@
       "description": "Inscrire un bagage voyageur",
       "url": "/inscrire",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Controleur",
+      "short_name": "Controleur",
+      "description": "Valider un billet (scanneur + clavier numerique)",
+      "url": "/controller/validate",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Analytics Agence",
+      "short_name": "Analytics",
+      "description": "Statistiques et indicateurs de performance",
+      "url": "/agence/analytics",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
   "screenshots": [

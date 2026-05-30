@@ -1052,3 +1052,50 @@ Stage Summary:
 - 5 nouvelles pages fonctionnelles créées
 - API stats opérationnelle pour badges sidebar
 - Filtre category ajouté à l'API baggages existante
+
+---
+Task ID: analytics-pwa-integration
+Agent: Main Agent
+Task: Analytics Avances + PWA Controleur Offline integration
+
+Work Log:
+- Created /api/agency/analytics/route.ts — Advanced analytics API endpoint:
+  - GET /api/agency/analytics?period=day|week|month&agencyId=xxx
+  - 9 parallel database queries for performance
+  - Metrics: totalSales, totalRevenue, avgOccupancy, avgDeliveryTime, recurrenceRate, totalActiveNow, totalDelivered
+  - Charts data: salesOverTime (by day+category), topDestinations, occupancyByRoute, topRoutes
+  - Date range helper: day (today 00:00), week (Monday), month (1st)
+- Created /agence/analytics/page.tsx — Full analytics dashboard:
+  - Period selector (Aujourd'hui / Cette semaine / Ce mois) with shadcn Select
+  - 4 KPI cards (Ventes, Revenus, Occupation, Colis livres) with trend indicators
+  - Sales Over Time multi-series LineChart (parcel/ticket/hajj) using shadcn ChartContainer + recharts
+  - Top Destinations horizontal BarChart with gradient color bars
+  - Occupancy Table with route, line number, sold/total seats, progress bar, status badge
+  - Additional metrics row (Avg Delivery Time, Recurrence Rate, Active Now, Total Passengers)
+  - Top Routes ranked list with progress bars (#FF1D8D gradient)
+  - Auto-refresh every 5 minutes, manual refresh button, last-updated timestamp
+  - Loading skeletons, error state with retry, empty state
+  - Responsive: 2x2 mobile, 4 cols desktop
+- Updated src/app/agence/layout.tsx:
+  - Added "Analytics" menu item with Activity icon under ADMIN section
+  - Added "Controleur" menu item with ScanSearch icon under new CONTROLEUR section (external link)
+  - Added Activity import from lucide-react
+- Updated public/manifest.json:
+  - Added "Controleur" shortcut (url: /controller/validate)
+  - Added "Analytics Agence" shortcut (url: /agence/analytics)
+- Updated public/sw.js:
+  - Version bump v2 → v3
+  - Added API_CACHE for separate GET API response caching
+  - Added /controller/validate to PRECACHE_ASSETS
+  - Added Network-first strategy for API GET requests with stale fallback
+  - Updated cache cleanup to preserve API_CACHE on activate
+
+Stage Summary:
+- Analytics Dashboard fully functional with real-time data from 9 parallel DB queries
+- Recharts integration via shadcn/ui chart wrapper (ChartContainer, ChartTooltip, ChartLegend)
+- PWA manifest updated with 2 new shortcuts (Controleur + Analytics)
+- Service Worker v3 with separate API caching strategy
+- Sidebar updated with 2 new menu sections (Analytics under ADMIN, Controleur under CONTROLEUR)
+- All APIs tested and working: /api/agency/analytics returns correct JSON with all metrics
+- All pages compile and render: /agence/analytics 200, /controller/validate 200
+- ESLint: 0 new errors (only pre-existing scripts/migrate-db.js)

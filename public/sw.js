@@ -1,9 +1,10 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'smartickets-v2';
+const CACHE_NAME = 'smartickets-v3';
+const API_CACHE = 'smartickets-api-v1';
 const OFFLINE_URL = '/offline';
 
-// Assets to cache on install
+// Assets to cache on install (app shell + controller)
 const PRECACHE_ASSETS = [
   '/',
   '/manifest.json',
@@ -11,6 +12,7 @@ const PRECACHE_ASSETS = [
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/offline',
+  '/controller/validate',
 ];
 
 // Install event - cache essential assets
@@ -31,7 +33,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((cacheName) => cacheName !== CACHE_NAME)
+          .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== API_CACHE)
           .map((cacheName) => {
             console.log('[ServiceWorker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
@@ -105,6 +107,25 @@ self.addEventListener('fetch', (event) => {
             return cachedResponse || caches.match(OFFLINE_URL);
           });
         })
+    );
+    return;
+  }
+
+  // ─── API GET requests: Network-first, cache success responses ───
+  const url = new URL(request.url);
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      caches.open(API_CACHE).then((apiCache) => {
+        return apiCache.match(request).then((cached) => {
+          const fetchPromise = fetch(request).then((response) => {
+            if (response.status === 200) {
+              apiCache.put(request, response.clone());
+            }
+            return response;
+          }).catch(() => cached);
+          return cached || fetchPromise;
+        });
+      })
     );
     return;
   }
