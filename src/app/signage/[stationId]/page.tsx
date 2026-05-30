@@ -56,6 +56,32 @@ interface SignageAd {
 }
 
 /* ══════════════════════════════════════════════
+   YouTube URL helper
+   ══════════════════════════════════════════════ */
+function getYouTubeEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  // Match youtube.com/watch?v=, youtu.be/, youtube.com/embed/, youtube.com/shorts/, youtube.com/live/
+  const patterns = [
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/live\/([a-zA-Z0-9_-]{11})/,
+    /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=1&loop=1&playlist=${match[1]}&controls=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`;
+    }
+  }
+  return null;
+}
+
+function isYouTubeUrl(url: string): boolean {
+  return !!getYouTubeEmbedUrl(url);
+}
+
+/* ══════════════════════════════════════════════
    Status display config
    ══════════════════════════════════════════════ */
 const STATUS_MAP: Record<string, { label: string; css: string }> = {
@@ -760,6 +786,7 @@ export default function SignageKioskPage() {
         }
         .sig2-ad-overlay img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .sig2-ad-overlay video { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .sig2-ad-overlay iframe { max-width: 100%; max-height: 100%; }
         .sig2-ad-progress {
           position: absolute; bottom: 0; left: 0; height: 4px;
           background: #f97316;
@@ -963,9 +990,21 @@ export default function SignageKioskPage() {
         const isVideo = !!effectiveVideoUrl;
         const displayUrl = isVideo ? effectiveVideoUrl : effectiveImageUrl || activeAd.mediaUrl;
 
+        // Check if it's a YouTube URL
+        const ytEmbedUrl = displayUrl ? getYouTubeEmbedUrl(displayUrl) : null;
+        const isYouTube = !!ytEmbedUrl;
+
         return (
           <div className="sig2-ad-overlay" key={activeAd.id}>
-            {isVideo ? (
+            {isVideo && isYouTube ? (
+              <iframe
+                src={ytEmbedUrl!}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                title={activeAd.title}
+              />
+            ) : isVideo ? (
               <video
                 src={displayUrl || undefined}
                 autoPlay

@@ -723,3 +723,24 @@ Stage Summary:
 - Runtime tests pass: API returns valid data, page renders correctly
 - Code is real, production-ready, integrated into the signage display
 - All 15 code checks confirm complete implementation matching user's JS code spec
+
+---
+Task ID: youtube-ad-support
+Agent: main
+Task: Add YouTube URL support for advertisement video display
+
+Work Log:
+- Added `getYouTubeEmbedUrl()` helper function to detect and convert YouTube URLs (watch, embed, shorts, live, youtu.be formats) to embed URLs
+- Added `isYouTubeUrl()` detection function
+- Updated signage ad overlay rendering to use `<iframe>` for YouTube videos instead of `<video src>`
+- Added iframe CSS styling to match existing video/img display
+- Updated admin ad card preview to detect YouTube URLs and show iframe preview
+- Updated admin form video URL preview to show iframe for YouTube URLs
+- Updated placeholder text and description to mention YouTube support
+
+Stage Summary:
+- YouTube URLs now fully supported in both signage display (kiosk) and admin panel
+- Supported YouTube URL formats: youtube.com/watch?v=, youtube.com/embed/, youtube.com/shorts/, youtube.com/live/, youtu.be/
+- Embed parameters: autoplay=1, mute=1, loop=1, no controls, no related videos (kiosk mode)
+- Admin preview: autoplay=0, controls=1 (for editing convenience)
+- No lint errors introduced (only pre-existing scripts/migrate-db.js error)

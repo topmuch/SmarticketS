@@ -476,9 +476,26 @@ export default function SignageAdsPage() {
                   const displayVideo = !!effectiveVideoUrl;
                   const displayUrl = displayVideo ? effectiveVideoUrl : effectiveImageUrl || ad.mediaUrl;
 
+                  // Check YouTube
+                  const ytMatch = displayUrl ? displayUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/) : null;
+
                   return (
                     <>
-                      {displayVideo ? (
+                      {displayVideo && ytMatch ? (
+                        <div className="w-full h-full">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&mute=1&controls=1&rel=0`}
+                            className="w-full h-full"
+                            allow="encrypted-media"
+                            title={ad.title}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center">
+                              <VideoIcon className="w-5 h-5 text-white" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : displayVideo ? (
                         <div className="w-full h-full flex items-center justify-center">
                           <video
                             src={displayUrl || undefined}
@@ -818,25 +835,40 @@ export default function SignageAdsPage() {
                           setFormVideoUrl(e.target.value);
                           setFormErrors((prev) => ({ ...prev, media: '' }));
                         }}
-                        placeholder="https://example.com/video.mp4"
+                        placeholder="https://example.com/video.mp4 ou https://youtube.com/watch?v=..."
                         className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl"
                       />
                     </div>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      MP4, WebM, OGG &middot; Si renseigné, la vidéo sera prioritaire
+                      MP4, WebM, OGG, YouTube &middot; Si renseigné, la vidéo sera prioritaire
                     </p>
                     {/* Video preview */}
-                    {formVideoUrl && (
-                      <div className="mt-2 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 max-w-[280px]">
-                        <video
-                          src={formVideoUrl}
-                          className="w-full aspect-video object-contain"
-                          muted
-                          preload="metadata"
-                          controls
-                        />
-                      </div>
-                    )}
+                    {formVideoUrl && (() => {
+                      const ytMatch = formVideoUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                      if (ytMatch) {
+                        return (
+                          <div className="mt-2 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 max-w-[280px] aspect-video">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&mute=1&controls=1&rel=0`}
+                              className="w-full h-full"
+                              allow="encrypted-media"
+                              title="YouTube preview"
+                            />
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="mt-2 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 max-w-[280px]">
+                          <video
+                            src={formVideoUrl}
+                            className="w-full aspect-video object-contain"
+                            muted
+                            preload="metadata"
+                            controls
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Image URL */}
