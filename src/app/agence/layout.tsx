@@ -34,6 +34,7 @@ import {
   ThumbsUp,
   Activity,
   Smartphone,
+  Users,
 } from "lucide-react";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -115,7 +116,8 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
     { label: "Assistance", icon: <MessageCircle className="w-5 h-5" />, href: "/agence/assistance", badge: unreadMessages, section: "COMMUNICATION" },
     
     // ─── ADMIN ───
-    { label: "Rapports", icon: <BarChart3 className="w-5 h-5" />, href: "/agence/rapports", section: "ADMIN" },
+    { label: "Équipe", icon: <Users className="w-5 h-5" />, href: "/agence/equipe", section: "ADMIN" },
+    { label: "Rapports", icon: <BarChart3 className="w-5 h-5" />, href: "/agence/rapports" },
     { label: "Analytics", icon: <Activity className="w-5 h-5" />, href: "/agence/analytics" },
     
     // ─── PWA & TERRAIN ───

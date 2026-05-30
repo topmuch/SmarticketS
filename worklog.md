@@ -1140,3 +1140,35 @@ Stage Summary:
 - All pages compile and render: /agence/pwa 200, /controller/validate 200, /driver/deliveries 200
 - ESLint: 0 new errors
 - No compilation errors in dev server
+---
+Task ID: 1
+Agent: Main Architect
+Task: MODULE GESTION D'ÉQUIPE + RBAC + ONBOARDING WHATSAPP
+
+Work Log:
+- Explored full project structure: Prisma schema, agency layout, PWA pages, existing APIs, lib files
+- Installed jsonwebtoken + @types/jsonwebtoken for JWT auth
+- Updated prisma/schema.prisma: Added StaffRole, StaffPermission, AuditAction enums + Staff model + StaffAuditLog model + Agency.staff relation + Agency.settings field
+- Pushed schema to DB with `bun run db:push`
+- Created src/lib/rbac.ts: RBAC middleware with ROLES/PERMISSIONS constants, JWT token generation/verification (15m access + 30d refresh), permission helpers (hasPermission, hasAllPermissions, verifyStaffRequest), role/permission label maps
+- Created src/lib/whatsapp.ts: Phone normalization (E.164), validation, masking, WhatsApp template builder, wa.me link generator
+- Created src/lib/secure-code.ts: 4-digit code generation with bcrypt hashing
+- Created src/app/api/agence/staff/route.ts: GET (list staff by agency) + POST (create staff with code generation)
+- Created src/app/api/agence/staff/[id]/route.ts: GET (single), PUT (update role/permissions/status), DELETE (soft-delete), POST reset-code action
+- Created src/app/api/auth/field-login/route.ts: POST login with phone+code, rate limiting (5 attempts/15min), JWT token generation, audit logging
+- Created src/app/agence/equipe/page.tsx: Full dashboard with stats cards, staff table (desktop + mobile), search/filter, Add Member modal (name/phone/role/permissions), Code Display modal with WhatsApp onboarding, Delete confirmation modal
+- Created src/components/staff/WhatsAppOnboarding.tsx: Reusable component with code reveal, wa.me link, copy message, message preview
+- Updated src/app/driver/login/page.tsx: Replaced email/password with phone + 4-digit code login, JWT localStorage storage, haptic feedback
+- Created src/app/controller/login/page.tsx: Same code-based login with violet theme
+- Updated src/app/agence/layout.tsx: Added "Équipe" menu item with Users icon in ADMIN section
+- Fixed Turbopack compatibility: Replaced Prisma enum runtime values with string constants (ROLES, PERMISSIONS) to avoid bundler issues
+- Fixed syntax error in equipe page (missing closing paren in onChange handler)
+- Ran lint: 0 new errors (only pre-existing migrate-db.js issue)
+
+Stage Summary:
+- 13 files created/modified totaling ~2,800+ lines of production code
+- Prisma schema extended with 3 enums, 2 new models (Staff, StaffAuditLog), Agency relation
+- Complete RBAC system: 4 roles (ADMIN/OPERATOR/CONTROLLER/DRIVER), 7 granular permissions
+- JWT auth: 15m access tokens + 30d refresh tokens, rate-limited login
+- WhatsApp onboarding: phone normalization, dynamic template, wa.me deep links
+- Zero ESLint errors in all new code

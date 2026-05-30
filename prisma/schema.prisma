@@ -56,6 +56,77 @@ model LoginLog {
   createdAt    DateTime  @default(now())
 }
 
+// ─── RBAC Enums ──────────────────────────────────────────────
+
+enum StaffRole {
+  ADMIN
+  OPERATOR
+  CONTROLLER
+  DRIVER
+}
+
+enum StaffPermission {
+  VIEW_REPORTS
+  MANAGE_STAFF
+  ACTIVATE_TICKETS
+  ACTIVATE_PARCELS
+  VALIDATE_TICKETS
+  MANAGE_DELIVERIES
+  VIEW_ANALYTICS
+}
+
+enum AuditAction {
+  STAFF_CREATED
+  STAFF_UPDATED
+  STAFF_DELETED
+  STAFF_DEACTIVATED
+  STAFF_REACTIVATED
+  CODE_GENERATED
+  CODE_RESET
+  STAFF_LOGIN_SUCCESS
+  STAFF_LOGIN_FAILURE
+}
+
+// ─── Staff Model ───────────────────────────────────────────────────
+
+model Staff {
+  id            String           @id @default(cuid())
+  name          String
+  phone         String           @unique  // Format E.164 (ex: +221771234567)
+  role          StaffRole        @default(OPERATOR)
+  permissions   String           @default("[]")  // JSON array of StaffPermission values
+  loginCodeHash String?          // Hash bcrypt du code 4-6 chiffres
+  codeExpiresAt DateTime?        // Code expiration (7 days after generation)
+  hasActivated  Boolean          @default(false) // true après première connexion
+  isActive      Boolean          @default(true)
+  lastLogin     DateTime?
+  agencyId      String
+  agency        Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  auditLogs     StaffAuditLog[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([agencyId, isActive])
+  @@index([phone])
+}
+
+// ─── Staff Audit Log ──────────────────────────────────────────────
+
+model StaffAuditLog {
+  id        String       @id @default(cuid())
+  action    AuditAction
+  staffId   String
+  staff     Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  actorId   String?      // User (admin) who performed the action
+  details   String?      // JSON with contextual data
+  ipAddress String?
+  createdAt DateTime     @default(now())
+
+  @@index([staffId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 // Agency model - pilgrimage agencies
 model Agency {
   id        String    @id @default(cuid())
@@ -65,6 +136,7 @@ model Agency {
   phone     String?
   address   String?
   active    Boolean   @default(true)
+  settings  String?   // JSON: { defaultPermissions, whatsappTemplate }
   createdAt DateTime  @default(now())
   baggages        Baggage[]
   routes          Route[]
@@ -73,6 +145,7 @@ model Agency {
   departures      Departure[]
   passengerTickets PassengerTicket[]
   stations        Station[]
+  staff           Staff[]
 }
 
 // Baggage model - main entity for luggage tracking
