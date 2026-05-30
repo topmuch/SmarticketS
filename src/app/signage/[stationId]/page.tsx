@@ -106,6 +106,95 @@ function playTone(freq: number, duration: number, type: OscillatorType, startTim
 }
 
 /* ══════════════════════════════════════════════
+   TTS: Annonces vocales embarquement
+   ══════════════════════════════════════════════ */
+let announcementTimerId: ReturnType<typeof setTimeout> | null = null;
+let isAnnouncing = false;
+
+function speakFrenchFemale(text: string) {
+  if (typeof window === 'undefined') return;
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+
+  synth.cancel(); // Clean queue
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'fr-FR';
+  utterance.rate = 0.85;   // Slightly slower for station clarity
+  utterance.pitch = 1.1;   // Slightly higher (more feminine)
+  utterance.volume = 1.0;
+
+  // Try to find a French female voice
+  const voices = synth.getVoices();
+  const femaleFrVoice = voices.find(
+    (v) =>
+      v.lang.startsWith('fr') &&
+      (v.name.toLowerCase().includes('female') ||
+        v.name.toLowerCase().includes('femme') ||
+        v.name.includes('Google') ||
+        v.name.includes('Microsoft') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Victoria') ||
+        v.name.includes('Zira') ||
+        v.name.includes('Denise') ||
+        v.name.includes('Amélie'))
+  );
+  if (femaleFrVoice) utterance.voice = femaleFrVoice;
+
+  utterance.onend = () => console.log('✅ Annonce terminée');
+  utterance.onerror = (e) => console.warn('⚠️ Erreur vocale:', e);
+
+  synth.speak(utterance);
+}
+
+function playBoardingAnnouncement(destination: string, time: string) {
+  if (isAnnouncing) return; // Prevent overlap
+  isAnnouncing = true;
+
+  let repeatCount = 0;
+  const MAX_REPEATS = 2;
+  const INTERVAL_MS = 120000; // 2 minutes between repeats
+
+  function executeRound() {
+    if (repeatCount >= MAX_REPEATS) {
+      isAnnouncing = false;
+      return;
+    }
+
+    // Step 1: Ding-Dong
+    playDingDong();
+
+    // Step 2: Voice announcement after 1s pause
+    setTimeout(() => {
+      const text = `Madame, Monsieur, les passagers en direction de ${destination} sont priés de monter à bord. Le bus va partir à ${time}.`;
+      speakFrenchFemale(text);
+    }, 1000);
+
+    repeatCount++;
+
+    // Step 3: Schedule next repeat in 2 min
+    if (repeatCount < MAX_REPEATS) {
+      announcementTimerId = setTimeout(executeRound, INTERVAL_MS);
+    } else {
+      isAnnouncing = false;
+    }
+  }
+
+  executeRound();
+}
+
+function cancelAnnouncements() {
+  if (announcementTimerId) {
+    clearTimeout(announcementTimerId);
+    announcementTimerId = null;
+  }
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  isAnnouncing = false;
+}
+
+/* ══════════════════════════════════════════════
    Memoized Departure Row
    ══════════════════════════════════════════════ */
 const DepartureRow = memo(function DepartureRow({ dep }: { dep: Departure }) {
@@ -204,15 +293,19 @@ export default function SignageKioskPage() {
   const showAdOverlayRef = useRef(false); // ref mirror for showAdOverlay (avoids stale closure)
   const [adShowCount, setAdShowCount] = useState(0); // count ad displays for debug
 
-  // Alert tracking — ding-dong plays once per transition
+  // Alert tracking — ding-dong + voice plays once per transition
   const alertedDeparturesRef = useRef<Set<string>>(new Set());
+
+  // Voice announcement tracking (which departures have been announced)
+  const announcedDeparturesRef = useRef<Set<string>>(new Set());
+  const [isVoiceActive, setIsVoiceActive] = useState(false); // visual indicator
 
   // Cursor auto-hide
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cursorHidden, setCursorHidden] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // ─── Auto-enter fullscreen on first interaction ─────────
+  // ─── Auto-enter fullscreen + init audio + load voices on first interaction ─────────
   useEffect(() => {
     const goFullscreen = () => {
       if (rootRef.current && !document.fullscreenElement) {
@@ -222,6 +315,10 @@ export default function SignageKioskPage() {
     const handleFirstInteraction = () => {
       goFullscreen();
       initAudio();
+      // Pre-load TTS voices (some browsers load async)
+      if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+      }
       document.removeEventListener('click', handleFirstInteraction);
       document.removeEventListener('touchstart', handleFirstInteraction);
       document.removeEventListener('keydown', handleFirstInteraction);
@@ -233,6 +330,27 @@ export default function SignageKioskPage() {
       document.removeEventListener('click', handleFirstInteraction);
       document.removeEventListener('touchstart', handleFirstInteraction);
       document.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, []);
+
+  // ─── Load TTS voices on mount (async voice loading) ─────────
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    // Try immediate load
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) return; // Already loaded
+
+    // Listen for async load
+    const handleVoicesChanged = () => window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+
+    return () => {
+      // Cleanup: cancel all announcements on unmount
+      cancelAnnouncements();
+      if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
     };
   }, []);
 
@@ -357,12 +475,21 @@ export default function SignageKioskPage() {
           setData(json);
           setLastUpdate(new Date().toLocaleTimeString('fr-FR'));
 
-          // Ding-dong for new boarding alerts
+          // Ding-dong + Voice announcement for new boarding alerts
           if (json.alertSoundEnabled !== false) {
             for (const dep of json.departures) {
               if (dep.shouldPlayAlert && !alertedDeparturesRef.current.has(dep.id)) {
                 alertedDeparturesRef.current.add(dep.id);
                 playDingDong();
+
+                // Trigger full voice announcement (ding-dong + TTS + repeat)
+                if (!announcedDeparturesRef.current.has(dep.id)) {
+                  announcedDeparturesRef.current.add(dep.id);
+                  setIsVoiceActive(true);
+                  playBoardingAnnouncement(dep.destination, dep.effectiveTime);
+                  // Turn off visual indicator after both rounds (2×2min = ~4min30)
+                  setTimeout(() => setIsVoiceActive(false), 280000);
+                }
               }
             }
           }
@@ -770,10 +897,63 @@ export default function SignageKioskPage() {
           .sig2-ad-progress { height: 8px; }
           .sig2-last-update { font-size: 18px; }
         }
+
+        /* ═══ VOICE ANNOUNCEMENT INDICATOR ═══ */
+        .sig2-voice-indicator {
+          position: fixed; bottom: clamp(60px, 10vh, 100px); right: clamp(10px, 2vw, 24px);
+          background: rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(249, 115, 22, 0.6);
+          border-radius: clamp(8px, 1.5vh, 14px);
+          padding: clamp(8px, 1.5vh, 14px) clamp(12px, 2vw, 20px);
+          display: flex; align-items: center; gap: clamp(6px, 1vw, 12px);
+          z-index: 150;
+          animation: sig2-voice-pulse 2s ease-in-out infinite;
+        }
+        .sig2-voice-icon {
+          width: clamp(22px, 3.5vh, 36px); height: clamp(22px, 3.5vh, 36px);
+          background: #f97316;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: clamp(0.7rem, 1.5vh, 1.2rem);
+          animation: sig2-voice-ring 1.5s ease-in-out infinite;
+          flex-shrink: 0;
+        }
+        .sig2-voice-text {
+          color: #f8fafc; font-weight: 600;
+          font-size: clamp(0.6rem, 1.2vh, 0.9rem);
+          white-space: nowrap;
+        }
+        .sig2-voice-sub {
+          color: #94a3b8; font-size: clamp(0.45rem, 0.9vh, 0.65rem);
+          font-weight: 400;
+        }
+        @keyframes sig2-voice-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+          50% { box-shadow: 0 0 24px 10px rgba(249, 115, 22, 0.15); }
+        }
+        @keyframes sig2-voice-ring {
+          0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.5); }
+          70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
+        .sig2-debug-btn--voice { background: #e11d48; }
+        .sig2-debug-btn--voice-cancel { background: #64748b; }
       `}</style>
 
       {/* Offline Badge */}
       {offline && <div className="sig2-offline">⚠️ Hors ligne</div>}
+
+      {/* ─── VOICE ANNOUNCEMENT INDICATOR ─── */}
+      {isVoiceActive && (
+        <div className="sig2-voice-indicator">
+          <div className="sig2-voice-icon">🔊</div>
+          <div>
+            <div className="sig2-voice-text">Annonce en cours</div>
+            <div className="sig2-voice-sub">Embarquement vocal</div>
+          </div>
+        </div>
+      )}
 
       {/* ─── AD OVERLAY (full-screen ad rotation) ─── */}
       {showAdOverlay && activeAd && (() => {
@@ -933,9 +1113,32 @@ export default function SignageKioskPage() {
           </button>
           <button
             className="sig2-debug-btn sig2-debug-btn--reset"
-            onClick={() => { alertedDeparturesRef.current = new Set(); }}
+            onClick={() => {
+              alertedDeparturesRef.current = new Set();
+              announcedDeparturesRef.current = new Set();
+            }}
           >
             🔄 Reset Alerts
+          </button>
+          <button
+            className="sig2-debug-btn sig2-debug-btn--voice"
+            onClick={() => {
+              initAudio();
+              setIsVoiceActive(true);
+              playBoardingAnnouncement('Dakar', currentTime.substring(0, 5));
+              setTimeout(() => setIsVoiceActive(false), 280000);
+            }}
+          >
+            🔊 Test Annonce Vocale
+          </button>
+          <button
+            className="sig2-debug-btn sig2-debug-btn--voice-cancel"
+            onClick={() => {
+              cancelAnnouncements();
+              setIsVoiceActive(false);
+            }}
+          >
+            🔇 Arrêter Annonce
           </button>
           <div style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>
             Départs: {outboundList.length} | Arrivées: {returnList.length} | Ads: {ads.length} | Shown: {adShowCount}

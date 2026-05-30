@@ -657,3 +657,29 @@ Stage Summary:
 - Admin UI : toggle Upload/URL avec preview live
 - Display : priorité vidéo > image dans la résolution des médias
 - Aucune régression sur le système de publicités existant (upload fichier)
+---
+Task ID: 2
+Agent: Main Agent
+Task: Intégrer la synthèse vocale (TTS) dans l'écran d'affichage pour annoncer les départs
+
+Work Log:
+- Analyse du code utilisateur fourni (TTS workflow: Ding-Dong → Voix féminine FR → Pause 2min → Répétition ×2 → Arrêt)
+- Ajout des fonctions TTS après le bloc Ding-Dong existant :
+  - `speakFrenchFemale(text)` : SpeechSynthesis FR, rate=0.85, pitch=1.1, recherche voix féminine (Google, Microsoft, Amélie, Zira, etc.)
+  - `playBoardingAnnouncement(destination, time)` : orchestrate Ding-Dong + Voix + 2 répétitions à 2min d'intervalle
+  - `cancelAnnouncements()` : cleanup timer + speechSynthesis.cancel()
+- Modification de la logique d'alerte embarquement : quand `shouldPlayAlert` est true, en plus du Ding-Dong, déclenche `playBoardingAnnouncement(dep.destination, dep.effectiveTime)`
+- Suivi séparé `announcedDeparturesRef` pour éviter de rejouer la voix si le Ding-Dong seul est rejoué
+- Ajout d'un indicateur visuel flottant `isVoiceActive` : badge orange pulsant "Annonce en cours - Embarquement vocal" avec animation ring + pulse
+- CSS complet pour l'indicateur vocal : backdrop-filter, clamp responsive, animations keyframes
+- Chargement async des voix TTS via `onvoiceschanged` + pré-chargement au premier clic
+- Nettoyage automatique des annonces à l'unmount (cancelAnnouncements)
+- 2 boutons debug ajoutés (?debug=1) : "🔊 Test Annonce Vocale" et "🔇 Arrêter Annonce"
+- Lint : propre (seul le pré-existent error dans scripts/migrate-db.js)
+
+Stage Summary:
+- Système d'annonces vocales complet et intégré au kiosk signage
+- Workflow exact : 🔔 Ding-Dong → 🗣️ Voix FR féminine → ⏱️ 2min pause → 🔁 Répétition → 🛑 Arrêt auto
+- Indicateur visuel pulsant pendant l'annonce
+- Protection contre les chevauchements (guard `isAnnouncing`)
+- Nettoyage propre à l'unmount
