@@ -83,7 +83,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
     { label: "Colis Livrés", icon: <CheckCircle className="w-5 h-5" />, href: "/agence/trouvailles" },
     { label: "Perdus", icon: <AlertTriangle className="w-5 h-5" />, href: "/agence/perdus" },
     { label: "Rapports", icon: <BarChart3 className="w-5 h-5" />, href: "/agence/rapports" },
-    { label: "Affichage Gare", icon: <Monitor className="w-5 h-5" />, href: `/signage/${agencyId}?kiosk=1`, external: true },
+    { label: "Affichage Gare", icon: <Monitor className="w-5 h-5" />, href: "/agence/affichage-gare" },
     { label: "Profil", icon: <User className="w-5 h-5" />, href: "/agence/profil" },
   ];
 

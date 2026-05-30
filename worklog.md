@@ -993,3 +993,29 @@ Stage Summary:
 - Missing page created, resolves "Station non trouvée" and 404 errors
 - Premium Card design matching specifications
 - File: /src/app/signage-slug/[slug]/page.tsx
+
+---
+Task ID: 4
+Agent: main
+Task: Connecter l'onglet "Affichage Gare" du sidebar avec les gares
+
+Work Log:
+- Investigated the sidebar layout: "Affichage Gare" was an external link to /signage/${agencyId}?kiosk=1 (broken/non-functional)
+- Created new internal page /agence/affichage-gare/page.tsx with:
+  - Station display cards with live iframe preview
+  - Kiosk mode launch button
+  - QR code and URL copy for each station
+  - Stats (departures count, arrivals count)
+  - Active/Inactive station grouping
+  - Auto-refresh toggle (Live mode, 30s interval)
+  - Summary bar (total gares, active, inactive, total départs)
+  - Empty state with link to create stations
+- Updated sidebar layout.tsx: changed "Affichage Gare" href from external link to /agence/affichage-gare
+- Verified API /api/stations returns _count.departuresAsOrigin and _count.departuresAsDest
+- Lint pass (only pre-existing warning in scripts/migrate-db.js)
+- Page loads HTTP 200 successfully
+
+Stage Summary:
+- New page: /agence/affichage-gare displays all stations with live preview, QR codes, and kiosk launch
+- Sidebar updated: "Affichage Gare" now links to internal page instead of broken external link
+- All stations from /agence/gares are automatically listed
