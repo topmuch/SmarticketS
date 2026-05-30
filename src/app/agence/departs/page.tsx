@@ -299,71 +299,85 @@ function NewDepartureModal({
               </div>
 
               {/* Station selectors (multi-gare) */}
-              {stations.length > 0 && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                      🏢 Associer à des gares (optionnel)
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-                        Gare de départ
-                      </label>
-                      <select
-                        value={form.originStationId}
-                        onChange={(e) => {
-                          const stationId = e.target.value;
-                          const station = stations.find(s => s.id === stationId);
-                          setForm({
-                            ...form,
-                            originStationId: stationId,
-                            origin: station ? station.city : form.origin,
-                          });
-                        }}
-                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-                      >
-                        <option value="">— Aucune (non lié) —</option>
-                        {stations.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.name} ({s.city})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
-                        Gare d'arrivée
-                      </label>
-                      <select
-                        value={form.destinationStationId}
-                        onChange={(e) => {
-                          const stationId = e.target.value;
-                          const station = stations.find(s => s.id === stationId);
-                          setForm({
-                            ...form,
-                            destinationStationId: stationId,
-                            destination: station ? station.city : form.destination,
-                          });
-                        }}
-                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-                      >
-                        <option value="">— Aucune (non lié) —</option>
-                        {stations.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.name} ({s.city})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    Associer un départ à une gare pour qu'il apparaisse sur l'affichage public de cette gare.
-                  </p>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                    🏢 Associer à des gares
+                  </span>
                 </div>
-              )}
+                {stations.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                          Gare de départ
+                        </label>
+                        <select
+                          value={form.originStationId}
+                          onChange={(e) => {
+                            const stationId = e.target.value;
+                            const station = stations.find(s => s.id === stationId);
+                            setForm({
+                              ...form,
+                              originStationId: stationId,
+                              origin: station ? station.city : form.origin,
+                            });
+                          }}
+                          className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                        >
+                          <option value="">— Aucune (non lié) —</option>
+                          {stations.map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} ({s.city})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                          Gare d'arrivée
+                        </label>
+                        <select
+                          value={form.destinationStationId}
+                          onChange={(e) => {
+                            const stationId = e.target.value;
+                            const station = stations.find(s => s.id === stationId);
+                            setForm({
+                              ...form,
+                              destinationStationId: stationId,
+                              destination: station ? station.city : form.destination,
+                            });
+                          }}
+                          className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                        >
+                          <option value="">— Aucune (non lié) —</option>
+                          {stations.map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} ({s.city})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Associer un départ à une gare pour qu'il apparaisse sur l'affichage public de cette gare.
+                    </p>
+                  </>
+                ) : (
+                  <div className="text-center py-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Aucune gare créée.{' '}
+                      <a href="/agence/gares" className="text-emerald-600 dark:text-emerald-400 underline font-semibold hover:text-emerald-700">
+                        Créer une gare →
+                      </a>
+                    </p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                      Les gares permettent d'afficher les départs sur un écran public dans votre gare physique.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* Date / Time */}
               <div className="grid grid-cols-2 gap-3">
@@ -703,14 +717,14 @@ function EditDepartureModal({
               </div>
 
               {/* Station selectors (multi-gare) */}
-              {stations.length > 0 && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
-                      🏢 Gares associées
-                    </span>
-                  </div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                    🏢 Gares associées
+                  </span>
+                </div>
+                {stations.length > 0 ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
@@ -747,8 +761,15 @@ function EditDepartureModal({
                       </select>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-2">
+                    Aucune gare disponible.{' '}
+                    <a href={'/agence/gares'} className="text-emerald-600 dark:text-emerald-400 underline font-semibold">
+                      Créer une gare →
+                    </a>
+                  </p>
+                )}
+              </div>
 
               <div className="flex gap-3 pt-2">
                 <button

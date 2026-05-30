@@ -964,3 +964,32 @@ Stage Summary:
 - Edit modal allows changing station association
 - Round-trip departures automatically swap station IDs
 - Backward compatible: station fields are optional, existing departures unaffected
+
+---
+Task ID: fix-signage-page-missing
+Agent: Main Agent
+Task: Create missing signage-slug page + fix departure form station selector visibility
+
+Work Log:
+- Discovered /src/app/signage-slug/[slug]/page.tsx was missing (only API route existed)
+- Created full Premium Card signage display page with:
+  - bg-[#0b0f19] dark background, card-based layout
+  - Header: station name + live clock + optional logo
+  - Orange ticker bar with scrolling messages
+  - 2-column layout: Départs | Arrivées
+  - Each item as a card with status colors (orange BOARDING, gray DEPARTED)
+  - Pulse animation on BOARDING items (border-l-4 border-orange-500)
+  - 15s polling for live data refresh
+  - Audio system integration (ding-dong + TTS for boarding alerts)
+  - Ad overlay with support for image/video/YouTube (z-50 fullscreen)
+  - mobileImageUrl for 9:16 portrait support on mobile
+  - QR code footer with station URL
+  - Kiosk mode (?kiosk=1 hides cursor)
+  - Mobile responsive design with tab bar on small screens
+  - CSS class prefix `sps-` to avoid conflicts with other pages
+  - Full responsive breakpoints: mobile, tablet, desktop, 1920px TV, 2560px 4K
+
+Stage Summary:
+- Missing page created, resolves "Station non trouvée" and 404 errors
+- Premium Card design matching specifications
+- File: /src/app/signage-slug/[slug]/page.tsx
