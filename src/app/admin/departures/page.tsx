@@ -99,6 +99,8 @@ interface DepartureFormData {
   platform: string;
   totalSeats: string;
   availableSeats: string;
+  originStationId: string;
+  destinationStationId: string;
 }
 
 const emptyDepartureForm: DepartureFormData = {
@@ -111,6 +113,8 @@ const emptyDepartureForm: DepartureFormData = {
   platform: '',
   totalSeats: '45',
   availableSeats: '45',
+  originStationId: '',
+  destinationStationId: '',
 };
 
 // ── Helpers ────────────────────────────────────────────────
@@ -151,6 +155,7 @@ const today = () => {
 export default function DeparturesPage() {
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [routes, setRoutes] = useState<RouteOption[]>([]);
+  const [stations, setStations] = useState<{id: string; name: string; city: string; slug: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [agencyId, setAgencyId] = useState<string | null>(null);
@@ -201,6 +206,18 @@ export default function DeparturesPage() {
     }
   }, [agencyId]);
 
+  // ── Fetch stations ──────────────────────────────────────
+  const fetchStations = useCallback(async () => {
+    if (!agencyId) return;
+    try {
+      const res = await fetch(`/api/stations?agencyId=${agencyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setStations(data || []);
+      }
+    } catch { /* silent */ }
+  }, [agencyId]);
+
   // ── Fetch departures ───────────────────────────────────
   const fetchDepartures = useCallback(async () => {
     if (!agencyId) return;
@@ -222,9 +239,10 @@ export default function DeparturesPage() {
   useEffect(() => {
     if (agencyId) {
       fetchRoutes();
+      fetchStations();
       fetchDepartures();
     }
-  }, [agencyId, fetchRoutes, fetchDepartures]);
+  }, [agencyId, fetchRoutes, fetchStations, fetchDepartures]);
 
   // ── Auto-fill destination from route ────────────────────
   const handleRouteSelect = (routeId: string) => {
@@ -271,6 +289,8 @@ export default function DeparturesPage() {
       platform: dep.platform || '',
       totalSeats: dep.totalSeats.toString(),
       availableSeats: dep.availableSeats.toString(),
+      originStationId: '',
+      destinationStationId: '',
     });
     setDialogOpen(true);
   };
@@ -300,6 +320,8 @@ export default function DeparturesPage() {
         totalSeats: parseInt(form.totalSeats, 10) || 45,
         availableSeats: parseInt(form.availableSeats, 10) || 0,
         agencyId,
+        originStationId: form.originStationId || null,
+        destinationStationId: form.destinationStationId || null,
       };
 
       const url = editingDeparture
@@ -801,6 +823,36 @@ clj123abc,RETURN,Ligne 1,Dakar,2025-01-15,16:00,Quai B,45,45`}
                         </SelectItem>
                       ))
                     )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Gare de départ */}
+              <div className="space-y-2">
+                <Label htmlFor="dep-origin-station">Gare de départ</Label>
+                <Select value={form.originStationId} onValueChange={(v) => setForm(prev => ({...prev, originStationId: v}))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner (optionnel)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stations.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.city})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Gare d'arrivée */}
+              <div className="space-y-2">
+                <Label htmlFor="dep-dest-station">Gare d'arrivée</Label>
+                <Select value={form.destinationStationId} onValueChange={(v) => setForm(prev => ({...prev, destinationStationId: v}))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner (optionnel)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stations.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name} ({s.city})</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

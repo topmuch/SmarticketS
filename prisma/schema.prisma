@@ -72,6 +72,7 @@ model Agency {
   invoices        Invoice[]
   departures      Departure[]
   passengerTickets PassengerTicket[]
+  stations        Station[]
 }
 
 // Baggage model - main entity for luggage tracking
@@ -623,6 +624,25 @@ model SignageAd {
   @@index([isActive, startDate])
 }
 
+// Station model - gare physique pour l'affichage
+model Station {
+  id            String     @id @default(cuid())
+  name          String     // Ex: "Gare Routière Peters"
+  slug          String     @unique // Ex: "dakar-peters-x9s2" (généré auto)
+  city          String     // Ex: "Dakar"
+  address       String?
+  agencyId      String
+  agency        Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  isActive      Boolean    @default(true)
+  departuresAsOrigin  Departure[] @relation("OriginStation")
+  departuresAsDest    Departure[] @relation("DestinationStation")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([agencyId])
+  @@index([isActive])
+}
+
 // Departure model - horaires de depart (affichage gare)
 model Departure {
   id              String   @id @default(cuid())
@@ -638,6 +658,12 @@ model Departure {
   status          String   @default("SCHEDULED") // SCHEDULED, BOARDING, DEPARTED, CANCELLED, DELAYED
   delayMinutes    Int      @default(0)
 
+  // Relations multi-gares
+  originStationId      String?
+  originStation        Station?  @relation("OriginStation", fields: [originStationId], references: [id], onDelete: SetNull)
+  destinationStationId String?
+  destinationStation   Station?  @relation("DestinationStation", fields: [destinationStationId], references: [id], onDelete: SetNull)
+
   agencyId        String
   agency          Agency   @relation(fields: [agencyId], references: [id])
 
@@ -649,4 +675,6 @@ model Departure {
   @@index([agencyId, scheduledTime])
   @@index([status])
   @@index([routeId])
+  @@index([originStationId])
+  @@index([destinationStationId])
 }

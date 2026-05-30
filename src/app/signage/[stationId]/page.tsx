@@ -1,27 +1,46 @@
 'use client';
 
-import { useState, useEffect, useRef, memo, useMemo } from 'react';
+import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
+import { playDingDong, playBoardingAnnouncement, cancelAnnouncements, preloadVoices } from '@/lib/audioSystem';
 
-/* ══════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════
    Types
-   ══════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════════════════ */
 interface Departure {
   id: string;
-  departureType: string; // 'OUTBOUND' | 'RETURN'
+  departureType: string;
   lineNumber: string;
+  origin: string;
   destination: string;
+  destinationStationName: string;
   scheduledTime: string;
   effectiveTime: string;
+  platform: string | null;
   status: string;
   delayMinutes: number;
   countdownMin: number;
   shouldPlayAlert: boolean;
+  availableSeats: number;
+  totalSeats: number;
+}
+
+interface Arrival {
+  id: string;
+  lineNumber: string;
+  origin: string;
+  originStationName: string;
+  destination: string;
+  scheduledTime: string;
+  effectiveTime: string;
+  platform: string | null;
+  status: string;
+  delayMinutes: number;
 }
 
 interface TickerMessage {
-  id: string;
+  id?: string;
   text: string;
   priority: 'info' | 'urgent';
   active: boolean;
@@ -30,12 +49,15 @@ interface TickerMessage {
 interface StationData {
   stationId: string;
   stationName: string;
+  city: string;
+  slug: string;
+  currentTime: string;
+  currentDate: string;
   departures: Departure[];
-  tickerMessages: TickerMessage[];
+  arrivals: Arrival[];
   alertSoundEnabled: boolean;
+  tickerMessages: TickerMessage[];
   logoUrl: string;
-  primaryColor: string;
-  secondaryColor: string;
 }
 
 interface SignageAd {
@@ -56,12 +78,11 @@ interface SignageAd {
   createdBy: string;
 }
 
-/* ══════════════════════════════════════════════
-   YouTube URL helper
-   ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════
+   YouTube URL Detection
+   ══════════════════════════════════════════════════════════════════════════ */
 function getYouTubeEmbedUrl(url: string): string | null {
   if (!url) return null;
-  // Match youtube.com/watch?v=, youtu.be/, youtube.com/embed/, youtube.com/shorts/, youtube.com/live/
   const patterns = [
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
@@ -71,356 +92,180 @@ function getYouTubeEmbedUrl(url: string): string | null {
   ];
   for (const pattern of patterns) {
     const match = url.match(pattern);
-    if (match) {
-      return `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=1&loop=1&playlist=${match[1]}&controls=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`;
-    }
+    if (match) return `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=1&loop=1&playlist=${match[1]}&controls=0&rel=0&playsinline=1`;
   }
   return null;
 }
 
-function isYouTubeUrl(url: string): boolean {
-  return !!getYouTubeEmbedUrl(url);
-}
-
-/* ══════════════════════════════════════════════
-   Status display config
-   ══════════════════════════════════════════════ */
-const STATUS_MAP: Record<string, { label: string; css: string }> = {
-  SCHEDULED: { label: '✅ À l\'heure', css: 'sig2-status--ontime' },
-  BOARDING:  { label: '🚌 EMBARQUEMENT', css: 'sig2-status--boarding' },
-  DELAYED:   { label: '⚠️ Retard', css: 'sig2-status--delayed' },
-  DEPARTED:  { label: '⚪ Parti', css: 'sig2-status--departed' },
-  CANCELLED: { label: '❌ Annulé', css: 'sig2-status--departed' },
-};
-
-/* ══════════════════════════════════════════════
-   Audio: Ding-Dong via Web Audio API
-   ══════════════════════════════════════════════ */
-let audioCtx: AudioContext | null = null;
-
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-}
-
-function playDingDong() {
-  try {
-    initAudio();
-    if (!audioCtx) return;
-    const now = audioCtx.currentTime;
-    playTone(880, 0.6, 'sine', now);
-    playTone(698, 1.2, 'sine', now + 0.5);
-  } catch {
-    // Audio not available
+/* ══════════════════════════════════════════════════════════════════════════
+   Status Helpers
+   ══════════════════════════════════════════════════════════════════════════ */
+function getStatusLabel(status: string, delayMinutes: number): string {
+  switch (status) {
+    case 'SCHEDULED': return 'À l\'heure';
+    case 'BOARDING': return 'EMBARQUEMENT';
+    case 'DEPARTED': return 'Parti';
+    case 'CANCELLED': return 'Annulé';
+    case 'DELAYED': return `Retard ${delayMinutes} min`;
+    default: return status;
   }
 }
 
-function playTone(freq: number, duration: number, type: OscillatorType, startTime: number) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0, startTime);
-  gain.gain.linearRampToValueAtTime(0.6, startTime + 0.05);
-  gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start(startTime);
-  osc.stop(startTime + duration);
-}
-
-/* ══════════════════════════════════════════════
-   TTS: Annonces vocales embarquement (ROBUSTE)
-   Optimisé pour Mobile, TV, Kiosque
-   ══════════════════════════════════════════════ */
-let announcementTimerId: ReturnType<typeof setTimeout> | null = null;
-let isAnnouncing = false;
-let voicesLoaded = false;
-
-// Charger les voix au démarrage
-function loadVoices() {
-  if (typeof window !== 'undefined' && window.speechSynthesis) {
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      voicesLoaded = true;
-      console.log(`🎤 ${voices.length} voix chargées`);
-    }
+function getStatusClass(status: string): string {
+  switch (status) {
+    case 'SCHEDULED': return 'sp-status--green';
+    case 'BOARDING': return 'sp-status--orange';
+    case 'DEPARTED': return 'sp-status--slate';
+    case 'CANCELLED': return 'sp-status--red';
+    case 'DELAYED': return 'sp-status--amber';
+    default: return 'sp-status--green';
   }
 }
 
-// Attendre que les voix soient chargées (surtout sur mobile/TV)
-if (typeof window !== 'undefined' && typeof window.speechSynthesis !== 'undefined') {
-  window.speechSynthesis.onvoiceschanged = loadVoices;
-  // Essayer de charger immédiatement + retry
-  setTimeout(loadVoices, 100);
-  setTimeout(loadVoices, 500);
-  setTimeout(loadVoices, 1000);
-}
-
-// Fonction robuste avec retry automatique
-function speakWithRetry(text: string, retryCount = 0) {
-  const maxRetries = 3;
-
-  function attemptSpeak() {
-    // Nettoyer toute lecture en cours
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-
-    // Attendre un peu pour que le cancel soit effectif
-    setTimeout(() => {
-      const success = speakFrenchFemale(text);
-      if (!success && retryCount < maxRetries) {
-        console.warn(`⚠️ Échec lecture, tentative ${retryCount + 1}/${maxRetries}`);
-        speakWithRetry(text, retryCount + 1);
-      }
-    }, 100);
-  }
-
-  attemptSpeak();
-}
-
-// Fonction de synthèse vocale optimisée — retourne true/false
-function speakFrenchFemale(text: string): boolean {
-  if (typeof window === 'undefined' || typeof window.speechSynthesis === 'undefined') {
-    console.error('❌ Synthèse vocale non supportée');
-    return false;
-  }
-
-  // Vérifier si les voix sont chargées
-  const voices = window.speechSynthesis.getVoices();
-
-  if (voices.length === 0) {
-    console.warn('⚠️ Aucune voix disponible, forçage du chargement...');
-    window.speechSynthesis.getVoices();
-    return false;
-  }
-
-  const utterance = new SpeechSynthesisUtterance(text);
-
-  // Configuration optimale pour gare
-  utterance.lang = 'fr-FR';
-  utterance.rate = 0.9;     // Vitesse normale-lente (plus claire)
-  utterance.pitch = 1.0;    // Ton neutre
-  utterance.volume = 1.0;   // Volume MAXIMUM
-
-  // Trouver la meilleure voix française
-  const frenchVoices = voices.filter((v) => v.lang.startsWith('fr'));
-
-  if (frenchVoices.length > 0) {
-    // Priorité aux voix féminines connues
-    const preferredVoices = [
-      'Google français',
-      'Microsoft Hortense',
-      'Samantha',
-      'Victoria',
-      'Amelie',
-      'Denise',
-      'Zira',
-    ];
-
-    let selectedVoice: SpeechSynthesisVoice | null = null;
-
-    // Chercher voix préférée
-    for (const prefName of preferredVoices) {
-      selectedVoice = frenchVoices.find((v) => v.name.includes(prefName)) || null;
-      if (selectedVoice) break;
-    }
-
-    // Sinon chercher une voix Google/Microsoft
-    if (!selectedVoice) {
-      selectedVoice = frenchVoices.find((v) =>
-        v.name.includes('Google') || v.name.includes('Microsoft')
-      ) || null;
-    }
-
-    // Sinon prendre la première voix FR
-    if (!selectedVoice) {
-      selectedVoice = frenchVoices[0];
-    }
-
-    utterance.voice = selectedVoice;
-    console.log('🎤 Voix sélectionnée:', selectedVoice.name, selectedVoice.lang);
-  } else {
-    console.warn('⚠️ Aucune voix française trouvée, utilisation voix par défaut');
-  }
-
-  // Gestionnaires d'événements
-  utterance.onstart = () => console.log('▶️ Lecture commencée');
-  utterance.onend = () => console.log('✅ Lecture terminée');
-  utterance.onerror = (event) => {
-    console.error('❌ Erreur synthèse vocale:', event.error);
-    if (event.error === 'not-allowed') {
-      console.error('🚫 Permission audio refusée — Cliquez sur la page pour activer');
-    }
-  };
-
-  // Lancer la lecture
-  try {
-    window.speechSynthesis.speak(utterance);
-    console.log('🔊 Annonce lancée avec succès');
-    return true;
-  } catch (error) {
-    console.error('❌ Erreur lors du speak:', error);
-    return false;
+/* ══════════════════════════════════════════════════════════════════════════
+   Fullscreen API
+   ══════════════════════════════════════════════════════════════════════════ */
+function toggleFullscreen(el: HTMLElement | null) {
+  if (!el) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else if (el.requestFullscreen) {
+    el.requestFullscreen();
+  } else if ((el as HTMLDivElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen) {
+    (el as HTMLDivElement & { webkitRequestFullscreen: () => void }).webkitRequestFullscreen();
   }
 }
 
-function playBoardingAnnouncement(destination: string, time: string) {
-  if (isAnnouncing) {
-    console.log('🔊 Annonce déjà en cours');
-    return;
-  }
-
-  isAnnouncing = true;
-
-  let repeatCount = 0;
-  const MAX_REPEATS = 2;
-  const INTERVAL_MS = 120000; // 2 minutes entre les répétitions
-
-  function executeRound() {
-    if (repeatCount >= MAX_REPEATS) {
-      console.log('✅ Annonces terminées');
-      isAnnouncing = false;
-      return;
-    }
-
-    console.log(`🔔 Répétition ${repeatCount + 1}/${MAX_REPEATS}`);
-
-    // 🔔 Ding-Dong
-    playDingDong();
-
-    // 🗣️ Message vocal après 1.5s
-    setTimeout(() => {
-      const text = `Madame, Monsieur, les passagers en direction de ${destination} sont priés de monter à bord. Le bus va partir à ${time}.`;
-      console.log('📢 Texte à lire:', text);
-      speakWithRetry(text);
-    }, 1500);
-
-    repeatCount++;
-
-    // Programmer prochaine répétition
-    if (repeatCount < MAX_REPEATS) {
-      console.log(`⏱️ Prochaine annonce dans 2 minutes`);
-      announcementTimerId = setTimeout(executeRound, INTERVAL_MS);
-    } else {
-      isAnnouncing = false;
-    }
-  }
-
-  executeRound();
-}
-
-// Test rapide de la voix (pour debug)
-function testVoiceOnly() {
-  console.log('🧪 Test voix en cours...');
-  initAudio();
-  const success = speakFrenchFemale('Test un deux trois. Ceci est un test de la voix de la gare.');
-  console.log('Résultat test:', success ? '✅ OK' : '❌ ÉCHEC');
-}
-
-function cancelAnnouncements() {
-  console.log('🛑 Annulation des annonces');
-  if (announcementTimerId) {
-    clearTimeout(announcementTimerId);
-    announcementTimerId = null;
-  }
-  if (typeof window !== 'undefined' && window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
-  isAnnouncing = false;
-}
-
-/* ══════════════════════════════════════════════
-   Memoized Departure Row
-   ══════════════════════════════════════════════ */
-const DepartureRow = memo(function DepartureRow({ dep }: { dep: Departure }) {
-  const statusCfg = STATUS_MAP[dep.status] || STATUS_MAP.SCHEDULED;
+/* ══════════════════════════════════════════════════════════════════════════
+   Memoized Departure Card
+   ══════════════════════════════════════════════════════════════════════════ */
+const DepartureCard = memo(function DepartureCard({ dep }: { dep: Departure }) {
   const isBoarding = dep.status === 'BOARDING';
-  const isDeparted = dep.status === 'DEPARTED' || dep.status === 'CANCELLED';
-  const timeStr = dep.effectiveTime;
+  const isDeparted = dep.status === 'DEPARTED';
+  const isCancelled = dep.status === 'CANCELLED';
+  const isDelayed = dep.status === 'DELAYED';
 
   return (
-    <div
-      className={[
-        'sig2-row',
-        isBoarding ? 'sig2-row--boarding' : '',
-        isDeparted ? 'sig2-row--departed' : '',
-      ].join(' ')}
-    >
-      {/* Orange time box */}
-      <div className="sig2-row__timebox">{timeStr}</div>
-      {/* Destination */}
-      <div className="sig2-row__dest">
-        <span className="sig2-row__pin">📍</span>
-        <span>{dep.destination}</span>
+    <div className={[
+      'sp-card',
+      isBoarding ? 'sp-card--boarding' : '',
+      isDeparted ? 'sp-card--departed' : '',
+      isCancelled ? 'sp-card--cancelled' : '',
+    ].join(' ')}>
+      {/* Top row: Time + Route + Status */}
+      <div className="sp-card__row">
+        <div className={['sp-card__time', isBoarding ? 'sp-card__time--orange' : ''].join(' ')}>
+          {dep.effectiveTime}
+        </div>
+        <div className="sp-card__route">
+          <span className="sp-card__line">{dep.lineNumber}</span>
+          <span className="sp-card__route-text">
+            {dep.origin}
+            <span className="sp-card__arrow">{'\u00A0➜\u00A0'}</span>
+            <span className={isCancelled ? 'sp-card__struck' : ''}>{dep.destination}</span>
+          </span>
+        </div>
+        <div className={['sp-card__badge', getStatusClass(dep.status)].join(' ')}>
+          {getStatusLabel(dep.status, dep.delayMinutes)}
+        </div>
       </div>
-      {/* Status */}
-      <div className="sig2-row__status">
-        <span className={`sig2-badge ${statusCfg.css}`}>{statusCfg.label}</span>
-      </div>
-    </div>
-  );
-});
-
-/* ══════════════════════════════════════════════
-   Board Section Component (Départs or Arrivées)
-   ══════════════════════════════════════════════ */
-const BoardSection = memo(function BoardSection({
-  title,
-  icon,
-  departures,
-  gradientClass,
-  borderColor,
-}: {
-  title: string;
-  icon: string;
-  departures: Departure[];
-  gradientClass: string;
-  borderColor: string;
-}) {
-  return (
-    <div className="sig2-board" style={{ borderTopColor: borderColor }}>
-      <div className={`sig2-board-head ${gradientClass}`}>
-        <span>{icon}</span>
-        <span>{title}</span>
-      </div>
-      <div className="sig2-board-body">
-        {departures.length === 0 ? (
-          <div className="sig2-empty">Aucun trajet prévu</div>
-        ) : (
-          departures.map((dep) => <DepartureRow key={dep.id} dep={dep} />)
+      {/* Sub row: Platform + Seats */}
+      <div className="sp-card__sub">
+        {dep.platform && <span className="sp-card__platform">{dep.platform}</span>}
+        <span className="sp-card__seats">
+          {dep.availableSeats}/{dep.totalSeats} places
+        </span>
+        {dep.countdownMin > 0 && dep.status !== 'DEPARTED' && (
+          <span className="sp-card__countdown">dans {dep.countdownMin} min</span>
         )}
       </div>
     </div>
   );
 });
 
-/* ══════════════════════════════════════════════
-   Fullscreen API helper
-   ══════════════════════════════════════════════ */
-function requestFullscreen(el: HTMLElement) {
-  if (el.requestFullscreen) el.requestFullscreen();
-  else if ((el as HTMLDivElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen) (el as HTMLDivElement & { webkitRequestFullscreen: () => void }).webkitRequestFullscreen();
-}
+/* ══════════════════════════════════════════════════════════════════════════
+   Memoized Arrival Card
+   ══════════════════════════════════════════════════════════════════════════ */
+const ArrivalCard = memo(function ArrivalCard({ arr }: { arr: Arrival }) {
+  const isDeparted = arr.status === 'DEPARTED';
+  const isCancelled = arr.status === 'CANCELLED';
+  const isDelayed = arr.status === 'DELAYED';
 
-/* ══════════════════════════════════════════════
-   Main Signage Page — Split Screen Kiosk
-   ══════════════════════════════════════════════ */
-export default function SignageKioskPage() {
+  return (
+    <div className={[
+      'sp-card',
+      isDeparted ? 'sp-card--departed' : '',
+      isCancelled ? 'sp-card--cancelled' : '',
+    ].join(' ')}>
+      <div className="sp-card__row">
+        <div className="sp-card__time">{arr.effectiveTime}</div>
+        <div className="sp-card__route">
+          <span className="sp-card__line">{arr.lineNumber}</span>
+          <span className="sp-card__route-text">
+            {arr.originStationName || arr.origin}
+            <span className="sp-card__arrow">{'\u00A0→\u00A0'}</span>
+            <span className="sp-card__dest-here">ici</span>
+          </span>
+        </div>
+        <div className={['sp-card__badge', getStatusClass(arr.status)].join(' ')}>
+          {getStatusLabel(arr.status, arr.delayMinutes)}
+        </div>
+      </div>
+      <div className="sp-card__sub">
+        {arr.platform && <span className="sp-card__platform">{arr.platform}</span>}
+        {isDelayed && <span className="sp-card__delay-info">Retard {arr.delayMinutes} min</span>}
+      </div>
+    </div>
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Memoized Board Section
+   ══════════════════════════════════════════════════════════════════════════ */
+const BoardSection = memo(function BoardSection({
+  title,
+  count,
+  children,
+  accentClass,
+}: {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+  accentClass: string;
+}) {
+  return (
+    <div className="sp-board">
+      <div className={['sp-board__head', accentClass].join(' ')}>
+        <span className="sp-board__title">{title}</span>
+        <span className="sp-board__count">{count}</span>
+      </div>
+      <div className="sp-board__body">
+        {children}
+      </div>
+    </div>
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Main Page Component — Premium Card Design
+   ══════════════════════════════════════════════════════════════════════════ */
+export default function SignagePremiumPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const stationId = params.stationId as string;
+  const isKiosk = searchParams.get('kiosk') === '1';
   const isDebug = searchParams.get('debug') === '1';
 
+  // Data state
   const [data, setData] = useState<StationData | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [currentTime, setCurrentTime] = useState('00:00:00');
-  const [currentDate, setCurrentDate] = useState('Chargement...');
-  const [lastUpdate, setLastUpdate] = useState('');
+  const [currentDate, setCurrentDate] = useState('');
   const [offline, setOffline] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState('');
+
+  // Mobile tab state
+  const [activeTab, setActiveTab] = useState<'departures' | 'arrivals'>('departures');
 
   // Ad rotation state
   const [ads, setAds] = useState<SignageAd[]>([]);
@@ -428,85 +273,59 @@ export default function SignageKioskPage() {
   const [showAdOverlay, setShowAdOverlay] = useState(false);
   const adIntervalTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const adDisplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const adsLoadedRef = useRef(false); // track if ads have been fetched at least once
-  const lastAdShowTimeRef = useRef<number>(0); // track when last ad was shown (to prevent back-to-back)
-  const showAdOverlayRef = useRef(false); // ref mirror for showAdOverlay (avoids stale closure)
-  const [adShowCount, setAdShowCount] = useState(0); // count ad displays for debug
+  const lastAdShowTimeRef = useRef<number>(0);
+  const showAdOverlayRef = useRef(false);
 
-  // Alert tracking — ding-dong + voice plays once per transition
-  const alertedDeparturesRef = useRef<Set<string>>(new Set());
-
-  // Voice announcement tracking (which departures have been announced)
-  const announcedDeparturesRef = useRef<Set<string>>(new Set());
-  const [isVoiceActive, setIsVoiceActive] = useState(false); // visual indicator
+  // Audio alert tracking
+  const announcedRef = useRef<Set<string>>(new Set());
+  const [hasAnnouncement, setHasAnnouncement] = useState(false);
 
   // Cursor auto-hide
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cursorHidden, setCursorHidden] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Portrait detection
   const isPortraitRef = useRef(false);
 
-  // ─── Detect portrait orientation (for mobile ad adaptation) ─────────
+  // Root ref
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // ─── Portrait detection ───────────────────────────────
   useEffect(() => {
-    const checkOrientation = () => {
-      isPortraitRef.current = window.innerHeight > window.innerWidth;
-    };
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
+    const check = () => { isPortraitRef.current = window.innerHeight > window.innerWidth; };
+    check();
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
     return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
     };
   }, []);
 
-  // ─── Auto-enter fullscreen + init audio + load voices on first interaction ─────────
+  // ─── First interaction: fullscreen + preload voices ─────
   useEffect(() => {
-    const goFullscreen = () => {
-      if (rootRef.current && !document.fullscreenElement) {
-        requestFullscreen(rootRef.current);
+    const handle = () => {
+      if (isKiosk && rootRef.current && !document.fullscreenElement) {
+        toggleFullscreen(rootRef.current);
       }
+      preloadVoices();
+      document.removeEventListener('click', handle);
+      document.removeEventListener('touchstart', handle);
+      document.removeEventListener('keydown', handle);
     };
-    const handleFirstInteraction = () => {
-      goFullscreen();
-      initAudio();
-      // Pre-load TTS voices (some browsers load async)
-      if (window.speechSynthesis) {
-        window.speechSynthesis.getVoices();
-      }
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('touchstart', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-    };
-    document.addEventListener('click', handleFirstInteraction);
-    document.addEventListener('touchstart', handleFirstInteraction);
-    document.addEventListener('keydown', handleFirstInteraction);
+    document.addEventListener('click', handle);
+    document.addEventListener('touchstart', handle);
+    document.addEventListener('keydown', handle);
     return () => {
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('touchstart', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
+      document.removeEventListener('click', handle);
+      document.removeEventListener('touchstart', handle);
+      document.removeEventListener('keydown', handle);
     };
-  }, []);
+  }, [isKiosk]);
 
-  // ─── Load TTS voices on mount (async voice loading) ─────────
+  // ─── Cleanup announcements on unmount ──────────────
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-    // Try immediate load
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) return; // Already loaded
-
-    // Listen for async load
-    const handleVoicesChanged = () => window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
-
-    return () => {
-      // Cleanup: cancel all announcements on unmount
-      cancelAnnouncements();
-      if (window.speechSynthesis) {
-        window.speechSynthesis.onvoiceschanged = null;
-      }
-    };
+    return () => { cancelAnnouncements(); };
   }, []);
 
   // ─── Hide browser scrollbar (kiosk) ──────────────────
@@ -523,73 +342,67 @@ export default function SignageKioskPage() {
     };
   }, []);
 
-  // ─── Live Clock ──────────────────────────────────────
+  // ─── Live clock ──────────────────────────────────────
   useEffect(() => {
-    const updateClock = () => {
+    const tick = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString('fr-FR', { hour12: false }));
       setCurrentDate(now.toLocaleDateString('fr-FR', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       }));
     };
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
   }, []);
 
   // ─── Auto-hide cursor ───────────────────────────────
   useEffect(() => {
-    const hideCursor = () => setCursorHidden(true);
-    const showCursor = () => {
+    const hide = () => setCursorHidden(true);
+    const show = () => {
       setCursorHidden(false);
       if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
-      cursorTimerRef.current = setTimeout(hideCursor, 3000);
+      cursorTimerRef.current = setTimeout(hide, 5000);
     };
-    document.addEventListener('mousemove', showCursor);
-    document.addEventListener('touchstart', showCursor);
-    cursorTimerRef.current = setTimeout(hideCursor, 3000);
+    document.addEventListener('mousemove', show);
+    document.addEventListener('touchstart', show);
+    cursorTimerRef.current = setTimeout(hide, 5000);
     return () => {
-      document.removeEventListener('mousemove', showCursor);
-      document.removeEventListener('touchstart', showCursor);
+      document.removeEventListener('mousemove', show);
+      document.removeEventListener('touchstart', show);
       if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
     };
   }, []);
 
-  // ─── Fetch ads once on mount (re-fetch every 5 min silently) ──
+  // ─── Fetch ads (once + re-fetch every 5 min) ──────
   useEffect(() => {
     const fetchAds = async () => {
       try {
         const res = await fetch('/api/signage-ads');
         if (res.ok) {
           const json = await res.json();
-          const parsed = (json as SignageAd[]) || [];
-          setAds(parsed);
-          adsLoadedRef.current = true;
+          setAds((json as SignageAd[]) || []);
         }
       } catch {
-        // Ads non-critical — fail silently
+        // Ads non-critical
       }
     };
     fetchAds();
-    // Re-fetch ads every 5 minutes to pick up new ones
-    const refetchInterval = setInterval(fetchAds, 5 * 60 * 1000);
-    return () => clearInterval(refetchInterval);
+    const id = setInterval(fetchAds, 5 * 60 * 1000);
+    return () => clearInterval(id);
   }, []);
 
-  // ─── Ad rotation engine (stable — uses refs, no dependency on showAdOverlay state) ──
+  // ─── Ad rotation engine ─────────────────────────────
   useEffect(() => {
     if (ads.length === 0) return;
 
-    const minInterval = Math.min(...ads.map(a => a.interval)) * 60 * 1000; // ms
+    const minInterval = Math.min(...ads.map(a => a.interval)) * 60 * 1000;
 
     const showAd = () => {
       const now = Date.now();
-      // Guard: prevent showing if another ad just finished (grace period 5s)
       if (now - lastAdShowTimeRef.current < 5000) return;
-      // Guard: prevent showing if already showing
       if (showAdOverlayRef.current) return;
       lastAdShowTimeRef.current = now;
-      setAdShowCount(c => c + 1);
 
       const randomAd = ads[Math.floor(Math.random() * ads.length)];
       setActiveAd(randomAd);
@@ -604,7 +417,6 @@ export default function SignageKioskPage() {
       }, randomAd.duration * 1000);
     };
 
-    // Fire first ad after 3s, then at regular intervals
     const initialDelay = setTimeout(() => {
       showAd();
       adIntervalTimerRef.current = setInterval(showAd, minInterval);
@@ -615,36 +427,32 @@ export default function SignageKioskPage() {
       if (adIntervalTimerRef.current) clearInterval(adIntervalTimerRef.current);
       if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
     };
-  }, [ads]); // re-init only when ads list changes
+  }, [ads]);
 
-  // ─── Poll departures every 15s ─────────────────────────
+  // ─── Poll station data every 15s ────────────────────
   useEffect(() => {
     if (!stationId) return;
 
-    const fetchDepartures = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/api/signage/${stationId}/departures`);
+        const res = await fetch(`/api/signage-slug/${stationId}`);
+        if (res.status === 404) {
+          setNotFound(true);
+          return;
+        }
         const json = await res.json();
         if (res.ok) {
           setOffline(false);
           setData(json);
           setLastUpdate(new Date().toLocaleTimeString('fr-FR'));
 
-          // Ding-dong + Voice announcement for new boarding alerts
+          // Audio alerts for boarding
           if (json.alertSoundEnabled !== false) {
             for (const dep of json.departures) {
-              if (dep.shouldPlayAlert && !alertedDeparturesRef.current.has(dep.id)) {
-                alertedDeparturesRef.current.add(dep.id);
-                playDingDong();
-
-                // Trigger full voice announcement (ding-dong + TTS + repeat)
-                if (!announcedDeparturesRef.current.has(dep.id)) {
-                  announcedDeparturesRef.current.add(dep.id);
-                  setIsVoiceActive(true);
-                  playBoardingAnnouncement(dep.destination, dep.effectiveTime);
-                  // Turn off visual indicator after both rounds (2×2min = ~4min30)
-                  setTimeout(() => setIsVoiceActive(false), 280000);
-                }
+              if (dep.shouldPlayAlert && !announcedRef.current.has(dep.id)) {
+                announcedRef.current.add(dep.id);
+                setHasAnnouncement(true);
+                playBoardingAnnouncement(dep.destination, dep.effectiveTime);
               }
             }
           }
@@ -654,684 +462,783 @@ export default function SignageKioskPage() {
       }
     };
 
-    fetchDepartures();
-    const interval = setInterval(fetchDepartures, 15000);
-    return () => clearInterval(interval);
+    fetchData();
+    const id = setInterval(fetchData, 15000);
+    return () => clearInterval(id);
   }, [stationId]);
 
-  // ─── Ticker messages ──────────────────────────────────
-  const activeTicker = useMemo(() => {
-    if (!data) return '⚠️ INFO VOYAGEURS : BIENVENUE À BORD DES LIGNES SMARTICKETQR';
-    const msgs = data.tickerMessages?.filter((m) => m.active) || [];
-    if (msgs.length === 0) return '⚠️ INFO VOYAGEURS : BIENVENUE À BORD DES LIGNES SMARTICKETQR';
-    return msgs.map((m) => `${m.priority === 'urgent' ? '🚨 ' : ''}${m.text}`).join('  —  ');
+  // ─── Ticker text ─────────────────────────────────────
+  const tickerText = useMemo(() => {
+    if (!data) return '';
+    const msgs = data.tickerMessages?.filter(m => m.active) || [];
+    if (msgs.length === 0) return '';
+    return msgs.map(m => `${m.priority === 'urgent' ? '🚨 ' : ''}${m.text}`).join('    —    ');
   }, [data]);
 
-  // ─── Split departures into OUTBOUND & RETURN ─────────
-  const outboundList = useMemo(() => {
-    if (!data) return [];
-    return data.departures.filter((d) => d.departureType === 'OUTBOUND');
-  }, [data]);
+  // ─── Resolve ad media URL ──────────────────────────
+  const resolveAdMedia = useCallback((ad: SignageAd) => {
+    // Priority: videoUrl > mediaType VIDEO+mediaUrl > imageUrl > mobileImageUrl > mediaUrl
+    const ytUrl = getYouTubeEmbedUrl(ad.videoUrl || ad.imageUrl || ad.mediaUrl);
+    if (ytUrl) return { type: 'youtube' as const, url: ytUrl };
 
-  const returnList = useMemo(() => {
-    if (!data) return [];
-    return data.departures.filter((d) => d.departureType === 'RETURN');
-  }, [data]);
+    if (ad.videoUrl) return { type: 'video' as const, url: ad.videoUrl };
+    if (ad.mediaType === 'VIDEO' && ad.mediaUrl) return { type: 'video' as const, url: ad.mediaUrl };
+    if (isPortraitRef.current && ad.mobileImageUrl) return { type: 'image' as const, url: ad.mobileImageUrl };
+    if (ad.imageUrl) return { type: 'image' as const, url: ad.imageUrl };
+    if (ad.mediaUrl) return { type: 'image' as const, url: ad.mediaUrl };
+    return { type: 'image' as const, url: '' };
+  }, []);
+
+  // ─── Dismiss ad overlay ─────────────────────────────
+  const dismissAd = useCallback(() => {
+    if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
+    setShowAdOverlay(false);
+    setActiveAd(null);
+    showAdOverlayRef.current = false;
+  }, []);
 
   // ─── Loading state ──────────────────────────────────
-  if (!data) {
+  if (!data && !notFound) {
     return (
-      <div className="sig2-root">
-        <div className="sig2-loading">
-          <div className="sig2-spinner" />
-          <p className="sig2-loading-text">Chargement des départs...</p>
+      <div className="sp-root">
+        <div className="sp-loading">
+          <div className="sp-spinner" />
+          <p className="sp-loading-text">Chargement des informations...</p>
         </div>
-        <style jsx global>{`
-          @keyframes sig2-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-          .sig2-root {
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-            width: 100vw; height: 100vh; height: 100dvh;
-            overflow: hidden; position: fixed; inset: 0;
-            background: #020617;
-          }
-          .sig2-loading {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh;
-          }
-          .sig2-spinner {
-            width: 48px; height: 48px; border-radius: 50%;
-            border: 4px solid #334155; border-top-color: #f97316;
-            animation: sig2-spin 1s linear infinite;
-            margin-bottom: 1rem;
-          }
-          .sig2-loading-text { color: #94a3b8; font-size: 1.2rem; }
-        `}</style>
+        <style>{spStyles.loading}</style>
       </div>
     );
   }
 
+  // ─── Not found state ──────────────────────────────
+  if (notFound) {
+    return (
+      <div className="sp-root">
+        <div className="sp-loading">
+          <div className="sp-notfound-icon">⚠️</div>
+          <p className="sp-loading-text">Station non trouvée</p>
+          <p className="sp-loading-sub">Cette gare n&apos;existe pas ou est désactivée.</p>
+        </div>
+        <style>{spStyles.loading}</style>
+      </div>
+    );
+  }
+
+  // After loading + notFound guards, data is guaranteed non-null
+  if (!data) return null;
   const stationName = data.stationName || 'Gare Routière';
-  const logoUrl = data.logoUrl || '';
+  const slug = data.slug || stationId;
 
   return (
-    <div className="sig2-root" ref={rootRef}>
-      <style jsx global>{`
-        /* ═══ RESET + KIOSK ROOT ═══ */
-        *, *::before, *::after { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; overflow: hidden; }
-        .sig2-root {
-          font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-          background: #020617;
-          color: #f8fafc;
-          width: 100vw; height: 100vh; height: 100dvh;
-          overflow: hidden;
-          display: flex; flex-direction: column;
-          user-select: none; -webkit-user-select: none;
-          cursor: ${cursorHidden ? 'none' : 'default'};
-          touch-action: manipulation;
-          position: fixed; inset: 0;
-        }
+    <div className="sp-root" ref={rootRef}>
+      <style>{spStyles.main(cursorHidden)}</style>
 
-        /* ═══ HEADER ═══ */
-        .sig2-header {
-          background: linear-gradient(to right, #1e293b, #0f172a);
-          padding: clamp(0.5rem, 1.5vh, 1rem) clamp(0.8rem, 2vw, 1.5rem);
-          border-bottom: 3px solid #f97316;
-          display: flex; justify-content: space-between; align-items: center;
-          z-index: 10; flex-shrink: 0;
-        }
-        .sig2-brand { display: flex; align-items: center; gap: clamp(0.4rem, 1vw, 0.75rem); }
-        .sig2-brand-icon {
-          background: #f97316;
-          width: clamp(32px, 5vh, 48px); height: clamp(32px, 5vh, 48px);
-          border-radius: clamp(6px, 1vh, 10px);
-          display: flex; align-items: center; justify-content: center;
-          font-weight: 800; font-size: clamp(0.7rem, 1.5vh, 1.1rem); color: #0f172a;
-          overflow: hidden; flex-shrink: 0;
-        }
-        .sig2-brand-icon img { width: 100%; height: 100%; object-fit: contain; }
-        .sig2-brand h1 { font-size: clamp(0.8rem, 2vh, 1.3rem); margin: 0; white-space: nowrap; }
-        .sig2-brand-sub { color: #94a3b8; font-size: clamp(0.5rem, 1vh, 0.75rem); }
-
-        .sig2-clock-box { text-align: right; flex-shrink: 0; }
-        .sig2-clock {
-          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-          font-size: clamp(1rem, 3.5vh, 3rem); font-weight: 700; letter-spacing: 2px; line-height: 1;
-        }
-        .sig2-date { color: #f97316; font-size: clamp(0.55rem, 1vh, 0.85rem); font-weight: 600; margin-top: 0.15rem; }
-
-        /* ═══ TICKER ═══ */
-        .sig2-ticker-wrap {
-          background: #f97316; color: #0f172a;
-          padding: clamp(0.25rem, 0.6vh, 0.5rem) 0;
-          overflow: hidden; white-space: nowrap;
-          font-weight: 700; font-size: clamp(0.65rem, 1.5vh, 1.1rem);
-          flex-shrink: 0;
-        }
-        .sig2-ticker {
-          display: inline-block; animation: sig2-marquee 40s linear infinite; padding-left: 100%;
-        }
-        @keyframes sig2-marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-100%); }
-        }
-
-        /* ═══ SPLIT SCREEN ═══ */
-        .sig2-split {
-          flex: 1; display: flex; gap: clamp(0.5rem, 1.5vh, 1rem);
-          padding: clamp(0.5rem, 1.5vh, 1rem);
-          min-height: 0; overflow: hidden;
-        }
-
-        /* ═══ BOARD (each half) ═══ */
-        .sig2-board {
-          flex: 1; background: #1e293b;
-          border-radius: clamp(8px, 1.5vh, 12px);
-          overflow: hidden;
-          display: flex; flex-direction: column;
-          border: 1px solid #334155; border-top: 3px solid;
-          min-height: 0;
-        }
-
-        .sig2-board-head {
-          padding: clamp(0.4rem, 1vh, 0.8rem) clamp(0.6rem, 1.5vw, 1rem);
-          font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-          font-size: clamp(0.65rem, 1.5vh, 1.1rem);
-          display: flex; align-items: center; gap: clamp(0.3rem, 0.5vw, 0.5rem);
-          flex-shrink: 0; color: white;
-        }
-        .sig2-board-head--green { background: linear-gradient(to right, #16a34a, #10b981); }
-        .sig2-board-head--violet { background: linear-gradient(to right, #7c3aed, #8b5cf6); }
-
-        /* ═══ BOARD BODY — Hidden scrollbar ═══ */
-        .sig2-board-body {
-          flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0;
-          -ms-overflow-style: none; scrollbar-width: none;
-        }
-        .sig2-board-body::-webkit-scrollbar { display: none; }
-
-        /* ═══ ROWS ═══ */
-        .sig2-row {
-          display: flex; align-items: center;
-          padding: clamp(0.3rem, 0.8vh, 0.7rem) clamp(0.5rem, 1.2vw, 1rem);
-          border-bottom: 1px solid #334155;
-          gap: clamp(0.5rem, 1.5vw, 1rem);
-          font-size: clamp(0.8rem, 2vh, 1.6rem);
-          transition: background 0.3s ease;
-          min-height: clamp(36px, 6vh, 65px);
-        }
-        .sig2-row:last-child { border-bottom: none; }
-
-        /* Orange time box */
-        .sig2-row__timebox {
-          background: #f97316; color: white;
-          width: clamp(56px, 8vw, 90px); height: clamp(36px, 5vh, 52px);
-          border-radius: clamp(6px, 1vh, 10px);
-          display: flex; align-items: center; justify-content: center;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-          font-weight: 700; font-size: clamp(0.75rem, 1.8vh, 1.4rem);
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
-        }
-
-        /* Destination */
-        .sig2-row__dest {
-          flex: 1; font-weight: 600;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-          display: flex; align-items: center; gap: 0.3em;
-        }
-        .sig2-row__pin { flex-shrink: 0; }
-
-        /* Status badge */
-        .sig2-row__status {
-          flex-shrink: 0; text-align: right;
-        }
-        .sig2-badge {
-          font-size: clamp(0.55rem, 1.2vh, 0.85rem);
-          padding: clamp(0.15em, 0.3em, 0.3em) clamp(0.4em, 0.7em, 0.8em);
-          border-radius: 999px;
-          font-weight: 700; display: inline-block;
-          white-space: nowrap;
-        }
-        .sig2-status--ontime {
-          background: rgba(16, 185, 129, 0.15); color: #10b981;
-          border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        .sig2-status--boarding {
-          background: rgba(249, 115, 22, 0.2); color: #f97316;
-          border: 1px solid #f97316;
-          animation: sig2-pulse-blink 1.2s infinite;
-        }
-        .sig2-status--delayed {
-          background: rgba(239, 68, 68, 0.15); color: #ef4444;
-          border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        .sig2-status--departed {
-          background: rgba(148, 163, 184, 0.1); color: #64748b;
-          border: 1px solid rgba(148, 163, 184, 0.2);
-        }
-
-        /* Boarding row highlight */
-        .sig2-row--boarding {
-          background: rgba(249, 115, 22, 0.12);
-          border-left: 4px solid #f97316;
-          animation: sig2-pulse-row 1.5s infinite;
-        }
-        .sig2-row--boarding .sig2-row__timebox {
-          animation: sig2-pulse-timebox 1.2s infinite;
-        }
-
-        /* Departed row */
-        .sig2-row--departed {
-          opacity: 0.35;
-          background: #020617;
-        }
-
-        /* Animations */
-        @keyframes sig2-pulse-blink {
-          0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
-          50% { opacity: 0.85; transform: scale(1.02); box-shadow: 0 0 10px 5px rgba(249, 115, 22, 0.2); }
-        }
-        @keyframes sig2-pulse-row {
-          0%, 100% { background-color: rgba(249, 115, 22, 0.12); }
-          50% { background-color: rgba(249, 115, 22, 0.22); }
-        }
-        @keyframes sig2-pulse-timebox {
-          0%, 100% { box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4); }
-          50% { box-shadow: 0 2px 16px rgba(249, 115, 22, 0.7); }
-        }
-
-        /* ═══ EMPTY STATE ═══ */
-        .sig2-empty {
-          text-align: center; padding: clamp(2rem, 5vh, 4rem);
-          color: #64748b; font-size: clamp(0.85rem, 1.5vh, 1.2rem);
-        }
-
-        /* ═══ AD OVERLAY ═══ */
-        .sig2-ad-overlay {
-          position: fixed; inset: 0; z-index: 100; background: #000;
-          display: flex; align-items: center; justify-content: center;
-          animation: sig2-ad-fadein 0.6s ease; cursor: none;
-        }
-        /* TV/Desktop: contenu remplit l'écran en respectant les proportions */
-        .sig2-ad-overlay img,
-        .sig2-ad-overlay video,
-        .sig2-ad-overlay iframe {
-          width: 100%; height: 100%;
-        }
-        .sig2-ad-overlay img { object-fit: cover; }
-        .sig2-ad-overlay video { object-fit: contain; }
-        .sig2-ad-progress {
-          position: absolute; bottom: 0; left: 0; height: 4px;
-          background: #f97316;
-          animation: sig2-ad-progress linear forwards;
-        }
-        .sig2-ad-label {
-          position: absolute; top: clamp(8px, 2vh, 20px); right: clamp(8px, 2vw, 24px);
-          background: rgba(0,0,0,0.7); color: white;
-          padding: 4px 12px; border-radius: 6px;
-          font-size: clamp(0.6rem, 1vh, 0.85rem); font-weight: 600;
-        }
-        @keyframes sig2-ad-fadein { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes sig2-ad-progress { from { width: 0; } to { width: 100%; } }
-
-        /* ═══ FOOTER ═══ */
-        .sig2-footer {
-          background: #1e293b; border-top: 1px solid #334155;
-          margin: clamp(0.3rem, 0.8vh, 0.8rem);
-          padding: clamp(0.5rem, 1vh, 1rem) clamp(0.8rem, 2vw, 1.5rem);
-          border-radius: clamp(8px, 1.2vh, 12px);
-          display: flex; justify-content: space-between; align-items: center;
-          flex-shrink: 0;
-        }
-        .sig2-qr-box { display: flex; align-items: center; gap: clamp(0.5rem, 1vw, 0.75rem); }
-        .sig2-qr-img {
-          width: clamp(44px, 7vh, 72px); height: clamp(44px, 7vh, 72px);
-          background: #f8fafc; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .sig2-qr-text h3 {
-          font-size: clamp(0.75rem, 1.5vh, 1.3rem); margin: 0 0 0.1rem 0;
-        }
-        .sig2-qr-text p {
-          color: #64748b; font-size: clamp(0.55rem, 1vh, 0.8rem); margin: 0;
-        }
-
-        /* ═══ OFFLINE BADGE ═══ */
-        .sig2-offline {
-          position: fixed; top: 10px; right: 10px;
-          background: #ef4444; color: white;
-          padding: 8px 16px; border-radius: 8px;
-          font-weight: 700; font-size: 14px; z-index: 200;
-          animation: sig2-blink 1s infinite;
-        }
-        @keyframes sig2-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-        /* ═══ LAST UPDATE ═══ */
-        .sig2-last-update {
-          position: fixed; bottom: 10px; left: 10px;
-          background: rgba(0,0,0,0.5); color: white;
-          padding: 4px 10px; border-radius: 4px;
-          font-size: 10px; z-index: 50;
-        }
-
-        /* ═══ DEBUG CONTROLS ═══ */
-        .sig2-debug {
-          position: fixed; bottom: 20px; right: 20px;
-          background: #1e293b; padding: 0.8rem; border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #334155;
-          display: flex; gap: 8px; z-index: 200; flex-direction: column;
-        }
-        .sig2-debug-btn {
-          padding: 8px 14px; border: none; border-radius: 6px;
-          cursor: pointer; font-weight: 600; font-size: 0.85rem; color: white;
-        }
-        .sig2-debug-btn--sim { background: #10b981; }
-        .sig2-debug-btn--ad { background: #7c3aed; }
-        .sig2-debug-btn--reset { background: #475569; }
-
-        /* ═══ RESPONSIVE: Mobile (< 640px) ═══ */
-        @media (max-width: 639px) {
-          .sig2-split { flex-direction: column; }
-          .sig2-brand h1 { display: none; }
-          .sig2-brand-sub { display: none; }
-          .sig2-header { padding: 0.3rem 0.5rem; }
-          .sig2-row { padding: 0.3rem 0.5rem; font-size: 0.8rem; min-height: 32px; gap: 0.4rem; }
-          .sig2-row__timebox { width: 48px; height: 30px; font-size: 0.7rem; border-radius: 5px; }
-          .sig2-row__pin { display: none; }
-          .sig2-badge { font-size: 0.55rem; padding: 0.15em 0.4em; }
-          .sig2-qr-text h3 { font-size: 0.65rem; }
-          .sig2-qr-text p { display: none; }
-          .sig2-qr-img { width: 36px; height: 36px; }
-          .sig2-footer { margin: 0.3rem; padding: 0.3rem 0.5rem; }
-          .sig2-ad-label { font-size: 0.5rem; padding: 3px 8px; }
-        }
-
-        /* ═══ RESPONSIVE: Tablet (640px – 1023px) ═══ */
-        @media (min-width: 640px) and (max-width: 1023px) {
-          .sig2-header { padding: 0.4rem 0.8rem; }
-          .sig2-row { padding: 0.4rem 0.7rem; font-size: 1rem; min-height: 44px; }
-          .sig2-row__timebox { width: 64px; height: 38px; font-size: 0.85rem; }
-        }
-
-        /* ═══ RESPONSIVE: Large screen (≥ 1920px) ═══ */
-        @media (min-width: 1920px) {
-          .sig2-header { padding: 1.2rem 2.5rem; }
-          .sig2-brand-icon { width: 56px; height: 56px; border-radius: 10px; font-size: 1.4rem; }
-          .sig2-brand h1 { font-size: 2rem; }
-          .sig2-clock { font-size: 4rem; }
-          .sig2-date { font-size: 1.1rem; }
-          .sig2-ticker-wrap { padding: 0.8rem 0; font-size: 1.4rem; }
-          .sig2-split { padding: 1.5rem; gap: 1.5rem; }
-          .sig2-board { border-radius: 16px; }
-          .sig2-board-head { padding: 1rem 1.5rem; font-size: 1.2rem; }
-          .sig2-row { padding: 1rem 1.5rem; font-size: 2rem; min-height: 90px; gap: 1.2rem; }
-          .sig2-row__timebox { width: 100px; height: 60px; font-size: 1.5rem; border-radius: 12px; }
-          .sig2-badge { font-size: 0.8rem; padding: 0.4em 0.9em; }
-          .sig2-qr-img { width: 110px; height: 110px; }
-          .sig2-qr-text h3 { font-size: 1.8rem; }
-          .sig2-qr-text p { font-size: 1.2rem; }
-          .sig2-footer { margin: 1rem; padding: 1.2rem 2rem; }
-          .sig2-ad-label { font-size: 1rem; padding: 6px 16px; }
-          .sig2-ad-progress { height: 6px; }
-          .sig2-last-update { font-size: 14px; padding: 6px 14px; }
-        }
-
-        /* ═══ RESPONSIVE: 4K (≥ 2560px) ═══ */
-        @media (min-width: 2560px) {
-          .sig2-header { padding: 1.8rem 3.5rem; }
-          .sig2-brand-icon { width: 72px; height: 72px; font-size: 1.8rem; }
-          .sig2-brand h1 { font-size: 2.8rem; }
-          .sig2-clock { font-size: 5.5rem; }
-          .sig2-date { font-size: 1.4rem; }
-          .sig2-ticker-wrap { padding: 1.2rem 0; font-size: 1.8rem; }
-          .sig2-split { padding: 2rem; gap: 2rem; }
-          .sig2-board-head { padding: 1.3rem 2rem; font-size: 1.5rem; }
-          .sig2-row { padding: 1.3rem 2rem; font-size: 2.6rem; min-height: 110px; gap: 1.5rem; }
-          .sig2-row__timebox { width: 130px; height: 75px; font-size: 2rem; border-radius: 14px; }
-          .sig2-badge { font-size: 1rem; padding: 0.5em 1em; }
-          .sig2-qr-img { width: 140px; height: 140px; }
-          .sig2-qr-text h3 { font-size: 2.4rem; }
-          .sig2-qr-text p { font-size: 1.5rem; }
-          .sig2-footer { margin: 1.5rem; padding: 1.8rem 3rem; }
-          .sig2-ad-label { font-size: 1.2rem; padding: 8px 20px; }
-          .sig2-ad-progress { height: 8px; }
-          .sig2-last-update { font-size: 18px; }
-        }
-
-        /* ═══ VOICE ANNOUNCEMENT INDICATOR ═══ */
-        .sig2-voice-indicator {
-          position: fixed; bottom: clamp(60px, 10vh, 100px); right: clamp(10px, 2vw, 24px);
-          background: rgba(0, 0, 0, 0.8);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(249, 115, 22, 0.6);
-          border-radius: clamp(8px, 1.5vh, 14px);
-          padding: clamp(8px, 1.5vh, 14px) clamp(12px, 2vw, 20px);
-          display: flex; align-items: center; gap: clamp(6px, 1vw, 12px);
-          z-index: 150;
-          animation: sig2-voice-pulse 2s ease-in-out infinite;
-        }
-        .sig2-voice-icon {
-          width: clamp(22px, 3.5vh, 36px); height: clamp(22px, 3.5vh, 36px);
-          background: #f97316;
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: clamp(0.7rem, 1.5vh, 1.2rem);
-          animation: sig2-voice-ring 1.5s ease-in-out infinite;
-          flex-shrink: 0;
-        }
-        .sig2-voice-text {
-          color: #f8fafc; font-weight: 600;
-          font-size: clamp(0.6rem, 1.2vh, 0.9rem);
-          white-space: nowrap;
-        }
-        .sig2-voice-sub {
-          color: #94a3b8; font-size: clamp(0.45rem, 0.9vh, 0.65rem);
-          font-weight: 400;
-        }
-        @keyframes sig2-voice-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
-          50% { box-shadow: 0 0 24px 10px rgba(249, 115, 22, 0.15); }
-        }
-        @keyframes sig2-voice-ring {
-          0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.5); }
-          70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
-        }
-        .sig2-debug-btn--voice { background: #e11d48; }
-        .sig2-debug-btn--voice-cancel { background: #64748b; }
-        .sig2-debug-btn--test-voice { background: #2563eb; }
-      `}</style>
-
-      {/* Offline Badge */}
-      {offline && <div className="sig2-offline">⚠️ Hors ligne</div>}
-
-      {/* ─── VOICE ANNOUNCEMENT INDICATOR ─── */}
-      {isVoiceActive && (
-        <div className="sig2-voice-indicator">
-          <div className="sig2-voice-icon">🔊</div>
-          <div>
-            <div className="sig2-voice-text">Annonce en cours</div>
-            <div className="sig2-voice-sub">Embarquement vocal</div>
-          </div>
+      {/* ─── TICKER BANDEAU ────────────────────────── */}
+      {tickerText && (
+        <div className="sp-ticker-wrap">
+          <div className="sp-ticker">{tickerText}</div>
         </div>
       )}
 
-      {/* ─── AD OVERLAY (full-screen ad rotation) ─── */}
-      {showAdOverlay && activeAd && (() => {
-        // Resolve effective media: videoUrl > mediaType VIDEO > imageUrl > mediaUrl
-        const effectiveVideoUrl = activeAd.videoUrl || (activeAd.mediaType === 'VIDEO' ? activeAd.mediaUrl : null);
-        const effectiveImageUrl = activeAd.imageUrl || (activeAd.mediaType !== 'VIDEO' ? activeAd.mediaUrl : null);
-        const isVideo = !!effectiveVideoUrl;
-        const isPortrait = isPortraitRef.current;
-
-        // For images: use mobileImageUrl on portrait screens if available
-        let displayUrl = isVideo
-          ? effectiveVideoUrl
-          : (isPortrait && activeAd.mobileImageUrl ? activeAd.mobileImageUrl : effectiveImageUrl || activeAd.mediaUrl);
-
-        // Check if it's a YouTube URL
-        const ytEmbedUrl = displayUrl ? getYouTubeEmbedUrl(displayUrl) : null;
-        const isYouTube = !!ytEmbedUrl;
-
-        return (
-          <div className="sig2-ad-overlay" key={activeAd.id}>
-            {isVideo && isYouTube ? (
-              <iframe
-                src={ytEmbedUrl!}
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                title={activeAd.title}
-              />
-            ) : isVideo ? (
-              <video
-                src={displayUrl || undefined}
-                autoPlay
-                muted
-                playsInline
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            ) : (
-              <img src={displayUrl} alt={activeAd.title} />
-            )}
-            <div className="sig2-ad-label">📢 Publicité</div>
-            <div
-              className="sig2-ad-progress"
-              style={{ animationDuration: `${activeAd.duration}s` }}
-            />
-          </div>
-        );
-      })()}
-
-      {/* ─── HEADER ─── */}
-      <header className="sig2-header">
-        <div className="sig2-brand">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="sig2-brand-icon" />
+      {/* ─── HEADER ────────────────────────────────── */}
+      <header className="sp-header">
+        <div className="sp-header__left">
+          {data.logoUrl ? (
+            <img className="sp-header__logo" src={data.logoUrl} alt="Logo" />
           ) : (
-            <div className="sig2-brand-icon">ST</div>
+            <div className="sp-header__logo-fallback">ST</div>
           )}
           <div>
-            <h1>SmartTicketQR</h1>
-            <div className="sig2-brand-sub">Dakar, Sénégal</div>
+            <h1 className="sp-header__name">{stationName}</h1>
+            <span className="sp-header__city">{data.city || ''}</span>
           </div>
         </div>
-        <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
-          <h2 style={{
-            fontSize: 'clamp(0.9rem, 2.5vh, 2.2rem)',
-            fontWeight: 800, textTransform: 'uppercase' as const,
-            letterSpacing: '1px', margin: 0,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {stationName}
-          </h2>
-        </div>
-        <div className="sig2-clock-box">
-          <div className="sig2-clock">{currentTime}</div>
-          <div className="sig2-date">{currentDate}</div>
+        <div className="sp-header__right">
+          <div className="sp-clock">{currentTime}</div>
+          <div className="sp-date">{currentDate}</div>
         </div>
       </header>
 
-      {/* ─── TICKER ─── */}
-      <div className="sig2-ticker-wrap">
-        <div className="sig2-ticker">{activeTicker}</div>
+      {/* ─── MOBILE TAB BAR ───────────────────────── */}
+      <div className="sp-tabs">
+        <button
+          className={['sp-tab', activeTab === 'departures' ? 'sp-tab--active' : ''].join(' ')}
+          onClick={() => setActiveTab('departures')}
+        >
+          DÉPARTS ({data.departures.length})
+        </button>
+        <button
+          className={['sp-tab', activeTab === 'arrivals' ? 'sp-tab--active' : ''].join(' ')}
+          onClick={() => setActiveTab('arrivals')}
+        >
+          ARRIVÉES ({data.arrivals.length})
+        </button>
       </div>
 
-      {/* ─── SPLIT SCREEN: DÉPARTS | ARRIVÉES ─── */}
-      <main className="sig2-split">
-        {/* DÉPARTS (Vert) */}
-        <BoardSection
-          title="Départs"
-          icon="↗️"
-          departures={outboundList}
-          gradientClass="sig2-board-head--green"
-          borderColor="#16a34a"
-        />
-        {/* ARRIVÉES (Violet) */}
-        <BoardSection
-          title="Arrivées"
-          icon="↘️"
-          departures={returnList}
-          gradientClass="sig2-board-head--violet"
-          borderColor="#7c3aed"
-        />
+      {/* ─── CONTENT: 2 Columns ────────────────────── */}
+      <main className="sp-content">
+        {/* Départs Column */}
+        <div className={['sp-col', activeTab === 'departures' ? 'sp-col--active' : ''].join(' ')}>
+          <BoardSection
+            title="DÉPARTS"
+            count={data.departures.length}
+            accentClass="sp-board__head--depart"
+          >
+            {data.departures.length === 0 ? (
+              <div className="sp-empty">Aucun départ prévu</div>
+            ) : (
+              data.departures.map(dep => <DepartureCard key={dep.id} dep={dep} />)
+            )}
+          </BoardSection>
+        </div>
+
+        {/* Arrivées Column */}
+        <div className={['sp-col', activeTab === 'arrivals' ? 'sp-col--active' : ''].join(' ')}>
+          <BoardSection
+            title="ARRIVÉES"
+            count={data.arrivals.length}
+            accentClass="sp-board__head--arrive"
+          >
+            {data.arrivals.length === 0 ? (
+              <div className="sp-empty">Aucune arrivée prévue</div>
+            ) : (
+              data.arrivals.map(arr => <ArrivalCard key={arr.id} arr={arr} />)
+            )}
+          </BoardSection>
+        </div>
       </main>
 
-      {/* ─── FOOTER QR ─── */}
-      <footer className="sig2-footer">
-        <div className="sig2-qr-box">
-          <div className="sig2-qr-img">
-            <QRCodeSVG
-              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/track/${stationId}`}
-              size={60}
-              fgColor="#0f172a"
-              bgColor="#ffffff"
-              level="M"
-              includeMargin={false}
-            />
-          </div>
-          <div className="sig2-qr-text">
-            <h3>📱 Scannez pour suivre</h3>
-            <p>Traçabilité sécurisée 24/7 • SmartTicketQR</p>
-          </div>
+      {/* ─── FOOTER ────────────────────────────────── */}
+      <footer className="sp-footer">
+        <div className="sp-footer__left">
+          <span className="sp-footer__date">{currentDate}</span>
+          <span className="sp-footer__city">{data.city || ''}</span>
+        </div>
+        <div className="sp-footer__center">
+          <QRCodeSVG
+            value={`/signage/${slug}`}
+            size={56}
+            bgColor="#ffffff"
+            fgColor="#0b0f19"
+            level="M"
+          />
+          <span className="sp-footer__qr-label">Scanner</span>
+        </div>
+        <div className="sp-footer__right">
+          <span className="sp-footer__brand">SmarticketS</span>
         </div>
       </footer>
 
-      {/* ─── Last update indicator ─── */}
+      {/* ─── FULLSCREEN BUTTON ────────────────────── */}
+      <button
+        className="sp-fs-btn"
+        onClick={() => toggleFullscreen(rootRef.current)}
+        aria-label="Plein écran"
+      >
+        ⛶
+      </button>
+
+      {/* ─── OFFLINE BADGE ────────────────────────── */}
+      {offline && (
+        <div className="sp-offline-badge">⛔ HORS LIGNE</div>
+      )}
+
+      {/* ─── VOICE INDICATOR ──────────────────────── */}
+      {hasAnnouncement && (
+        <div className="sp-voice-badge">🔊 Annonce en cours</div>
+      )}
+
+      {/* ─── LAST UPDATE ─────────────────────────── */}
       {lastUpdate && (
-        <div className="sig2-last-update">
-          Dernière MAJ: {lastUpdate}
+        <div className="sp-last-update">MàJ {lastUpdate}</div>
+      )}
+
+      {/* ─── AD OVERLAY ──────────────────────────── */}
+      {showAdOverlay && activeAd && (
+        <div className="sp-ad-overlay" onClick={dismissAd}>
+          <AdMedia ad={activeAd} resolveMedia={resolveAdMedia} />
+          <div
+            className="sp-ad-progress"
+            style={{ animationDuration: `${activeAd.duration}s` }}
+          />
+          <div className="sp-ad-label">
+            PUBLICITÉ — Cliquez pour fermer
+          </div>
         </div>
       )}
 
-      {/* ─── DEBUG CONTROLS (only when ?debug=1) ─── */}
+      {/* ─── DEBUG PANEL ────────────────────────── */}
       {isDebug && (
-        <div className="sig2-debug">
-          <button
-            className="sig2-debug-btn sig2-debug-btn--sim"
-            onClick={playDingDong}
-          >
-            ▶️ Test Son Ding-Dong
-          </button>
-          <button
-            className="sig2-debug-btn sig2-debug-btn--ad"
-            onClick={() => {
-              if (ads.length > 0) {
-                const randomAd = ads[Math.floor(Math.random() * ads.length)];
-                lastAdShowTimeRef.current = Date.now();
-                setAdShowCount(c => c + 1);
-                showAdOverlayRef.current = true;
-                setActiveAd(randomAd);
-                setShowAdOverlay(true);
-                if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
-                adDisplayTimerRef.current = setTimeout(() => {
-                  setShowAdOverlay(false);
-                  setActiveAd(null);
-                  showAdOverlayRef.current = false;
-                }, randomAd.duration * 1000);
-              }
-            }}
-          >
-            📢 Test Publicité ({ads.length} ads)
-          </button>
-          <button
-            className="sig2-debug-btn"
-            style={{ background: '#0ea5e9' }}
-            onClick={async () => {
-              try {
-                const res = await fetch('/api/signage-ads');
-                if (res.ok) {
-                  const json = await res.json();
-                  setAds((json as SignageAd[]) || []);
-                }
-              } catch { /* ignore */ }
-            }}
-          >
-            🔄 Refetch Ads
-          </button>
-          <button
-            className="sig2-debug-btn sig2-debug-btn--reset"
-            onClick={() => {
-              alertedDeparturesRef.current = new Set();
-              announcedDeparturesRef.current = new Set();
-            }}
-          >
-            🔄 Reset Alerts
-          </button>
-          <button
-            className="sig2-debug-btn sig2-debug-btn--voice"
-            onClick={() => {
-              initAudio();
-              setIsVoiceActive(true);
-              playBoardingAnnouncement('Dakar', currentTime.substring(0, 5));
-              setTimeout(() => setIsVoiceActive(false), 280000);
-            }}
-          >
-            🔊 Test Annonce Complète
-          </button>
-          <button
-            className="sig2-debug-btn sig2-debug-btn--test-voice"
-            onClick={() => {
-              testVoiceOnly();
-            }}
-          >
-            🎤 TEST VOIX
-          </button>
-          <button
-            className="sig2-debug-btn sig2-debug-btn--voice-cancel"
-            onClick={() => {
-              cancelAnnouncements();
-              setIsVoiceActive(false);
-            }}
-          >
-            🔇 Arrêter Annonce
-          </button>
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>
-            Départs: {outboundList.length} | Arrivées: {returnList.length} | Ads: {ads.length} | Shown: {adShowCount}
+        <div className="sp-debug">
+          <div className="sp-debug__title">DEBUG</div>
+          <div className="sp-debug__info">
+            Slug: {stationId}<br />
+            Départs: {data.departures.length}<br />
+            Arrivées: {data.arrivals.length}<br />
+            Ads: {ads.length}
           </div>
         </div>
       )}
     </div>
   );
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Ad Media Sub-component
+   ══════════════════════════════════════════════════════════════════════════ */
+const AdMedia = memo(function AdMedia({
+  ad,
+  resolveMedia,
+}: {
+  ad: SignageAd;
+  resolveMedia: (ad: SignageAd) => { type: 'image' | 'video' | 'youtube'; url: string };
+}) {
+  const media = resolveMedia(ad);
+
+  if (media.type === 'youtube' && media.url) {
+    return (
+      <iframe
+        key={ad.id}
+        src={media.url}
+        className="sp-ad-frame"
+        allow="autoplay; encrypted-media"
+        allowFullScreen
+        title={ad.title || 'Ad'}
+      />
+    );
+  }
+
+  if (media.type === 'video' && media.url) {
+    return (
+      <video
+        key={ad.id}
+        className="sp-ad-video"
+        src={media.url}
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    );
+  }
+
+  if (media.type === 'image' && media.url) {
+    return (
+      <img
+        key={ad.id}
+        className="sp-ad-image"
+        src={media.url}
+        alt={ad.title || 'Publicité'}
+      />
+    );
+  }
+
+  return <div className="sp-ad-empty">Aucun média</div>;
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CSS Styles — "Style Aéroport" Premium Card
+   All classes prefixed with `sp-` (signage premium) to avoid conflicts.
+   ══════════════════════════════════════════════════════════════════════════ */
+const spStyles = {
+  loading: `
+    @keyframes sp-spin { to { transform: rotate(360deg); } }
+    .sp-root {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      width: 100vw; height: 100vh; height: 100dvh;
+      overflow: hidden; position: fixed; inset: 0;
+      background: #0b0f19; color: #f8fafc;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sp-loading { text-align: center; }
+    .sp-spinner {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 4px solid #1e293b; border-top-color: #f97316;
+      animation: sp-spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    .sp-loading-text { color: #94a3b8; font-size: 1.2rem; margin: 0; }
+    .sp-loading-sub { color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; }
+    .sp-notfound-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+  `,
+
+  main: (cursorHidden: boolean) => `
+    /* ═══ RESET ═══ */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; overflow: hidden; }
+
+    /* ═══ ROOT ═══ */
+    .sp-root {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #0b0f19;
+      color: #ffffff;
+      width: 100vw; height: 100vh; height: 100dvh;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      user-select: none; -webkit-user-select: none;
+      cursor: ${cursorHidden ? 'none' : 'default'};
+      touch-action: manipulation;
+      position: fixed; inset: 0;
+    }
+
+    /* ═══ TICKER BANDEAU ═══ */
+    .sp-ticker-wrap {
+      background: #f97316; color: #0b0f19;
+      padding: clamp(0.3rem, 0.7vh, 0.6rem) 0;
+      overflow: hidden; white-space: nowrap;
+      font-weight: 700; font-size: clamp(0.7rem, 1.4vh, 1rem);
+      flex-shrink: 0;
+    }
+    .sp-ticker {
+      display: inline-block;
+      animation: sp-marquee 45s linear infinite;
+      padding-left: 100%;
+    }
+    @keyframes sp-marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* ═══ HEADER ═══ */
+    .sp-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: clamp(0.6rem, 1.5vh, 1.2rem) clamp(1rem, 2.5vw, 2rem);
+      flex-shrink: 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .sp-header__left {
+      display: flex; align-items: center; gap: clamp(0.5rem, 1vw, 1rem);
+    }
+    .sp-header__logo {
+      width: clamp(36px, 5vh, 56px); height: clamp(36px, 5vh, 56px);
+      object-fit: contain; border-radius: 8px;
+    }
+    .sp-header__logo-fallback {
+      width: clamp(36px, 5vh, 56px); height: clamp(36px, 5vh, 56px);
+      background: #f97316; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: clamp(0.7rem, 1.5vh, 1.1rem);
+      color: #0b0f19; flex-shrink: 0;
+    }
+    .sp-header__name {
+      font-size: clamp(1rem, 2.5vh, 1.75rem);
+      font-weight: 700; margin: 0; white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+    .sp-header__city {
+      color: #94a3b8; font-size: clamp(0.6rem, 1.2vh, 0.85rem);
+      display: block; margin-top: 0.1rem;
+    }
+    .sp-header__right { text-align: right; flex-shrink: 0; }
+
+    .sp-clock {
+      font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Menlo, Consolas, monospace;
+      font-size: clamp(1.2rem, 4vh, 3.5rem);
+      font-weight: 700; letter-spacing: 2px; line-height: 1;
+      color: #ffffff;
+    }
+    .sp-date {
+      color: #94a3b8; font-size: clamp(0.55rem, 1.1vh, 0.85rem);
+      margin-top: 0.2rem; font-weight: 500;
+    }
+
+    /* ═══ MOBILE TAB BAR ═══ */
+    .sp-tabs {
+      display: flex; gap: 0; flex-shrink: 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .sp-tab {
+      flex: 1; padding: clamp(0.4rem, 1vh, 0.7rem);
+      background: transparent; border: none; color: #94a3b8;
+      font-weight: 700; font-size: clamp(0.7rem, 1.3vh, 0.95rem);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      cursor: pointer; transition: all 0.2s ease;
+      border-bottom: 2px solid transparent;
+    }
+    .sp-tab--active {
+      color: #f97316;
+      border-bottom-color: #f97316;
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    /* ═══ CONTENT: 2 Columns ═══ */
+    .sp-content {
+      flex: 1; display: flex; gap: clamp(0.5rem, 1.5vw, 1rem);
+      padding: clamp(0.5rem, 1.2vh, 1rem) clamp(0.8rem, 2vw, 1.5rem);
+      min-height: 0; overflow: hidden;
+    }
+    .sp-col { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+    /* ═══ BOARD (column container) ═══ */
+    .sp-board {
+      flex: 1; display: flex; flex-direction: column;
+      background: #0b0f19; border-radius: clamp(8px, 1vh, 12px);
+      overflow: hidden; min-height: 0;
+    }
+    .sp-board__head {
+      padding: clamp(0.5rem, 1.2vh, 0.9rem) clamp(0.8rem, 1.5vw, 1.2rem);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+      border-radius: clamp(8px, 1vh, 12px) clamp(8px, 1vh, 12px) 0 0;
+    }
+    .sp-board__head--depart {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+    }
+    .sp-board__head--arrive {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    }
+    .sp-board__title {
+      font-weight: 800; font-size: clamp(0.75rem, 1.5vh, 1.15rem);
+      text-transform: uppercase; letter-spacing: 1px; color: #ffffff;
+    }
+    .sp-board__count {
+      background: rgba(255,255,255,0.2); color: #fff;
+      padding: 0.15em 0.6em; border-radius: 999px;
+      font-size: clamp(0.6rem, 1.1vh, 0.85rem); font-weight: 700;
+    }
+    .sp-board__body {
+      flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0;
+      padding: clamp(0.3rem, 0.6vh, 0.5rem);
+    }
+    /* Custom scrollbar */
+    .sp-board__body::-webkit-scrollbar { width: 6px; }
+    .sp-board__body::-webkit-scrollbar-track { background: #0b0f19; }
+    .sp-board__body::-webkit-scrollbar-thumb {
+      background: #1e293b; border-radius: 3px;
+    }
+    .sp-board__body::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    /* ═══ CARD (departure / arrival item) ═══ */
+    .sp-card {
+      background: #131a2b;
+      border: 1px solid #1e293b;
+      border-radius: clamp(8px, 1vh, 12px);
+      padding: clamp(0.6rem, 1.2vh, 1rem) clamp(0.8rem, 1.5vw, 1.2rem);
+      margin-bottom: clamp(0.3rem, 0.6vh, 0.5rem);
+      transition: all 0.3s ease;
+    }
+    .sp-card:last-child { margin-bottom: 0; }
+
+    /* Card row: time + route + status */
+    .sp-card__row {
+      display: flex; align-items: center; gap: clamp(0.5rem, 1vw, 0.8rem);
+    }
+
+    /* Time */
+    .sp-card__time {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: clamp(1.1rem, 2.5vh, 1.75rem);
+      font-weight: 700; color: #ffffff;
+      flex-shrink: 0; min-width: clamp(52px, 8vw, 80px);
+      text-align: center;
+    }
+    .sp-card__time--orange { color: #f97316; }
+
+    /* Route */
+    .sp-card__route {
+      flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem;
+    }
+    .sp-card__line {
+      font-size: clamp(0.5rem, 0.9vh, 0.7rem);
+      color: #64748b; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .sp-card__route-text {
+      font-size: clamp(0.8rem, 1.8vh, 1.25rem);
+      font-weight: 600; color: #ffffff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sp-card__arrow { color: #f97316; font-weight: 400; }
+    .sp-card__dest-here {
+      color: #0ea5e9; font-weight: 700;
+    }
+
+    /* Badge */
+    .sp-card__badge {
+      flex-shrink: 0;
+      font-size: clamp(0.5rem, 1vh, 0.75rem);
+      font-weight: 700; text-transform: uppercase;
+      padding: 0.2em 0.6em; border-radius: 6px;
+      white-space: nowrap; letter-spacing: 0.3px;
+    }
+
+    /* Status colors */
+    .sp-status--green {
+      background: rgba(34, 197, 94, 0.15); color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .sp-status--orange {
+      background: rgba(249, 115, 22, 0.2); color: #f97316;
+      border: 1px solid #f97316;
+      animation: sp-blink 1.2s infinite;
+    }
+    .sp-status--amber {
+      background: rgba(245, 158, 11, 0.15); color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .sp-status--red {
+      background: rgba(239, 68, 68, 0.15); color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .sp-status--slate {
+      background: rgba(100, 116, 139, 0.15); color: #64748b;
+      border: 1px solid rgba(100, 116, 139, 0.2);
+    }
+
+    /* Sub row: platform + seats + countdown */
+    .sp-card__sub {
+      display: flex; align-items: center; gap: clamp(0.4rem, 0.8vw, 0.7rem);
+      margin-top: clamp(0.2rem, 0.4vh, 0.4rem);
+      padding-top: clamp(0.15rem, 0.3vh, 0.3rem);
+      border-top: 1px solid #1e293b;
+      font-size: clamp(0.55rem, 1vh, 0.75rem);
+      color: #94a3b8;
+    }
+    .sp-card__platform {
+      font-weight: 600; color: #64748b;
+      padding: 0.1em 0.4em; background: #1e293b;
+      border-radius: 4px;
+    }
+    .sp-card__seats { font-weight: 500; }
+    .sp-card__countdown { color: #f97316; font-weight: 600; margin-left: auto; }
+    .sp-card__delay-info { color: #f59e0b; font-weight: 600; }
+    .sp-card__struck { text-decoration: line-through; opacity: 0.5; }
+
+    /* ═══ BOARDING CARD ═══ */
+    .sp-card--boarding {
+      border-left: 4px solid #f97316;
+      background: rgba(249, 115, 22, 0.08);
+      animation: sp-pulse-bg 2s infinite;
+    }
+
+    /* ═══ DEPARTED CARD ═══ */
+    .sp-card--departed { opacity: 0.4; }
+
+    /* ═══ CANCELLED CARD ═══ */
+    .sp-card--cancelled { opacity: 0.5; }
+
+    /* ═══ EMPTY STATE ═══ */
+    .sp-empty {
+      text-align: center; padding: clamp(2rem, 5vh, 4rem);
+      color: #64748b; font-size: clamp(0.85rem, 1.5vh, 1.1rem);
+    }
+
+    /* ═══ FOOTER ═══ */
+    .sp-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: clamp(0.5rem, 1vh, 0.8rem) clamp(1rem, 2vw, 2rem);
+      border-top: 1px solid #1e293b;
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+    .sp-footer__left {
+      display: flex; flex-direction: column; gap: 0.1rem;
+    }
+    .sp-footer__date {
+      font-size: clamp(0.55rem, 1vh, 0.75rem);
+      color: #94a3b8; font-weight: 500;
+    }
+    .sp-footer__city {
+      font-size: clamp(0.5rem, 0.9vh, 0.65rem);
+      color: #64748b;
+    }
+    .sp-footer__center {
+      display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+      background: #ffffff; padding: clamp(4px, 0.5vh, 6px);
+      border-radius: 8px;
+    }
+    .sp-footer__qr-label {
+      font-size: clamp(0.4rem, 0.7vh, 0.55rem);
+      color: #64748b; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .sp-footer__right { display: flex; align-items: center; }
+    .sp-footer__brand {
+      font-weight: 800; font-size: clamp(0.7rem, 1.3vh, 1rem);
+      color: #f97316; letter-spacing: 0.5px;
+    }
+
+    /* ═══ FULLSCREEN BUTTON ═══ */
+    .sp-fs-btn {
+      position: fixed; top: clamp(6px, 1vh, 12px); right: clamp(6px, 1vw, 12px);
+      width: clamp(32px, 4vh, 44px); height: clamp(32px, 4vh, 44px);
+      background: rgba(255,255,255,0.05); border: 1px solid #1e293b;
+      border-radius: 8px; color: #94a3b8;
+      font-size: clamp(0.8rem, 1.5vh, 1.2rem);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 50; transition: all 0.2s;
+    }
+    .sp-fs-btn:hover {
+      background: rgba(255,255,255,0.1); color: #ffffff;
+      border-color: #f97316;
+    }
+
+    /* ═══ OFFLINE BADGE ═══ */
+    .sp-offline-badge {
+      position: fixed; top: 50px; right: 12px;
+      background: #ef4444; color: #fff;
+      padding: 6px 14px; border-radius: 8px;
+      font-weight: 700; font-size: 0.75rem; z-index: 200;
+      animation: sp-blink 1s infinite;
+    }
+
+    /* ═══ VOICE INDICATOR ═══ */
+    .sp-voice-badge {
+      position: fixed; top: 50px; left: 12px;
+      background: rgba(249, 115, 22, 0.9); color: #fff;
+      padding: 6px 14px; border-radius: 8px;
+      font-weight: 600; font-size: 0.7rem; z-index: 200;
+    }
+
+    /* ═══ LAST UPDATE ═══ */
+    .sp-last-update {
+      position: fixed; bottom: 8px; left: 8px;
+      background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.6);
+      padding: 3px 8px; border-radius: 4px;
+      font-size: 0.6rem; z-index: 50;
+    }
+
+    /* ═══ AD OVERLAY ═══ */
+    .sp-ad-overlay {
+      position: fixed; inset: 0; z-index: 100; background: #000;
+      display: flex; align-items: center; justify-content: center;
+      animation: sp-fadein 0.5s ease; cursor: pointer;
+    }
+    .sp-ad-overlay img,
+    .sp-ad-overlay video,
+    .sp-ad-overlay iframe {
+      width: 100%; height: 100%;
+    }
+    .sp-ad-overlay img { object-fit: cover; }
+    .sp-ad-overlay video { object-fit: contain; }
+    .sp-ad-image, .sp-ad-video, .sp-ad-frame {
+      display: block; width: 100%; height: 100%;
+    }
+    .sp-ad-image { object-fit: cover; }
+    .sp-ad-video { object-fit: contain; }
+    .sp-ad-frame { border: none; }
+    .sp-ad-progress {
+      position: absolute; bottom: 0; left: 0; height: 4px;
+      background: #f97316;
+      animation: sp-ad-progress linear forwards;
+    }
+    .sp-ad-label {
+      position: absolute; top: clamp(8px, 2vh, 16px); right: clamp(8px, 2vw, 20px);
+      background: rgba(0,0,0,0.7); color: rgba(255,255,255,0.7);
+      padding: 4px 10px; border-radius: 6px;
+      font-size: clamp(0.55rem, 1vh, 0.75rem); font-weight: 600;
+    }
+    .sp-ad-empty {
+      color: #64748b; font-size: 1rem;
+    }
+
+    /* ═══ DEBUG PANEL ═══ */
+    .sp-debug {
+      position: fixed; bottom: 20px; right: 20px;
+      background: #131a2b; padding: 0.8rem 1rem; border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid #1e293b;
+      z-index: 200; max-width: 200px;
+    }
+    .sp-debug__title {
+      font-weight: 800; font-size: 0.7rem; color: #f97316;
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;
+    }
+    .sp-debug__info {
+      font-size: 0.65rem; color: #94a3b8; line-height: 1.5;
+    }
+
+    /* ═══ ANIMATIONS ═══ */
+    @keyframes sp-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes sp-pulse-bg {
+      0%, 100% { background: rgba(249, 115, 22, 0.08); }
+      50% { background: rgba(249, 115, 22, 0.15); }
+    }
+    @keyframes sp-fadein {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes sp-ad-progress {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    /* ═══ RESPONSIVE: Mobile (< 768px) ═══ */
+    @media (max-width: 767px) {
+      .sp-tabs { display: flex; }
+      .sp-content { flex-direction: column; }
+      .sp-col { display: none; }
+      .sp-col--active { display: flex; }
+      .sp-header__name { font-size: 0.9rem; }
+      .sp-header__city { display: none; }
+      .sp-clock { font-size: 1.2rem; }
+      .sp-date { font-size: 0.6rem; }
+      .sp-card { padding: 0.5rem; margin-bottom: 0.3rem; }
+      .sp-card__time { font-size: 0.9rem; min-width: 48px; }
+      .sp-card__line { display: none; }
+      .sp-card__route-text { font-size: 0.8rem; }
+      .sp-card__badge { font-size: 0.5rem; padding: 0.15em 0.4em; }
+      .sp-card__sub { font-size: 0.55rem; gap: 0.3rem; margin-top: 0.2rem; padding-top: 0.15rem; }
+      .sp-footer { padding: 0.4rem 0.6rem; }
+      .sp-footer__center { padding: 3px; }
+      .sp-footer__brand { font-size: 0.6rem; }
+      .sp-footer__qr-label { display: none; }
+      .sp-fs-btn { width: 28px; height: 28px; font-size: 0.7rem; top: 4px; right: 4px; }
+      .sp-ad-label { font-size: 0.5rem; }
+    }
+
+    /* ═══ RESPONSIVE: Tablet (768px – 1023px) ═══ */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .sp-tabs { display: none; }
+      .sp-col { display: flex; }
+      .sp-clock { font-size: 2rem; }
+      .sp-card__time { font-size: 1.3rem; }
+      .sp-card__route-text { font-size: 1rem; }
+    }
+
+    /* ═══ RESPONSIVE: Desktop/TV (1024px+) ═══ */
+    @media (min-width: 1024px) {
+      .sp-tabs { display: none; }
+      .sp-col { display: flex; }
+    }
+
+    /* ═══ RESPONSIVE: Large TV (≥ 1920px) ═══ */
+    @media (min-width: 1920px) {
+      .sp-header { padding: 1.2rem 2.5rem; }
+      .sp-header__name { font-size: 2rem; }
+      .sp-header__city { font-size: 1rem; }
+      .sp-clock { font-size: 4rem; }
+      .sp-date { font-size: 1.1rem; }
+      .sp-content { padding: 1.5rem 2rem; gap: 1.5rem; }
+      .sp-board__head { padding: 1rem 1.5rem; }
+      .sp-board__title { font-size: 1.3rem; }
+      .sp-card { padding: 1.2rem 1.5rem; margin-bottom: 0.8rem; border-radius: 16px; }
+      .sp-card__time { font-size: 2rem; min-width: 100px; }
+      .sp-card__route-text { font-size: 1.6rem; }
+      .sp-card__badge { font-size: 0.85rem; padding: 0.3em 0.8em; }
+      .sp-card__sub { font-size: 0.85rem; margin-top: 0.5rem; padding-top: 0.4rem; }
+      .sp-footer { padding: 1.2rem 2rem; }
+      .sp-footer__brand { font-size: 1.2rem; }
+    }
+
+    /* ═══ RESPONSIVE: 4K (≥ 2560px) ═══ */
+    @media (min-width: 2560px) {
+      .sp-header { padding: 1.5rem 3rem; }
+      .sp-header__name { font-size: 2.5rem; }
+      .sp-clock { font-size: 5rem; letter-spacing: 4px; }
+      .sp-date { font-size: 1.3rem; }
+      .sp-content { padding: 2rem 3rem; gap: 2rem; }
+      .sp-board__head { padding: 1.2rem 2rem; }
+      .sp-board__title { font-size: 1.5rem; }
+      .sp-card { padding: 1.5rem 2rem; margin-bottom: 1rem; border-radius: 20px; }
+      .sp-card__time { font-size: 2.5rem; min-width: 130px; }
+      .sp-card__route-text { font-size: 2rem; }
+      .sp-card__badge { font-size: 1rem; }
+      .sp-card__sub { font-size: 1rem; margin-top: 0.6rem; padding-top: 0.5rem; }
+      .sp-footer { padding: 1.5rem 3rem; }
+      .sp-footer__brand { font-size: 1.5rem; }
+    }
+  `,
+};

@@ -658,6 +658,47 @@ Stage Summary:
 - Display : priorité vidéo > image dans la résolution des médias
 - Aucune régression sur le système de publicités existant (upload fichier)
 ---
+Task ID: 5
+Agent: premium-signage-agent
+Task: Overwrite signage display page with "Style Aéroport" Premium Card design
+
+Work Log:
+- Read worklog.md and existing signage page (1100+ lines, old sig2- prefix split-screen design)
+- Read audioSystem module at /src/lib/audioSystem.ts — exports playDingDong, playBoardingAnnouncement, cancelAnnouncements, preloadVoices
+- Read signage-slug API at /src/app/api/signage-slug/[slug]/route.ts — returns station data with departures (outbound), arrivals (inbound), ticker messages, logoUrl
+- Completely rewrote /src/app/signage/[stationId]/page.tsx with "Style Aéroport" Premium Card design:
+  - Color palette: #0b0f19 background, #131a2b cards, #1e293b borders, white primary, #94a3b8 secondary, #f97316 orange accent, #22c55e green, #ef4444 red, #f59e0b amber
+  - Header: Logo (img or "ST" fallback) + Station name + Live clock (monospace HH:MM:SS)
+  - Ticker bandeau: Full-width orange bar with CSS marquee animation, hidden when no messages
+  - Content: 2-column layout (DÉPARTS | ARRIVÉES) with card-based items (no tables)
+  - Mobile: Tab bar (DÉPARTS / ARRIVÉES) for single-column view on <768px
+  - Card types: SCHEDULED (normal), BOARDING (orange left border + pulse animation), DEPARTED (opacity-40), DELAYED (amber badge), CANCELLED (red badge + strikethrough)
+  - Each departure card: Time (monospace bold), Route (origin ➜ destination with orange arrow), Status badge, Platform, Available seats, Countdown
+  - Each arrival card: Time, Origin → ici (blue), Status badge, Platform
+  - Footer: Date + city | QR code (QRCodeSVG from qrcode.react) | SmarticketS branding
+  - Ad overlay: Full-screen z-50, image/video/YouTube support, progress bar, click-to-dismiss, portrait mobileImageUrl support
+  - Audio: Imported from @/lib/audioSystem (playDingDong, playBoardingAnnouncement, cancelAnnouncements, preloadVoices)
+  - Alert tracking: useRef<Set> for announced departures, setHasAnnouncement state for voice indicator (no render-time ref access)
+  - Fullscreen: F11-equivalent button via Fullscreen API, auto-enter in kiosk mode (?kiosk=1)
+  - Kiosk: Cursor auto-hide after 5s inactivity
+  - Polling: Fetch from /api/signage-slug/[slug] every 15s, ads re-fetch every 5 min
+  - 404 handling: "Station non trouvée" message when API returns 404
+  - CSS class prefix: sp- (signage premium), all CSS in <style> tag strings, no external CSS files
+  - memo() on DepartureCard, ArrivalCard, BoardSection, AdMedia components
+  - Responsive: Mobile (<768px tab), Tablet (768-1023 2-col compact), Desktop (1024+), 1920px (large TV), 2560px (4K)
+  - Debug panel visible with ?debug=1
+- Fixed ESLint error: react-hooks/refs — replaced `announcedRef.current.size > 0` render-time access with `hasAnnouncement` state
+- ESLint: 0 new errors (only pre-existing scripts/migrate-db.js)
+
+Stage Summary:
+- 1 file completely rewritten (src/app/signage/[stationId]/page.tsx)
+- Premium Card design "Style Aéroport" replacing old split-screen design
+- New API integration: /api/signage-slug/[slug] for station-based departures + arrivals
+- Audio system imported from @/lib/audioSystem (centralized module)
+- All CSS prefixed with sp- to avoid conflicts, inline style strings
+- 6 breakpoints responsive (mobile tab → 4K)
+- All existing features preserved (ads, ticker, kiosk, QR code, fullscreen)
+---
 Task ID: 2
 Agent: Main Agent
 Task: Intégrer la synthèse vocale (TTS) dans l'écran d'affichage pour annoncer les départs
@@ -744,3 +785,143 @@ Stage Summary:
 - Embed parameters: autoplay=1, mute=1, loop=1, no controls, no related videos (kiosk mode)
 - Admin preview: autoplay=0, controls=1 (for editing convenience)
 - No lint errors introduced (only pre-existing scripts/migrate-db.js error)
+
+---
+Task ID: 4
+Agent: api-signage-slug
+Task: Create /api/signage-slug/[slug]/route.ts — Signage API using station slug instead of stationId
+
+Work Log:
+- Created /src/app/api/signage-slug/[slug]/route.ts with GET endpoint
+- Station lookup by slug with isActive check → 404 "Station non trouvée" if not found or inactive
+- Départs query: originStationId = station.id, scheduledTime >= startOfDay, includes destinationStation + agency relations
+- Arrivées query: destinationStationId = station.id, scheduledTime >= startOfDay, includes originStation + agency relations
+- Dynamic status calculation: SCHEDULED (>5min), BOARDING (≤5min && >-3min, shouldPlayAlert only if >0), DEPARTED (≤-3min && >-15min), skip archived (≤-15min)
+- CANCELLED override: preserved when status === 'CANCELLED'
+- Reads signage_* settings from Setting model (alertSoundEnabled, tickerMessages JSON, logoUrl)
+- Returns: stationId, stationName, city, slug, currentTime (HH:MM:SS), currentDate (French locale), departures[], arrivals[], alertSoundEnabled, tickerMessages, logoUrl
+- `export const dynamic = 'force-dynamic'` for server-side freshness
+- ESLint: 0 errors on new file (pre-existing errors unrelated)
+
+Stage Summary:
+- 1 API route file created at /api/signage-slug/[slug]/route.ts
+- Uses Station.slug for lookup instead of stationId (existing /api/signage/[stationId] preserved)
+- Proper split between départs (outbound) and arrivées (inbound) using originStationId/destinationStationId relations
+- Server-side dynamic status computation matching existing /api/signage/[stationId]/departures logic
+
+---
+Task ID: 3
+Agent: api-stations-crud
+Task: Create API routes for Station CRUD operations
+
+Work Log:
+- Created /src/app/api/stations/route.ts — GET (list) + POST (create)
+  - GET /api/stations?agencyId=xxx — lists all stations filtered by agency (or all if no agencyId), ordered by createdAt desc, includes agency + departure counts
+  - POST /api/stations — creates station with Zod validation (name, city, address?, agencyId), auto-generates unique slug (slugify name+city + random 4-char suffix), agency existence check, retry up to 5 times on slug collision
+  - Slugify function: NFD normalize, strip accents, lowercase, replace non-alphanumeric with hyphens, collapse consecutive hyphens
+- Created /src/app/api/stations/[id]/route.ts — GET (single) + PUT (update) + DELETE
+  - GET /api/stations/[id] — returns station by ID with agency info + departure counts (departuresAsOrigin, departuresAsDest)
+  - PUT /api/stations/[id] — updates station fields (name?, city?, address?, isActive?), explicitly blocks slug and agencyId changes
+  - DELETE /api/stations/[id] — deletes station with guard: returns 409 if any departuresAsOrigin or departuresAsDest exist
+- Created /src/app/api/stations/by-slug/[slug]/route.ts — GET by slug
+  - GET /api/stations/by-slug/[slug]?all=true — returns station by slug for signage display URLs, respects isActive flag (inactive stations return 404 unless ?all=true)
+- All routes use `export const dynamic = 'force-dynamic'`, proper try/catch error handling, NextRequest/NextResponse
+- ESLint: 0 errors on all 3 new files (only pre-existing errors in signage page + audioSystem.ts)
+
+Stage Summary:
+- 3 API route files created for Station CRUD
+- Full slug-based station lookup for public signage URLs
+- Auto-generated unique slugs with retry logic on collision
+- Departure count guards prevent deletion of stations with linked departures
+- Zod validation on create and update endpoints
+
+---
+Task ID: 2
+Agent: audio-system-agent
+Task: Create /src/lib/audioSystem.ts — complete audio system module for Signage Display kiosk
+
+Work Log:
+- Analysed existing inline audio/TTS code in /src/app/signage/[stationId]/page.tsx (lines 96-335) to understand current implementation patterns
+- Created /src/lib/audioSystem.ts — pure TypeScript library module (no JSX, no 'use client')
+- playDingDong(): Web Audio API chime with 880Hz "ding" (0.6s sine) + 660Hz "dong" (1.2s sine), 0.5s gap, attack-decay envelope (50ms ramp-up, exponential fade-out), ~1.5s total
+- speakFrench(text: string): Promise<boolean> — speechSynthesis with French female voice selection priority (known female names → Google/Microsoft/Apple → any French → default), rate 0.9, volume 1.0, lang fr-FR, event handlers for start/end/error
+- speakWithRetry(text, maxRetries=3): Promise<boolean> — cancels in-flight speech, 100ms reset delay, 500ms retry delay between attempts
+- playBoardingAnnouncement(destination, time): Promise<void> — 2 rounds of ding-dong → 1s delay → TTS announcement, 2-minute interval between rounds, async/await based with cancellation support
+- cancelAnnouncements(): clears all pending timers + cancels speechSynthesis
+- preloadVoices(): immediate load + onvoiceschanged listener + retry schedule (100ms, 500ms, 1000ms)
+- All functions guarded with typeof window checks for SSR safety
+- WebkitAudioContext compatibility via Record<string, typeof AudioContext> cast (no eslint-disable needed)
+- ESLint: 0 errors, 0 warnings on audioSystem.ts
+
+Stage Summary:
+- 1 file created: /src/lib/audioSystem.ts
+- 6 exported functions: playDingDong, speakFrench, speakWithRetry, playBoardingAnnouncement, cancelAnnouncements, preloadVoices
+- Pure library module: no React, no JSX, no hooks
+- Full JSDoc documentation on all public functions
+- Browser-compatible: SSR guards, webkitAudioContext fallback, async voice loading
+- Consistent with existing signage page audio patterns (same frequencies, voice preferences, announcement template)
+---
+Task ID: 6
+Agent: gares-page-agent
+Task: Create Agency Station Management page (/agence/gares)
+
+Work Log:
+- Read worklog.md and analyzed project structure (agency layout, UI components, existing patterns)
+- Verified available shadcn/ui components: Dialog, AlertDialog, Badge, Skeleton, Switch, Button, Input, Label
+- Verified qrcode.react v4.2.0 installed in package.json
+- Created /src/app/agence/gares/page.tsx — full-featured station management page
+  - Station list with cards showing: Name, City, Slug, Status badge, Departures count, Actions
+  - Each station row: QR Code URL button, Toggle active/inactive, Edit button, Delete button (AlertDialog)
+  - Empty state with Building2 icon and "Créer une gare" CTA
+  - Error state with retry button
+  - Loading state with 3 skeleton placeholders
+  - Create Station Dialog (shadcn/ui Dialog, sm:max-w-lg): Nom (required), Ville (required), Adresse (optional)
+  - Edit Station Dialog: same fields + isActive toggle + read-only slug display
+  - Station URL Card component: QRCodeSVG (140px), public URL display (/signage-slug/[slug]), Copy URL button, Open in new tab button
+  - After station creation: toast success + auto-show URL card with generated slug
+  - Uses useAgency() from ../layout for agencyId
+  - Uses toast from sonner for all notifications
+  - Custom toggle switch for isActive in edit form
+  - Responsive design with Tailwind CSS
+  - Emerald green accent for active states, slate for backgrounds
+  - All text in French
+- Fixed lint error: added missing AlertTriangle import
+- ESLint: 0 errors on new file (pre-existing errors in scripts/migrate-db.js and signage/[stationId]/page.tsx unrelated)
+- Dev server: running stable, no compilation errors for new page
+
+Stage Summary:
+- 1 file created: /src/app/agence/gares/page.tsx (~520 lines)
+- Full CRUD UI for station management with shadcn/ui components
+- QR Code generation with qrcode.react for each station
+- Public signage URL: /signage-slug/[slug]
+- Copy URL and Open in new tab functionality
+- Active/inactive toggle with visual feedback
+- Loading, error, and empty states
+- No new lint errors introduced
+---
+Task ID: 7+7b
+Agent: Main Agent
+Task: Add "Gares" sidebar menu item + station selects to departure form
+
+Work Log:
+- Updated /src/app/agence/layout.tsx:
+  - Added `Building2` import from lucide-react
+  - Added "Gares" menu item with Building2 icon, href="/agence/gares", positioned after "Départs" and before "Colis"
+- Updated /src/app/admin/departures/page.tsx:
+  - Added `originStationId` and `destinationStationId` to DepartureFormData interface
+  - Initialized both fields as empty strings in emptyDepartureForm
+  - Added `stations` state: `useState<{id: string; name: string; city: string; slug: string}[]>([])`
+  - Added `fetchStations` useCallback that fetches from `/api/stations?agencyId=${agencyId}`
+  - Called `fetchStations()` in the same useEffect as fetchRoutes and fetchDepartures
+  - Added two Select fields in the Dialog form: "Gare de départ" and "Gare d'arrivée", placed after Route select and before Type + Line Number grid
+  - Both selects are optional (placeholder "Sélectionner (optionnel)")
+  - Included originStationId and destinationStationId in POST/PUT payload (null if empty)
+  - When editing a departure, station fields are initialized as empty strings (graceful for old departures without station data)
+- ESLint: 0 errors in modified files (pre-existing errors in scripts/migrate-db.js and signage page only)
+
+Stage Summary:
+- 2 files modified (agence layout + admin departures page)
+- "Gares" menu item added to agency sidebar navigation
+- Station (gare) selects added to departure creation/edit form
+- All existing functionality preserved (routes, type, line number, destination, date, time, platform, seats)
+- Station fields are optional and backward-compatible

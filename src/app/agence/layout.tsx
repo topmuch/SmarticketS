@@ -27,6 +27,7 @@ import {
   ShoppingCart,
   Bus,
   Monitor,
+  Building2,
 } from "lucide-react";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +77,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
   const menuItems: MenuItem[] = [
     { label: "Tableau de bord", icon: <Home className="w-5 h-5" />, href: "/agence/tableau-de-bord" },
     { label: "Départs", icon: <Bus className="w-5 h-5" />, href: "/agence/departs" },
+    { label: "Gares", icon: <Building2 className="w-5 h-5" />, href: "/agence/gares" },
     { label: "Colis", icon: <Luggage className="w-5 h-5" />, href: "/agence/baggages" },
     { label: "Assistance", icon: <MessageCircle className="w-5 h-5" />, href: "/agence/assistance", badge: unreadMessages },
     { label: "Colis Livrés", icon: <CheckCircle className="w-5 h-5" />, href: "/agence/trouvailles" },
