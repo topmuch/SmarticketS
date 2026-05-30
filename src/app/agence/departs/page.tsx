@@ -24,11 +24,9 @@ import {
   Timer,
   MapPin,
   ArrowRight,
-  QrCode,
   Building2,
 } from 'lucide-react';
 import { useAgency } from '../layout';
-import { QRCodeSVG } from 'qrcode.react';
 
 /* ══════════════════════════════════════════════
    Types
@@ -1036,8 +1034,7 @@ export default function DepartsPage() {
     }
   };
 
-  // Signage URL
-  const signageUrl = agencyId ? `/signage/${agencyId}?kiosk=1` : '';
+
 
   return (
     <div className="space-y-6">
@@ -1072,18 +1069,6 @@ export default function DepartsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Signage Link */}
-          {signageUrl && (
-            <a
-              href={signageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:border-[#FF1D8D] hover:text-[#FF1D8D] transition-all"
-            >
-              <QrCode className="w-4 h-4" />
-              Affichage Gare
-            </a>
-          )}
           {/* CSV Import */}
           <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:border-[#FF1D8D] hover:text-[#FF1D8D] transition-all cursor-pointer">
             <Upload className="w-4 h-4" />
@@ -1452,48 +1437,6 @@ export default function DepartsPage() {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Signage QR Section */}
-      {signageUrl && (
-        <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <QrCode className="w-5 h-5" />
-                Affichage Gare en Temps Réel
-              </h3>
-              <p className="text-slate-400 text-sm mb-3">
-                Scannez ce QR code pour afficher les horaires sur écran TV en gare.
-                Mise à jour automatique toutes les 15 secondes.
-              </p>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="bg-slate-700 px-3 py-1 rounded-full">✅ Horloge Live</span>
-                <span className="bg-slate-700 px-3 py-1 rounded-full">⚠️ Alertes Retards</span>
-                <span className="bg-slate-700 px-3 py-1 rounded-full">🚌 Embarquement</span>
-              </div>
-            </div>
-            <div className="flex flex-col items-center gap-3">
-              <div className="bg-white p-4 rounded-xl shadow-lg">
-                <QRCodeSVG
-                  value={`${typeof window !== 'undefined' ? window.location.origin : ''}${signageUrl}`}
-                  size={130}
-                  fgColor="#1e3a8a"
-                  bgColor="#ffffff"
-                  level="H"
-                />
-              </div>
-              <a
-                href={signageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-white underline text-sm font-medium"
-              >
-                Voir l&apos;affichage →
-              </a>
-            </div>
           </div>
         </div>
       )}
