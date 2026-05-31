@@ -1521,3 +1521,23 @@ Stage Summary:
 - No browser footer/header on print (via @page { margin: 0 })
 - All text is dark/black for readability
 - Both pages compile and render correctly (200 OK)
+---
+Task ID: 1
+Agent: main
+Task: Fix ticket layout - 1 page PDF, add lieu de départ/compagnie/date fields, remove Quai
+
+Work Log:
+- Analyzed rt.pdf reference design using VLM (2-page PDF was showing ticket split across 2 pages)
+- Updated TicketActivationForm: added "Lieu de départ", "Compagnie de transport", "Date de départ" fields; removed "Quai" field
+- Updated activation API: save departureCity, busCompany, departureDate on Baggage model during activation
+- Rewrote PDF ticket API route: compact layout to fit on 1 page, merged passenger/bagages sections side-by-side, smaller paddings, included QR code, no footer URL
+- Updated retrieve page: display actual company name, show departure station in route section, fixed company references
+- Committed and pushed to GitHub
+
+Stage Summary:
+- Ticket PDF now fits on 1 page (passenger + bagages merged in 2-column grid)
+- Activation form collects: Lieu de départ, Compagnie de transport, Date de départ
+- Quai (platform) field removed from activation form
+- Company name properly displayed on ticket and PDF
+- Departure date properly displayed on ticket and PDF
+- Commit: 5ebf587 pushed to origin/main
