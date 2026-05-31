@@ -794,7 +794,7 @@ function TimelineSection({
 
               {/* Content */}
               <div className={`pb-4 ${isLast ? 'pb-0' : ''}`}>
-                <p className={`text-sm font-semibold ${dark ? 'text-white' : 'text-[#0f172a]}`}>
+                <p className={`text-sm font-semibold ${dark ? 'text-white' : 'text-[#0f172a]'}`}>
                   {entry.title}
                 </p>
                 <p className={`text-xs ${dark ? 'text-white/70' : 'text-black'} mt-0.5`}>
@@ -816,14 +816,12 @@ function TimelineSection({
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className={`flex items-center justify-center gap-1 w-full pt-3 mt-1 border-t ${dark ? 'border-white/30 text-white/70 hover:text-white' : 'border-gray-100 text-black hover:text-gray-600'} text-xs font-medium transition-colors`
+          className={`flex items-center justify-center gap-1 w-full pt-3 mt-1 border-t ${dark ? 'border-white/30 text-white/70 hover:text-white' : 'border-gray-100 text-black hover:text-gray-600'} text-xs font-medium transition-colors`}
         >
-          {expanded
-            ? 'Voir moins'
-            : `Voir les ${timeline.length - VISIBLE_COUNT} suivants`}
-          <ChevronRight
-            className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          />
+          <span>
+            {expanded ? 'Voir moins' : `Voir les ${timeline.length - VISIBLE_COUNT} suivants`}
+          </span>
+          <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </button>
       )}
     </div>
