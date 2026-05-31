@@ -1432,3 +1432,35 @@ Stage Summary:
 - CSS animations defined inline: scanLine, pulseCorners, fadeInUp, fadeInScale, shakeX, drawCheck, pulseGlow
 - Color system: #1a1a2e / #16213e backgrounds, #00d9a3 / #00b894 emerald accents
 - All existing features retained: PWA guard, offline queue, audio feedback, haptic, keyboard support
+---
+Task ID: 17
+Agent: Main Agent
+Task: Design mobile boarding-pass style ticket visualization page for SmarticketS PWA
+
+Work Log:
+- Explored existing `/retrieve/[id]` (1396 lines), `/suivi/[id]` (703 lines), and API routes
+- Analyzed `/api/arrivee/[id]` response structure (colis + ticket + timeline)
+- Analyzed `/api/tracking/[id]` response structure (colis + ticket + timeline with WhatsApp messages)
+- Identified data flow: WhatsApp link → `/retrieve/[reference]` → API fetch → render
+- Designed and built complete boarding-pass style ticket visualization page:
+  - **Header**: Blue gradient (#2563eb) bubble with "TICKET DE TRANSPORT", reference, animated status badge
+  - **Main Info**: Large seat number, company name, dark navy info band (Date/Time/Ref)
+  - **Trajet**: Big bold city names with bus icon, departure details
+  - **Passager**: Name, age, document with toggleable masking
+  - **Bagages**: 3-column grid (quantity/weight/fee)
+  - **Code de Contrôle**: Green (#d1fae5) card with large spaced digits + copy
+  - **QR Code**: 250×250 QRCodeSVG from qrcode.react, page URL, pulse animation
+  - **Historique**: Vertical timeline with expand/collapse
+- Added interactive elements: WhatsApp share, copy control code, document masking toggle
+- CSS animations: fadeInUp, pulseStatus, pulseQr, shimmer (loading skeleton)
+- Dual view: ticket boarding pass + simplified parcel view
+- Mobile-first: 440px max-width, safe areas, 48px touch targets, 16px min font
+- Parcel fallback view for non-ticket category
+
+Stage Summary:
+- `/src/app/retrieve/[id]/page.tsx` — Complete rewrite (1396 → ~770 lines)
+- All 7 sections implemented with proper TypeScript types
+- QRCodeSVG from qrcode.react (already installed)
+- API `/api/arrivee/[id]` already returns all needed data — no backend changes needed
+- Zero compilation errors, page compiles in <500ms
+- HTTP 200 for `/retrieve/TKT-DEMO-001` with loading skeleton + client-side data render
