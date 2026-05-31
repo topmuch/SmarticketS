@@ -1374,3 +1374,30 @@ Stage Summary:
 - Full end-to-end runtime test PASSED: create → validate → activate → DB verification
 - 3 files modified, 1 commit pushed to GitHub (ff57920)
 - Données de test nettoyées après vérification
+
+---
+Task ID: ticket-qr-scan-fix
+Agent: Main Agent + sub-agent
+Task: Fix ticket QR scan showing colis/parcel UI instead of ticket info
+
+Work Log:
+- User reported: scanning a ticket QR code shows "Préparation à la livraison" (parcel delivery) instead of ticket info
+- Analyzed 2 screenshots showing the inconsistency clearly
+- Identified root cause: /retrieve and /suivi pages always render colis UI regardless of Baggage.category
+- Modified 4 files:
+  - /api/arrivee/[id]: Added category + PassengerTicket fetch (passengerName, seat, destination, controlCode, etc.)
+  - /api/tracking/[id]: Same pattern — category + PassengerTicket data
+  - /retrieve/[id]/page.tsx: Added TicketInfoCard component for ticket view, detects isTicket, skips ContactsCard/LogisticsCard/PIN/DeliverySuccess
+  - /suivi/[id]/page.tsx: Added SuiviTicketCard component, conditional rendering based on ticket
+- Runtime tests passed:
+  - GET /api/arrivee/TICKET-TEST-RT → category: 'ticket', ticket data present ✅
+  - GET /api/tracking/TICKET-TEST-RT → category: 'ticket', ticket data present ✅
+  - /retrieve/TICKET-TEST-RT → HTTP 200 ✅
+  - /suivi/TICKET-TEST-RT → HTTP 200 ✅
+  - Lint: 0 new errors ✅
+- Pushed to GitHub: commit 7340b58
+
+Stage Summary:
+- Ticket QR scan now shows ticket-specific info (passenger, seat, destination, control code)
+- Colis/parcel flow is completely untouched
+- 4 files modified, 397 lines added
