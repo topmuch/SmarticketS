@@ -15,12 +15,12 @@ export default function ActivationHeader({ qrCode, onLangChange, currentLang, ti
   const displayTitle = title || defaultTitle;
 
   return (
-    <header className="bg-[#8b5cf6] text-white sticky top-0 z-50 safe-area-inset-top">
+    <header className="bg-[#0066FF] text-white sticky top-0 z-50 safe-area-inset-top">
       {/* Top row */}
       <div className="max-w-[600px] mx-auto px-3 sm:px-4 flex items-center justify-between gap-2">
         {/* Logo */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-[#FF6B35] flex items-center justify-center">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white/20 flex items-center justify-center">
             <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
