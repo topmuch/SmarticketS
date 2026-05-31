@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Truck, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,20 +25,26 @@ const STORAGE_KEYS = {
 
 export default function DriverLoginPage() {
   const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [status, setStatus] = useState<LoginStatus>('idle');
   const [error, setError] = useState('');
+  const mounted = useRef(false);
 
-  // Check for existing valid session on mount
+  // Check for existing valid session on mount (runs once only)
   useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+
     const token = localStorage.getItem(STORAGE_KEYS.accessToken);
     const staffData = localStorage.getItem(STORAGE_KEYS.staffData);
     if (token && staffData) {
       try {
         const data = JSON.parse(staffData);
         if (data.role === 'DRIVER') {
-          router.replace('/driver/deliveries');
+          routerRef.current.replace('/driver/deliveries');
         }
       } catch {
         // Invalid data, clear and show login
@@ -47,7 +53,7 @@ export default function DriverLoginPage() {
         localStorage.removeItem(STORAGE_KEYS.staffData);
       }
     }
-  }, [router]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -77,7 +83,7 @@ export default function DriverLoginPage() {
           if (navigator.vibrate) navigator.vibrate(100);
 
           toast.success(`Bienvenue, ${data.staff.name} !`);
-          router.push('/driver/deliveries');
+          routerRef.current.push('/driver/deliveries');
           return;
         }
 
@@ -93,7 +99,7 @@ export default function DriverLoginPage() {
         setStatus('idle');
       }
     },
-    [phone, code, router]
+    [phone, code] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Handle individual digit inputs for the code
@@ -193,7 +199,7 @@ export default function DriverLoginPage() {
                       value={code[i] || ''}
                       onChange={(e) => handleDigitChange(i, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(i, e)}
-                      onFocus={(e) => e.target.select()}
+                      onFocus={(e) => e.target.setSelectionRange(e.target.value.length, e.target.value.length)}
                       className="w-full h-14 text-center text-2xl font-bold bg-[#111827] border border-gray-600 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-colors"
                       aria-label={`Chiffre ${i + 1}`}
                     />

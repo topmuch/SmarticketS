@@ -11,7 +11,6 @@ export const metadata: Metadata = {
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#111827] text-white antialiased">
-      <meta name="theme-color" content="#0d1117" />
       {children}
     </div>
   );
