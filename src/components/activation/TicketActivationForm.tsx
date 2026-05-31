@@ -131,7 +131,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Échec activation');
+      if (!res.ok) throw new Error(data.message || data.error || 'Échec activation');
 
       // Stocker dans sessionStorage pour le flow WhatsApp
       sessionStorage.setItem('ticket_activation', JSON.stringify({
@@ -145,6 +145,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
       // Rediriger vers page envoi WhatsApp
       router.push(`/sending?reference=${data.reference}&mode=ticket&waLink=${encodeURIComponent(data.whatsappLink)}`);
     } catch (err: any) {
+      console.error('[TicketActivationForm] Erreur:', err);
       setError(err.message);
     } finally {
       setLoading(false);

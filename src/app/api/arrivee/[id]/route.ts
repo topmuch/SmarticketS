@@ -78,6 +78,7 @@ export async function GET(
         id: colis.id,
         reference: colis.reference,
         status: colis.status,
+        agencyId: colis.agencyId || '',
         transportType: colis.transportMode,
         company: colis.busCompany || colis.airlineName || '',
         departureCity: colis.departureCity || '',

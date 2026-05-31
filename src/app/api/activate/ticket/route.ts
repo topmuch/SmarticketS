@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     const parsed = activateTicketSchema.safeParse(body);
 
     if (!parsed.success) {
+      console.error('[/api/activate/ticket] Validation error:', parsed.error.issues);
       return NextResponse.json(
         { error: 'validation', message: parsed.error.issues[0].message, details: parsed.error.issues },
         { status: 400 }
