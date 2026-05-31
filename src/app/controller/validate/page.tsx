@@ -16,6 +16,18 @@ import {
   WifiOff,
   CloudOff,
   CloudCheck,
+  Shield,
+  Keyboard,
+  Camera,
+  Maximize2,
+  Minimize2,
+  Flashlight,
+  History,
+  LogOut,
+  ChevronRight,
+  X,
+  ArrowLeft,
+  Ticket,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
@@ -28,7 +40,7 @@ import {
   startSyncEngine,
   stopSyncEngine,
 } from '@/lib/offline/sync';
-import { validatePwaToken, type PwaTokenPayload } from '@/lib/pwa-guard';
+import { validatePwaToken } from '@/lib/pwa-guard';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -56,9 +68,14 @@ interface ValidationResult {
   departureTime?: string;
   controlCode?: string;
   validatedAt?: string;
+  ticketType?: string;
+  price?: string;
+  validity?: string;
+  lineNumber?: string;
 }
 
-type InputMode = 'keypad' | 'camera';
+type Screen = 'dashboard' | 'scanner' | 'keypad' | 'result';
+type LoginStatus = 'idle' | 'loading' | 'error';
 
 // ─── PWA Token state ─────────────────────────────────────────────────
 
@@ -92,197 +109,903 @@ function formatValidatedDate(iso: string | undefined) {
   );
 }
 
-// ─── Result Card sub-component ────────────────────────────────────────────
+// ─── Format current time ──────────────────────────────────────────────────
 
-function ResultCard({ result, onClear }: { result: ValidationResult; onClear: () => void }) {
-  // Color styles per status
-  const bg =
-    result.status === 'valid'
-      ? '#064e3b'
-      : result.status === 'queued'
-        ? '#1e3a5f'
-        : result.status === 'used' || result.status === 'cancelled'
-          ? '#7f1d1d'
-          : result.status === 'not_found'
-            ? '#78350f'
-            : '#1f2937';
+function formatNow() {
+  return new Date().toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
-  const border =
-    result.status === 'valid'
-      ? '#10b981'
-      : result.status === 'queued'
-        ? '#3b82f6'
-        : result.status === 'used' || result.status === 'cancelled'
-          ? '#ef4444'
-          : result.status === 'not_found'
-            ? '#f59e0b'
-            : '#4b5563';
+// ─── CSS Keyframes via style tag ────────────────────────────────────────
+
+function ScanAnimations() {
+  return (
+    <style dangerouslySetInnerHTML={{
+      __html: `
+        @keyframes scanLine {
+          0%, 100% { top: 0; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          50% { top: calc(100% - 2px); }
+        }
+        @keyframes pulseCorners {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.85); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes shakeX {
+          0%, 100% { transform: translateX(0); }
+          15%, 45%, 75% { transform: translateX(-8px); }
+          30%, 60%, 90% { transform: translateX(8px); }
+        }
+        @keyframes drawCheck {
+          from { stroke-dashoffset: 48; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 0 20px rgba(0, 217, 163, 0.2); }
+          50% { box-shadow: 0 0 40px rgba(0, 217, 163, 0.5); }
+        }
+        @keyframes countUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        .animate-fade-in-scale { animation: fadeInScale 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-shake { animation: shakeX 0.6s ease-in-out; }
+        .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+        .scan-line { animation: scanLine 2.5s ease-in-out infinite; }
+        .corner-pulse { animation: pulseCorners 1.5s ease-in-out infinite; }
+      `,
+    }} />
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCREEN 1: DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DashboardScreen({
+  controllerName,
+  onGoToScanner,
+  onGoToKeypad,
+  isOnline,
+  validCount,
+  invalidCount,
+  totalControls,
+  selectedAgency,
+  onLogout,
+}: {
+  controllerName: string;
+  onGoToScanner: () => void;
+  onGoToKeypad: () => void;
+  isOnline: boolean;
+  validCount: number;
+  invalidCount: number;
+  totalControls: number;
+  selectedAgency?: Agency;
+  onLogout: () => void;
+}) {
+  const [showProfile, setShowProfile] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen?.();
+      setIsFullscreen(false);
+    }
+  };
 
   return (
-    <div
-      onClick={onClear}
-      className="rounded-2xl p-5 border transition-all animate-in slide-in-from-bottom-4 duration-300 cursor-pointer"
-      role="alert"
-      aria-live="assertive"
-      style={{ backgroundColor: bg, borderColor: border }}
-    >
-      {/* VALID */}
-      {result.status === 'valid' && (
-        <div className="space-y-3">
-          <p className="text-emerald-300 font-bold text-center text-lg flex items-center justify-center gap-2">
-            <Check className="w-5 h-5" />
-            BILLET VALIDE
-          </p>
-          <hr className="border-emerald-700/50" />
-          <div className="space-y-2.5 text-sm">
-            <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-white font-medium">{result.passengerName}</span>
+    <div className="flex flex-col min-h-screen">
+      {/* ─── Header ───────────────────────────────────────────── */}
+      <header className="bg-[#0d1117]/80 backdrop-blur-xl border-b border-white/5 px-5 pt-3 pb-3 safe-top">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          {/* Left: Logo */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-[#00d9a3] to-[#00b894] shadow-lg shadow-[#00d9a3]/20">
+              <Bus className="w-5 h-5 text-white" />
             </div>
-            <div className="flex items-center gap-3">
-              <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-gray-200">{result.destination}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Armchair className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-gray-200">
-                Si&egrave;ge: <span className="font-semibold text-white">{result.seatNumber}</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-gray-200">
-                D&eacute;part:{' '}
-                <span className="font-semibold text-white">{result.departureTime}</span>
-              </span>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-white">
+                Smarticket<span className="text-[#00d9a3]">S</span>
+              </h1>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00d9a3]/15 text-[#00d9a3] border border-[#00d9a3]/20">
+                  CONTRÔLE
+                </span>
+                {selectedAgency && (
+                  <span className="text-[10px] text-gray-500 truncate max-w-[120px]">
+                    {selectedAgency.name}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <hr className="border-emerald-700/50" />
-          <p className="text-center text-xs text-emerald-400 font-mono">
-            Code: {result.controlCode}
-          </p>
-          <p className="text-center text-[10px] text-emerald-500/60 mt-1">
-            Appuyez pour effacer
-          </p>
-        </div>
-      )}
 
-      {/* QUEUED (offline) */}
-      {result.status === 'queued' && (
-        <div className="space-y-3">
-          <p className="text-sky-300 font-bold text-center text-lg flex items-center justify-center gap-2">
-            <CloudOff className="w-5 h-5" />
-            ENREGISTR&Eacute; HORS LIGNE
-          </p>
-          <hr className="border-sky-700/50" />
-          <p className="text-center text-sm text-gray-300">
-            La validation sera envoy&eacute;e automatiquement
-            <br />
-            lorsque la connexion sera r&eacute;tablie.
-          </p>
-          <p className="text-center text-xs text-sky-400 font-mono mt-1">
-            Code: {result.controlCode}
-          </p>
-          <p className="text-center text-[10px] text-sky-400/60 mt-1">
-            Appuyez pour effacer
-          </p>
-        </div>
-      )}
+          {/* Right: Status indicators */}
+          <div className="flex items-center gap-2">
+            {/* Security shield */}
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#00d9a3]/10 border border-[#00d9a3]/20" title="Sécurisé">
+              <Shield className="w-4 h-4 text-[#00d9a3]" />
+            </div>
 
-      {/* ALREADY USED */}
-      {result.status === 'used' && (
-        <div className="space-y-3">
-          <p className="text-red-300 font-bold text-center text-lg flex items-center justify-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            BILLET D&Eacute;J&Agrave; UTILIS&Eacute;
-          </p>
-          <hr className="border-red-700/50" />
-          {result.validatedAt && (
-            <p className="text-center text-sm text-gray-300">
-              Valid&eacute; le : {formatValidatedDate(result.validatedAt)}
+            {/* Wifi indicator */}
+            <div
+              className={`flex items-center justify-center w-9 h-9 rounded-xl border ${
+                isOnline
+                  ? 'bg-emerald-500/10 border-emerald-500/20'
+                  : 'bg-red-500/10 border-red-500/20'
+              }`}
+              title={isOnline ? 'En ligne' : 'Hors ligne'}
+            >
+              {isOnline ? (
+                <Wifi className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-red-400" />
+              )}
+            </div>
+
+            {/* Fullscreen */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-gray-400 active:scale-95 transition-all"
+              title="Plein écran"
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
+            {/* Profile */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowProfile(!showProfile)}
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#00d9a3]/30 to-[#00d9a3]/10 border border-[#00d9a3]/30 active:scale-95 transition-all"
+              >
+                <User className="w-4 h-4 text-[#00d9a3]" />
+              </button>
+
+              {/* Profile dropdown */}
+              {showProfile && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a2e]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50">
+                  <div className="p-4 border-b border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00d9a3] to-[#00b894] flex items-center justify-center text-white font-bold text-sm">
+                        {controllerName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{controllerName}</p>
+                        <p className="text-[11px] text-gray-400">Contrôleur</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <button
+                      type="button"
+                      onClick={onLogout}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors active:scale-[0.98]"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Déconnexion
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ─── Main Content ─────────────────────────────────────── */}
+      <main className="flex-1 px-5 py-6 max-w-lg mx-auto w-full space-y-5">
+        {/* ─── Service Summary Card ──────────────────────────── */}
+        <div className="relative bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-3xl p-5 overflow-hidden">
+          {/* Decorative glow */}
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#00d9a3]/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-[#00d9a3]/3 rounded-full blur-2xl" />
+
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Service en cours</p>
+                <p className="text-lg font-bold text-white mt-1">Aujourd&apos;hui</p>
+                <p className="text-sm text-gray-500">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </div>
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-[#00d9a3]/10 border border-[#00d9a3]/20">
+                <History className="w-6 h-6 text-[#00d9a3]" />
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/5 rounded-2xl p-3 text-center border border-white/5">
+                <p className="text-2xl font-bold text-white">{totalControls}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wide">Total</p>
+              </div>
+              <div className="bg-emerald-500/10 rounded-2xl p-3 text-center border border-emerald-500/15">
+                <p className="text-2xl font-bold text-[#00d9a3]">{validCount}</p>
+                <p className="text-[10px] text-emerald-400/70 mt-0.5 font-medium uppercase tracking-wide">Valides</p>
+              </div>
+              <div className="bg-red-500/10 rounded-2xl p-3 text-center border border-red-500/15">
+                <p className="text-2xl font-bold text-red-400">{invalidCount}</p>
+                <p className="text-[10px] text-red-400/70 mt-0.5 font-medium uppercase tracking-wide">Invalides</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── Objective Card ──────────────────────────────── */}
+        <div className="bg-gradient-to-r from-[#00d9a3]/10 to-transparent border border-[#00d9a3]/15 rounded-2xl p-4 flex items-center gap-4">
+          <div className="flex-1">
+            <p className="text-xs text-gray-400 font-medium">Objectif du jour</p>
+            <p className="text-lg font-bold text-white">50 contrôles</p>
+            <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[#00d9a3] to-[#00b894] rounded-full transition-all duration-700"
+                style={{ width: `${Math.min(100, (totalControls / 50) * 100)}%` }}
+              />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-[#00d9a3]">{Math.round((totalControls / 50) * 100)}%</p>
+        </div>
+
+        {/* ─── Main Action Buttons ────────────────────────── */}
+        <div className="space-y-3 pt-2">
+          {/* Scanner Button */}
+          <button
+            type="button"
+            onClick={onGoToScanner}
+            className="w-full flex items-center gap-4 bg-gradient-to-r from-[#00d9a3] to-[#00b894] rounded-2xl px-6 py-5 shadow-xl shadow-[#00d9a3]/25 active:scale-[0.97] transition-all animate-pulse-glow"
+          >
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm">
+              <Camera className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-lg font-bold text-white">Scanner un ticket</p>
+              <p className="text-sm text-white/70">Utiliser la caméra pour scanner le QR code</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/60" />
+          </button>
+
+          {/* Manual Entry Button */}
+          <button
+            type="button"
+            onClick={onGoToKeypad}
+            className="w-full flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl px-6 py-5 active:scale-[0.97] transition-all hover:bg-white/8"
+          >
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm">
+              <Keyboard className="w-7 h-7 text-white/70" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-lg font-bold text-white">Saisie manuelle</p>
+              <p className="text-sm text-gray-400">Entrer le code de contrôle manuellement</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/30" />
+          </button>
+        </div>
+      </main>
+
+      {/* ─── Offline Banner ───────────────────────────────────── */}
+      {!isOnline && (
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <div className="bg-amber-500/90 backdrop-blur-sm px-4 py-3 safe-bottom">
+            <p className="text-center text-sm font-semibold text-white flex items-center justify-center gap-2">
+              <WifiOff className="w-4 h-4" />
+              MODE HORS LIGNE — Données synchronisées plus tard
             </p>
-          )}
-          <p className="text-center text-[10px] text-red-400/60 mt-1">
-            Appuyez pour effacer
-          </p>
+          </div>
         </div>
       )}
 
-      {/* CANCELLED */}
-      {result.status === 'cancelled' && (
-        <div className="space-y-3">
-          <p className="text-red-300 font-bold text-center text-lg flex items-center justify-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            BILLET ANNUL&Eacute;
-          </p>
-          <hr className="border-red-700/50" />
-          <p className="text-center text-[10px] text-red-400/60 mt-1">
-            Appuyez pour effacer
+      {/* ─── Connection indicator ─────────────────────────────── */}
+      <div className="px-5 py-3 safe-bottom">
+        <div className="max-w-lg mx-auto flex items-center justify-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-[#00d9a3]' : 'bg-red-500'}`} />
+          <p className={`text-[11px] font-medium ${isOnline ? 'text-gray-500' : 'text-red-400'}`}>
+            {isOnline ? 'Connecté' : 'Hors ligne'}
           </p>
         </div>
-      )}
-
-      {/* NOT FOUND */}
-      {result.status === 'not_found' && (
-        <div className="space-y-3">
-          <p className="text-amber-300 font-bold text-center text-lg flex items-center justify-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            CODE INCONNU
-          </p>
-          <hr className="border-amber-700/50" />
-          <p className="text-center text-sm text-gray-300">
-            Ce code ne correspond &agrave; aucun billet actif
-          </p>
-          <p className="text-center text-[10px] text-amber-400/60 mt-1">
-            Appuyez pour effacer
-          </p>
-        </div>
-      )}
-
-      {/* ERROR */}
-      {result.status === 'error' && (
-        <div className="space-y-3">
-          <p className="text-gray-300 font-bold text-center text-lg flex items-center justify-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            ERREUR CONNEXION
-          </p>
-          <hr className="border-gray-600/50" />
-          <p className="text-center text-sm text-gray-400">
-            Impossible de v&eacute;rifier le billet. R&eacute;essayez.
-          </p>
-          <p className="text-center text-[10px] text-gray-500/60 mt-1">
-            Appuyez pour effacer
-          </p>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// ─── Spinner component ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// SCREEN 2: QR SCANNER
+// ═══════════════════════════════════════════════════════════════════════════
 
-function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
-  const cls =
-    size === 'sm'
-      ? 'animate-spin h-5 w-5'
-      : size === 'lg'
-        ? 'animate-spin h-7 w-7'
-        : 'animate-spin h-6 w-6';
+function ScannerScreen({
+  scannerRef,
+  onBack,
+  onGoToKeypad,
+  onCodeScanned,
+  isLoading,
+  isOnline,
+  onStartFlashlight,
+  onStopFlashlight,
+}: {
+  scannerRef: React.RefObject<HTMLDivElement | null>;
+  onBack: () => void;
+  onGoToKeypad: () => void;
+  onCodeScanned: (code: string) => void;
+  isLoading: boolean;
+  isOnline: boolean;
+  onStartFlashlight: () => void;
+  onStopFlashlight: () => void;
+}) {
+  const [torchOn, setTorchOn] = useState(false);
+
+  const toggleTorch = () => {
+    if (torchOn) {
+      onStopFlashlight();
+    } else {
+      onStartFlashlight();
+    }
+    setTorchOn(!torchOn);
+  };
+
   return (
-    <svg className={cls} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
+    <div className="fixed inset-0 bg-black flex flex-col z-50">
+      {/* ─── Top bar ─────────────────────────────────────── */}
+      <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 to-transparent px-5 pt-4 pb-10 safe-top">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 active:scale-95 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+
+          <p className="text-white font-semibold text-base">Scanner un ticket</p>
+
+          <button
+            type="button"
+            onClick={toggleTorch}
+            className={`flex items-center justify-center w-10 h-10 rounded-xl backdrop-blur-sm border active:scale-95 transition-all ${
+              torchOn
+                ? 'bg-amber-400/20 border-amber-400/40 text-amber-400'
+                : 'bg-white/10 border-white/10 text-white'
+            }`}
+          >
+            <Flashlight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Camera viewport ──────────────────────────────── */}
+      <div className="flex-1 relative">
+        <div
+          id="scanner-container"
+          ref={scannerRef}
+          className="w-full h-full"
+        />
+
+        {/* ─── Scan overlay with animated corners ──────────── */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {/* Semi-transparent backdrop */}
+          <div className="absolute inset-0 bg-black/40" />
+
+          {/* Cutout area (transparent) */}
+          <div className="relative w-[260px] h-[260px] bg-transparent">
+            {/* Top-left corner */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-[#00d9a3] rounded-tl-2xl corner-pulse" />
+            {/* Top-right corner */}
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-[#00d9a3] rounded-tr-2xl corner-pulse" />
+            {/* Bottom-left corner */}
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-[#00d9a3] rounded-bl-2xl corner-pulse" />
+            {/* Bottom-right corner */}
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-[#00d9a3] rounded-br-2xl corner-pulse" />
+
+            {/* Scan line */}
+            <div className="absolute left-2 right-2 h-[2px] bg-gradient-to-r from-transparent via-[#00d9a3] to-transparent scan-line" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Instruction text ──────────────────────────────── */}
+      <div className="absolute top-1/3 left-0 right-0 -translate-y-1/2 z-20 pointer-events-none">
+        <div className="flex flex-col items-center gap-3">
+          <div className="bg-black/60 backdrop-blur-md rounded-2xl px-6 py-3 flex items-center gap-2.5">
+            <ScanLine className="w-5 h-5 text-[#00d9a3] animate-pulse" />
+            <span className="text-sm text-white font-medium">
+              Cadrez le QR code du ticket
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Loading overlay ─────────────────────────────── */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-40">
+          <div className="bg-[#1a1a2e]/90 backdrop-blur-xl rounded-3xl px-8 py-6 flex flex-col items-center gap-4 border border-white/10">
+            <div className="w-12 h-12 border-3 border-[#00d9a3]/30 border-t-[#00d9a3] rounded-full animate-spin" />
+            <p className="text-white font-semibold">Vérification en cours...</p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bottom bar ────────────────────────────────────── */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent px-5 pb-8 pt-14 safe-bottom">
+        <button
+          type="button"
+          onClick={onGoToKeypad}
+          className="w-full flex items-center justify-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl px-5 py-4 active:scale-[0.97] transition-all"
+        >
+          <Keyboard className="w-5 h-5 text-white/70" />
+          <span className="text-white/80 font-medium">Code non détecté ? Saisie manuelle</span>
+        </button>
+      </div>
+    </div>
   );
 }
 
-// ─── Main Component ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// SCREEN 3: VALIDATION RESULT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ResultScreen({
+  result,
+  onClear,
+  onNewScan,
+}: {
+  result: ValidationResult;
+  onClear: () => void;
+  onNewScan: () => void;
+}) {
+  const isValid = result.status === 'valid';
+  const isQueued = result.status === 'queued';
+  const isError = result.status === 'error';
+  const isNotFound = result.status === 'not_found';
+  const isUsed = result.status === 'used';
+  const isCancelled = result.status === 'cancelled';
+  const isNegative = isUsed || isCancelled;
+
+  // Background gradient per status
+  const bgGradient =
+    isValid
+      ? 'from-[#00d9a3] to-[#00b894]'
+      : isNegative
+        ? 'from-[#e74c3c] to-[#c0392b]'
+        : isNotFound
+          ? 'from-[#f39c12] to-[#e67e22]'
+          : isQueued
+            ? 'from-[#3498db] to-[#2980b9]'
+            : 'from-[#1a1a2e] to-[#16213e]';
+
+  return (
+    <div className={`fixed inset-0 bg-gradient-to-b ${bgGradient} flex flex-col z-50`}>
+      {/* Close button */}
+      <div className="flex justify-end px-5 pt-4 safe-top">
+        <button
+          type="button"
+          onClick={onClear}
+          className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm active:scale-95 transition-all"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 safe-bottom">
+        <div className="w-full max-w-sm text-center space-y-6 animate-fade-in-up">
+          {/* Icon */}
+          <div className="flex justify-center">
+            {isValid && (
+              <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-fade-in-scale">
+                <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                  <path
+                    d="M8 12l2.67 2.67L16 9.33"
+                    strokeDasharray="24"
+                    strokeDashoffset="24"
+                    style={{ animation: 'drawCheck 0.5s ease-out 0.3s forwards' }}
+                  />
+                </svg>
+              </div>
+            )}
+            {isUsed && (
+              <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-fade-in-scale animate-shake">
+                <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                  <path d="M15 9l-6 6M9 9l6 6" />
+                </svg>
+              </div>
+            )}
+            {isCancelled && (
+              <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-fade-in-scale animate-shake">
+                <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                  <path d="M15 9l-6 6M9 9l6 6" />
+                </svg>
+              </div>
+            )}
+            {isNotFound && (
+              <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-fade-in-scale">
+                <AlertTriangle className="w-16 h-16 text-white" />
+              </div>
+            )}
+            {isQueued && (
+              <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-fade-in-scale">
+                <CloudOff className="w-16 h-16 text-white" />
+              </div>
+            )}
+            {isError && (
+              <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-fade-in-scale">
+                <AlertTriangle className="w-16 h-16 text-white" />
+              </div>
+            )}
+          </div>
+
+          {/* Title */}
+          <div>
+            <h2 className="text-3xl font-extrabold text-white tracking-tight">
+              {isValid && 'TICKET VALIDE'}
+              {isUsed && 'DÉJÀ UTILISÉ'}
+              {isCancelled && 'BILLET ANNULÉ'}
+              {isNotFound && 'CODE INCONNU'}
+              {isQueued && 'ENREGISTRÉ HORS LIGNE'}
+              {isError && 'ERREUR CONNEXION'}
+            </h2>
+          </div>
+
+          {/* Details card (VALID only) */}
+          {isValid && (
+            <div className="bg-white/15 backdrop-blur-md rounded-3xl p-5 text-left space-y-3.5 border border-white/20">
+              {/* Passenger name */}
+              {result.passengerName && (
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] text-white/60 uppercase tracking-wider font-medium">Passager</p>
+                    <p className="text-base font-bold text-white">{result.passengerName}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Destination */}
+              {result.destination && (
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] text-white/60 uppercase tracking-wider font-medium">Trajet</p>
+                    <p className="text-base font-bold text-white">{result.destination}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Seat + Departure */}
+              <div className="grid grid-cols-2 gap-3">
+                {result.seatNumber && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                      <Armchair className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-white/60 uppercase tracking-wider font-medium">Siège</p>
+                      <p className="text-base font-bold text-white">{result.seatNumber}</p>
+                    </div>
+                  </div>
+                )}
+                {result.departureTime && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-white/60 uppercase tracking-wider font-medium">Départ</p>
+                      <p className="text-base font-bold text-white">{result.departureTime}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Timestamp */}
+              <div className="border-t border-white/15 pt-3 flex items-center justify-between">
+                <p className="text-sm text-white/70">
+                  Contrôlé à <span className="font-bold text-white">{formatNow()}</span>
+                </p>
+                <p className="text-xs font-mono text-white/40">Code: {result.controlCode}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Used / Cancelled details */}
+          {isUsed && result.validatedAt && (
+            <div className="bg-white/15 backdrop-blur-md rounded-3xl p-5 text-center border border-white/20">
+              <p className="text-white/80 text-sm">
+                Ce billet a été validé le
+              </p>
+              <p className="text-white font-bold text-lg mt-1">
+                {formatValidatedDate(result.validatedAt)}
+              </p>
+              <p className="text-white/60 text-xs font-mono mt-2">Code: {result.controlCode}</p>
+            </div>
+          )}
+
+          {/* Cancelled reason */}
+          {isCancelled && (
+            <div className="bg-white/15 backdrop-blur-md rounded-3xl p-5 text-center border border-white/20">
+              <p className="text-white/80 text-sm">
+                Ce billet a été annulé
+              </p>
+              <p className="text-white/60 text-xs font-mono mt-2">Code: {result.controlCode}</p>
+            </div>
+          )}
+
+          {/* Not found message */}
+          {isNotFound && (
+            <div className="bg-white/15 backdrop-blur-md rounded-3xl p-5 text-center border border-white/20">
+              <p className="text-white/80 text-sm">
+                Ce code ne correspond à aucun billet actif
+              </p>
+              <p className="text-white/60 text-xs font-mono mt-2">Code: {result.controlCode}</p>
+            </div>
+          )}
+
+          {/* Queued message */}
+          {isQueued && (
+            <div className="bg-white/15 backdrop-blur-md rounded-3xl p-5 text-center border border-white/20 space-y-2">
+              <p className="text-white/80 text-sm">
+                La validation sera envoyée automatiquement lorsque la connexion sera rétablie.
+              </p>
+              <p className="text-white/60 text-xs font-mono">Code: {result.controlCode}</p>
+            </div>
+          )}
+
+          {/* Error message */}
+          {isError && (
+            <div className="bg-white/15 backdrop-blur-md rounded-3xl p-5 text-center border border-white/20 space-y-2">
+              <p className="text-white/80 text-sm">
+                Impossible de vérifier le billet. Réessayez.
+              </p>
+              <p className="text-white/60 text-xs font-mono">Code: {result.controlCode}</p>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="pt-4 space-y-3">
+            {isValid && (
+              <button
+                type="button"
+                onClick={onNewScan}
+                className="w-full bg-white text-[#00d9a3] font-bold text-base py-4 rounded-2xl active:scale-[0.97] transition-all shadow-lg"
+              >
+                Nouveau contrôle
+              </button>
+            )}
+            {!isValid && (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={onNewScan}
+                  className="flex-1 bg-white/20 backdrop-blur-sm text-white font-bold text-sm py-4 rounded-2xl active:scale-[0.97] transition-all border border-white/20"
+                >
+                  Nouveau scan
+                </button>
+                <button
+                  type="button"
+                  onClick={onClear}
+                  className="flex-1 bg-white text-[#1a1a2e] font-bold text-sm py-4 rounded-2xl active:scale-[0.97] transition-all shadow-lg"
+                >
+                  Saisie manuelle
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCREEN 4: NUMERIC KEYPAD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function KeypadScreen({
+  code,
+  onDigit,
+  onDelete,
+  onValidate,
+  onBack,
+  isLoading,
+  isOnline,
+}: {
+  code: string;
+  onDigit: (d: string) => void;
+  onDelete: () => void;
+  onValidate: () => void;
+  onBack: () => void;
+  isLoading: boolean;
+  isOnline: boolean;
+}) {
+  const displaySlots = Array.from({ length: MAX_CODE_LENGTH }, (_, i) => ({
+    char: i < code.length ? code[i] : '',
+    active: i === code.length,
+    filled: i < code.length,
+  }));
+
+  const keys = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    ['delete', '0', 'validate'],
+  ] as const;
+
+  const canValidate = code.length >= 6 && !isLoading;
+
+  return (
+    <div className="fixed inset-0 bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col z-50">
+      {/* ─── Header ─────────────────────────────────────── */}
+      <div className="bg-[#0d1117]/80 backdrop-blur-xl border-b border-white/5 px-5 pt-4 pb-4 safe-top">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 active:scale-95 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <p className="text-white font-semibold text-base">CODE DE CONTRÔLE</p>
+          <div className="w-10" />
+        </div>
+      </div>
+
+      {/* ─── Code display ──────────────────────────────────── */}
+      <div className="px-6 pt-8 pb-6 max-w-lg mx-auto w-full">
+        <div className="bg-[#0d1117]/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+          {/* 8 digit slots */}
+          <div className="flex justify-center gap-3">
+            {displaySlots.map((slot, i) => (
+              <div
+                key={i}
+                className={`w-10 h-12 rounded-xl flex items-center justify-center text-2xl font-bold transition-all duration-150 ${
+                  slot.filled
+                    ? 'bg-[#00d9a3]/20 border-2 border-[#00d9a3]/50 text-[#00d9a3]'
+                    : slot.active
+                      ? 'bg-white/10 border-2 border-white/30 text-white'
+                      : 'bg-white/5 border-2 border-white/8 text-transparent'
+                }`}
+              >
+                {slot.filled ? (
+                  <span className="animate-fade-in-scale">{slot.char}</span>
+                ) : slot.active ? (
+                  <span className="w-[2px] h-6 bg-white/60 animate-pulse rounded" />
+                ) : (
+                  <span className="text-white/10">-</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Digit count */}
+          <p className="text-center text-xs text-gray-500 mt-4">
+            {code.length}/{MAX_CODE_LENGTH} chiffres saisis
+          </p>
+        </div>
+      </div>
+
+      {/* ─── Keypad grid ─────────────────────────────────── */}
+      <div className="flex-1 flex flex-col justify-center px-8 max-w-lg mx-auto w-full">
+        <div className="space-y-3">
+          {keys.map((row, ri) => (
+            <div key={ri} className="grid grid-cols-3 gap-3">
+              {row.map((key) => {
+                if (key === 'delete') {
+                  return (
+                    <button
+                      key="delete"
+                      type="button"
+                      onClick={onDelete}
+                      className="h-[72px] rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center active:scale-95 active:bg-white/10 transition-all"
+                    >
+                      <Delete className="w-6 h-6 text-white/60" />
+                    </button>
+                  );
+                }
+
+                if (key === 'validate') {
+                  return (
+                    <button
+                      key="validate"
+                      type="button"
+                      onClick={onValidate}
+                      disabled={!canValidate}
+                      className={`h-[72px] rounded-2xl flex items-center justify-center active:scale-95 transition-all ${
+                        canValidate
+                          ? 'bg-gradient-to-r from-[#00d9a3] to-[#00b894] shadow-lg shadow-[#00d9a3]/20'
+                          : 'bg-white/5 border border-white/10'
+                      }`}
+                    >
+                      <Check className={`w-6 h-6 ${canValidate ? 'text-white' : 'text-white/20'}`} />
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => onDigit(key)}
+                    className="h-[72px] rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white active:scale-95 active:bg-[#00d9a3]/15 transition-all"
+                  >
+                    {key}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Validate full-width button */}
+        <button
+          type="button"
+          onClick={onValidate}
+          disabled={!canValidate}
+          className={`w-full h-16 rounded-2xl flex items-center justify-center gap-3 font-bold text-lg mt-5 active:scale-[0.97] transition-all ${
+            canValidate
+              ? 'bg-gradient-to-r from-[#00d9a3] to-[#00b894] text-white shadow-xl shadow-[#00d9a3]/25'
+              : 'bg-white/5 border border-white/10 text-white/20 cursor-not-allowed'
+          }`}
+        >
+          {isLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Vérification...
+            </>
+          ) : (
+            <>
+              <Check className="w-5 h-5" />
+              VALIDER LE BILLET
+            </>
+          )}
+        </button>
+
+        {/* Hint */}
+        <p className="text-center text-xs text-gray-600 mt-4">
+          Ou scannez le QR code
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEYS = {
+  accessToken: 'smartickets_staff_access_token',
+  refreshToken: 'smartickets_staff_refresh_token',
+  staffData: 'smartickets_staff_data',
+};
 
 export default function ControllerValidatePage() {
+  // ─── Screen state ─────────────────────────────────────────────
+  const [screen, setScreen] = useState<Screen>('dashboard');
+
+  // ─── Auth state ─────────────────────────────────────────────
+  const [controllerName, setControllerName] = useState('Amina Diop');
+
+  // ─── Code / validation state ──────────────────────────────────
   const [code, setCode] = useState('');
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
@@ -293,37 +1016,42 @@ export default function ControllerValidatePage() {
   const [invalidCount, setInvalidCount] = useState(0);
   const [agenciesDropdownOpen, setAgenciesDropdownOpen] = useState(false);
 
-  // ─── PWA Guard state ─────────────────────────────────────────────
+  // ─── PWA Guard state ────────────────────────────────────────
   const [pwaGuard, setPwaGuard] = useState<PwaGuardState>({ verified: false });
 
-  // ─── Input mode (keypad / camera) ────────────────────────────────────
-  const [inputMode, setInputMode] = useState<InputMode>('keypad');
-
-  // ─── Online / offline state ─────────────────────────────────────────
+  // ─── Online / offline state ─────────────────────────────────
   const [isOnline, setIsOnline] = useState(true);
 
-  // ─── Sync queue state ───────────────────────────────────────────────
+  // ─── Sync queue state ───────────────────────────────────────
   const [pendingCount, setPendingCount] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const autoClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // ─── QR scanner refs ─────────────────────────────────────────────────
+  // ─── QR scanner refs ────────────────────────────────────────
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const scannerStartingRef = useRef(false);
 
-  // ─── Stable ref for selected agency (avoids stale closure in validateWithCode) ─
+  // ─── Stable ref for selected agency ──────────────────────────
   const selectedAgencyIdRef = useRef(selectedAgencyId);
   selectedAgencyIdRef.current = selectedAgencyId;
 
-  // ─── PWA Token validation on mount ─────────────────────────────────
-  // Validates JWT token from URL query param. If valid, auto-selects
-  // the agency and shows a verified badge. If invalid/expired, the
-  // page still works but with a warning.
+  // ─── Check existing session on mount ────────────────────────
+  useEffect(() => {
+    const staffData = localStorage.getItem(STORAGE_KEYS.staffData);
+    if (staffData) {
+      try {
+        const data = JSON.parse(staffData);
+        if (data.name) setControllerName(data.name);
+      } catch {
+        // Ignore
+      }
+    }
+  }, []);
 
+  // ─── PWA Token validation on mount ──────────────────────────
   useEffect(() => {
     const validateTokenFromUrl = async () => {
       if (typeof window === 'undefined') return;
@@ -335,21 +1063,17 @@ export default function ControllerValidatePage() {
       if (result.valid && result.payload) {
         const payload = result.payload;
         setPwaGuard({ verified: true, agencyName: payload.agencyName });
-        // Pre-select the agency from token
         setSelectedAgencyId(payload.agencyId);
-        // Clean URL (remove token from address bar)
         window.history.replaceState({}, '', '/controller/validate');
       } else {
         setPwaGuard({ verified: false, error: result.error, expired: result.error?.includes('expiré') });
-        // Clean URL
         window.history.replaceState({}, '', '/controller/validate');
       }
     };
     validateTokenFromUrl();
   }, []);
 
-  // ─── Fetch agencies on mount ──────────────────────────────────────────
-
+  // ─── Fetch agencies on mount ────────────────────────────────
   useEffect(() => {
     const fetchAgencies = async () => {
       try {
@@ -358,7 +1082,6 @@ export default function ControllerValidatePage() {
           const data = await res.json();
           const list: Agency[] = data.agencies || [];
           setAgencies(list);
-          // Auto-select only if not already set by PWA token
           setSelectedAgencyId((prev) => {
             if (prev) return prev;
             if (list.length === 1) return list[0].id;
@@ -366,7 +1089,7 @@ export default function ControllerValidatePage() {
           });
         }
       } catch {
-        // Silently fail — will work without agency filter
+        // Silently fail
       } finally {
         setAgenciesLoaded(true);
       }
@@ -374,11 +1097,9 @@ export default function ControllerValidatePage() {
     fetchAgencies();
   }, []);
 
-  // ─── Online / offline listeners ──────────────────────────────────────
-
+  // ─── Online / offline listeners ──────────────────────────────
   useEffect(() => {
     setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
-
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -389,67 +1110,42 @@ export default function ControllerValidatePage() {
     };
   }, []);
 
-  // ─── Start sync engine on mount, stop on unmount ──────────────────────
-
+  // ─── Start sync engine on mount, stop on unmount ──────────────
   useEffect(() => {
     startSyncEngine();
-
     let unsub: (() => void) | undefined;
-
     if (syncEngine) {
       unsub = syncEngine.subscribe((event) => {
-        if (event.type === 'sync_start') {
-          setIsSyncing(true);
-        }
         if (event.type === 'sync_progress' || event.type === 'sync_complete') {
-          if (event.pending !== undefined) {
-            setPendingCount(event.pending);
-          }
-        }
-        if (event.type === 'sync_complete' || event.type === 'sync_error') {
-          setIsSyncing(false);
-          getQueueStats().then((stats) => setPendingCount(stats.pending));
+          if (event.pending !== undefined) setPendingCount(event.pending);
         }
       });
-
-      // Initial queue stats
       getQueueStats().then((stats) => setPendingCount(stats.pending));
     }
-
     return () => {
       stopSyncEngine();
       if (unsub) unsub();
     };
   }, []);
 
-  // ─── Close dropdown on outside click ──────────────────────────────────
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setAgenciesDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // ─── Cleanup auto-clear timer ─────────────────────────────────────────
-
+  // ─── Cleanup auto-clear timer ───────────────────────────────
   useEffect(() => {
     return () => {
       if (autoClearTimerRef.current) clearTimeout(autoClearTimerRef.current);
     };
   }, []);
 
-  // ─── Web Audio: ding ──────────────────────────────────────────────────
+  // ─── Stop scanner on unmount ────────────────────────────────
+  useEffect(() => {
+    return () => { stopScannerInternal(); };
+  }, []);
 
+  // ─── Web Audio: ding ────────────────────────────────────────
   const playDing = useCallback(() => {
     try {
       if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
       const ctx = audioCtxRef.current;
       if (ctx.state === 'suspended') ctx.resume();
-
       const osc1 = ctx.createOscillator();
       const g1 = ctx.createGain();
       osc1.connect(g1);
@@ -460,7 +1156,6 @@ export default function ControllerValidatePage() {
       g1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
       osc1.start(ctx.currentTime);
       osc1.stop(ctx.currentTime + 0.4);
-
       const osc2 = ctx.createOscillator();
       const g2 = ctx.createGain();
       osc2.connect(g2);
@@ -471,19 +1166,15 @@ export default function ControllerValidatePage() {
       g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
       osc2.start(ctx.currentTime + 0.15);
       osc2.stop(ctx.currentTime + 0.6);
-    } catch {
-      // Audio not available
-    }
+    } catch { /* Audio not available */ }
   }, []);
 
-  // ─── Web Audio: buzz ──────────────────────────────────────────────────
-
+  // ─── Web Audio: buzz ────────────────────────────────────────
   const playBuzz = useCallback(() => {
     try {
       if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
       const ctx = audioCtxRef.current;
       if (ctx.state === 'suspended') ctx.resume();
-
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
       osc.connect(g);
@@ -495,33 +1186,26 @@ export default function ControllerValidatePage() {
       g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.3);
-    } catch {
-      // Audio not available
-    }
+    } catch { /* Audio not available */ }
   }, []);
 
-  // ─── Haptic feedback ──────────────────────────────────────────────────
-
+  // ─── Haptic feedback ────────────────────────────────────────
   const triggerHaptic = useCallback((pattern: number | number[] = 10) => {
     try {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate(pattern);
       }
-    } catch {
-      // Silently fail
-    }
+    } catch { /* Silently fail */ }
   }, []);
 
-  // ─── Extract numeric code from scanned text ───────────────────────────
-
+  // ─── Extract numeric code from scanned text ─────────────────
   const extractControlCode = useCallback((text: string): string | null => {
     if (/^\d{6,8}$/.test(text)) return text;
     const match = text.match(/\d{6,8}/);
     return match ? match[0] : null;
   }, []);
 
-  // ─── Clear result and code ────────────────────────────────────────────
-
+  // ─── Clear result and code ──────────────────────────────────
   const clearResult = useCallback(() => {
     if (autoClearTimerRef.current) {
       clearTimeout(autoClearTimerRef.current);
@@ -530,14 +1214,34 @@ export default function ControllerValidatePage() {
     setResult(null);
     setValidationStatus('idle');
     setCode('');
+    setScreen('dashboard');
   }, []);
 
-  // ─── Validate ticket with a given code (shared by keypad & camera) ──
+  // ─── Navigate back to dashboard ──────────────────────────────
+  const goToDashboard = useCallback(() => {
+    stopScannerInternal();
+    setScreen('dashboard');
+    setCode('');
+  }, []);
 
+  // ─── Navigate to scanner ─────────────────────────────────────
+  const goToScanner = useCallback(() => {
+    setCode('');
+    setResult(null);
+    setValidationStatus('idle');
+    setScreen('scanner');
+  }, []);
+
+  // ─── Navigate to keypad ──────────────────────────────────────
+  const goToKeypad = useCallback(() => {
+    stopScannerInternal();
+    setScreen('keypad');
+  }, []);
+
+  // ─── Validate ticket with a given code ─────────────────────
   const validateWithCode = useCallback(
     async (controlCode: string) => {
       if (controlCode.length < 6 || validationStatus === 'loading') return;
-
       setValidationStatus('loading');
       setCode(controlCode);
       triggerHaptic(20);
@@ -551,7 +1255,6 @@ export default function ControllerValidatePage() {
             agencyId: selectedAgencyIdRef.current || undefined,
           }),
         });
-
         const data = await res.json();
 
         if (res.ok && data.valid) {
@@ -567,53 +1270,53 @@ export default function ControllerValidatePage() {
           setValidCount((c) => c + 1);
           playDing();
           triggerHaptic([50, 50, 100]);
+          setScreen('result');
         } else if (res.ok && data.ticketStatus === 'VALIDATED') {
           setValidationStatus('used');
           setResult({ status: 'used', validatedAt: data.validatedAt, controlCode });
           setInvalidCount((c) => c + 1);
           playBuzz();
           triggerHaptic([100, 50, 100]);
+          setScreen('result');
         } else if (res.ok && data.ticketStatus === 'CANCELLED') {
           setValidationStatus('cancelled');
           setResult({ status: 'cancelled', controlCode });
           setInvalidCount((c) => c + 1);
           playBuzz();
           triggerHaptic([100, 50, 100]);
+          setScreen('result');
         } else {
           setValidationStatus('not_found');
           setResult({ status: 'not_found', controlCode });
           setInvalidCount((c) => c + 1);
           playBuzz();
           triggerHaptic([50]);
+          setScreen('result');
         }
       } catch {
-        // Network error — try to queue for offline sync
         try {
           const offlineAvailable = await isOfflineStorageAvailable();
           if (offlineAvailable) {
             await addToSyncQueue({
               url: '/api/validate-ticket',
               method: 'POST',
-              body: {
-                controlCode,
-                agencyId: selectedAgencyIdRef.current || undefined,
-              },
+              body: { controlCode, agencyId: selectedAgencyIdRef.current || undefined },
             });
-
             const stats = await getQueueStats();
             setPendingCount(stats.pending);
-
             setValidationStatus('queued');
             setResult({ status: 'queued', controlCode });
             setInvalidCount((c) => c + 1);
             playBuzz();
             triggerHaptic([100, 100]);
+            setScreen('result');
           } else {
             setValidationStatus('error');
             setResult({ status: 'error', controlCode });
             setInvalidCount((c) => c + 1);
             playBuzz();
             triggerHaptic([100, 100]);
+            setScreen('result');
           }
         } catch {
           setValidationStatus('error');
@@ -621,45 +1324,37 @@ export default function ControllerValidatePage() {
           setInvalidCount((c) => c + 1);
           playBuzz();
           triggerHaptic([100, 100]);
+          setScreen('result');
         }
       }
 
-      // Auto-clear after 5 seconds
+      // Auto-clear after 8 seconds on result screen
       autoClearTimerRef.current = setTimeout(() => {
         clearResult();
-      }, 5000);
+      }, 8000);
     },
     [validationStatus, triggerHaptic, playDing, playBuzz, clearResult],
   );
 
-  // ─── QR Scanner: stop ────────────────────────────────────────────────
-
-  const stopScanner = useCallback(async () => {
+  // ─── QR Scanner: stop (internal, no deps) ──────────────────
+  const stopScannerInternal = useCallback(async () => {
     if (html5QrCodeRef.current) {
       try {
         const state = html5QrCodeRef.current.getState();
         if (state === 2 || state === 1) {
           await html5QrCodeRef.current.stop();
         }
-      } catch {
-        // Ignore stop errors
-      }
-      try {
-        html5QrCodeRef.current.clear();
-      } catch {
-        // Ignore clear errors
-      }
+      } catch { /* Ignore */ }
+      try { html5QrCodeRef.current.clear(); } catch { /* Ignore */ }
       html5QrCodeRef.current = null;
     }
   }, []);
 
-  // ─── QR Scanner: start ────────────────────────────────────────────────
-
+  // ─── QR Scanner: start ──────────────────────────────────────
   const startScanner = useCallback(async () => {
     if (!scannerRef.current || scannerStartingRef.current) return;
     scannerStartingRef.current = true;
-
-    await stopScanner();
+    await stopScannerInternal();
 
     try {
       const html5QrCode = new Html5Qrcode('scanner-container');
@@ -667,500 +1362,216 @@ export default function ControllerValidatePage() {
 
       await html5QrCode.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { fps: 10, qrbox: { width: 260, height: 260 } },
         (decodedText) => {
           const extracted = extractControlCode(decodedText);
           if (extracted) {
             setCode(extracted);
             validateWithCode(extracted);
-            stopScanner();
+            stopScannerInternal();
           }
         },
-        () => {
-          // Ignore continuous scan errors
-        },
+        () => { /* Ignore */ },
       );
     } catch {
       html5QrCodeRef.current = null;
     } finally {
       scannerStartingRef.current = false;
     }
-  }, [extractControlCode, validateWithCode]);
+  }, [extractControlCode, validateWithCode, stopScannerInternal]);
 
-  // ─── Stop scanner on unmount ────────────────────────────────────────
-
-  useEffect(() => {
-    return () => {
-      stopScanner();
-    };
-  }, [stopScanner]);
-
-  // ─── Stop scanner when switching away from camera mode ───────────────
-
-  useEffect(() => {
-    if (inputMode !== 'camera') {
-      stopScanner();
-    }
-  }, [inputMode]);
-
-  // ─── Start scanner when entering camera mode ─────────────────────────
-
-  useEffect(() => {
-    if (inputMode === 'camera') {
-      const timer = setTimeout(() => {
-        startScanner();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [inputMode, startScanner]);
-
-  // ─── Toggle camera mode ─────────────────────────────────────────────
-
-  const toggleCamera = useCallback(() => {
-    setInputMode((prev) => (prev === 'camera' ? 'keypad' : 'camera'));
+  // ─── Flashlight ──────────────────────────────────────────────
+  const handleStartFlashlight = useCallback(() => {
+    html5QrCodeRef.current?.applyVideoConstraints({
+      advanced: [{ torch: true }],
+    } as MediaTrackConstraints);
   }, []);
 
-  // ─── Handle digit press ───────────────────────────────────────────────
+  const handleStopFlashlight = useCallback(() => {
+    html5QrCodeRef.current?.applyVideoConstraints({
+      advanced: [{ torch: false }],
+    } as MediaTrackConstraints);
+  }, []);
 
+  // ─── Start scanner when entering scanner screen ──────────────
+  useEffect(() => {
+    if (screen === 'scanner') {
+      const timer = setTimeout(() => { startScanner(); }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      stopScannerInternal();
+    }
+  }, [screen, startScanner, stopScannerInternal]);
+
+  // ─── Handle digit press ─────────────────────────────────────
   const handleDigit = useCallback(
     (digit: string) => {
       if (code.length >= MAX_CODE_LENGTH) return;
       triggerHaptic(10);
       setCode((prev) => prev + digit);
-      if (result) {
-        setResult(null);
-        setValidationStatus('idle');
-        if (autoClearTimerRef.current) {
-          clearTimeout(autoClearTimerRef.current);
-          autoClearTimerRef.current = null;
-        }
-      }
     },
-    [code.length, triggerHaptic, result],
+    [code.length, triggerHaptic],
   );
 
-  // ─── Handle delete ───────────────────────────────────────────────────
-
+  // ─── Handle delete ───────────────────────────────────────────
   const handleDelete = useCallback(() => {
     triggerHaptic(10);
     setCode((prev) => prev.slice(0, -1));
   }, [triggerHaptic]);
 
-  // ─── Validate ticket (keypad button) ─────────────────────────────────
-
+  // ─── Validate ticket (keypad) ─────────────────────────────────
   const handleValidate = useCallback(async () => {
     if (code.length < 6 || validationStatus === 'loading') return;
     await validateWithCode(code);
   }, [code, validationStatus, validateWithCode]);
 
-  // ─── Keyboard support ─────────────────────────────────────────────────
+  // ─── New scan (from result screen) ──────────────────────────
+  const handleNewScan = useCallback(() => {
+    if (autoClearTimerRef.current) clearTimeout(autoClearTimerRef.current);
+    setResult(null);
+    setValidationStatus('idle');
+    setCode('');
+    setScreen('scanner');
+  }, []);
 
+  // ─── Logout ──────────────────────────────────────────────────
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEYS.accessToken);
+    localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    localStorage.removeItem(STORAGE_KEYS.staffData);
+    if (typeof window !== 'undefined') {
+      window.location.href = '/controller/login';
+    }
+  }, []);
+
+  // ─── Keyboard support ───────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') {
-        handleDigit(e.key);
-      } else if (e.key === 'Backspace') {
-        handleDelete();
-      } else if (e.key === 'Enter') {
-        handleValidate();
-      } else if (e.key === 'Escape') {
-        clearResult();
-      }
+      if (screen !== 'keypad') return;
+      if (e.key >= '0' && e.key <= '9') handleDigit(e.key);
+      else if (e.key === 'Backspace') handleDelete();
+      else if (e.key === 'Enter') handleValidate();
+      else if (e.key === 'Escape') goToDashboard();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleDigit, handleDelete, handleValidate, clearResult]);
+  }, [screen, handleDigit, handleDelete, handleValidate, goToDashboard]);
 
-  // ─── Computed values ─────────────────────────────────────────────────
-
-  const displayCode = code + '_'.repeat(MAX_CODE_LENGTH - code.length);
+  // ─── Computed values ─────────────────────────────────────────
   const selectedAgency = agencies.find((a) => a.id === selectedAgencyId);
+  const totalControls = validCount + invalidCount;
 
-  const keys = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9'],
-    ['delete', '0', 'validate'],
-  ] as const;
+  // ─── Agency selector (shown on dashboard) ────────────────────
+  const agencySelector = agenciesLoaded && agencies.length > 1 ? (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setAgenciesDropdownOpen((o) => !o)}
+        className="w-full flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm active:scale-[0.98] transition-transform"
+      >
+        <span className={selectedAgency ? 'text-white' : 'text-gray-500'}>
+          {selectedAgency ? selectedAgency.name : 'Sélectionner une agence'}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${agenciesDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {agenciesDropdownOpen && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-2 bg-[#1a1a2e]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
+          {agencies.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                setSelectedAgencyId(a.id);
+                setAgenciesDropdownOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 text-sm transition-colors ${
+                a.id === selectedAgencyId
+                  ? 'bg-[#00d9a3]/15 text-[#00d9a3]'
+                  : 'text-gray-300 hover:bg-white/5'
+              }`}
+            >
+              {a.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : null;
 
-  // ─── Render ───────────────────────────────────────────────────────────
-
+  // ─── Render ─────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#111827] text-white flex flex-col select-none">
-      {/* ═══ Header ═════════════════════════════════════════════════════ */}
-      <header className="bg-[#0d1117] border-b border-gray-800 px-4 py-3 safe-top">
-        <div className="flex items-center justify-between max-w-lg mx-auto">
-          {/* Left: logo + title */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/20">
-              <Bus className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold tracking-tight">
-                Smarticket<span className="text-emerald-400">S</span>
-              </h1>
-              <p className="text-[11px] text-gray-400 -mt-0.5">Contr&ocirc;le</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#1a1a2e] text-white select-none">
+      <ScanAnimations />
 
-          {/* Right: status + camera toggle */}
-          <div className="flex items-center gap-2">
-            {/* PWA Verified Badge */}
-            {pwaGuard.verified && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20" title={"Agence vérifiée: " + pwaGuard.agencyName}>
-                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                <span className="text-[10px] font-semibold text-emerald-400 hidden sm:inline truncate max-w-[80px]">
-                  {pwaGuard.agencyName}
-                </span>
+      {/* Dashboard Screen */}
+      {screen === 'dashboard' && (
+        <div>
+          {agencySelector && <div className="max-w-lg mx-auto px-5 pt-4">{agencySelector}</div>}
+          <DashboardScreen
+            controllerName={controllerName}
+            onGoToScanner={goToScanner}
+            onGoToKeypad={goToKeypad}
+            isOnline={isOnline}
+            validCount={validCount}
+            invalidCount={invalidCount}
+            totalControls={totalControls}
+            selectedAgency={selectedAgency}
+            onLogout={handleLogout}
+          />
+        </div>
+      )}
+
+      {/* Scanner Screen */}
+      {screen === 'scanner' && (
+        <ScannerScreen
+          scannerRef={scannerRef}
+          onBack={goToDashboard}
+          onGoToKeypad={goToKeypad}
+          onCodeScanned={validateWithCode}
+          isLoading={validationStatus === 'loading'}
+          isOnline={isOnline}
+          onStartFlashlight={handleStartFlashlight}
+          onStopFlashlight={handleStopFlashlight}
+        />
+      )}
+
+      {/* Keypad Screen */}
+      {screen === 'keypad' && (
+        <KeypadScreen
+          code={code}
+          onDigit={handleDigit}
+          onDelete={handleDelete}
+          onValidate={handleValidate}
+          onBack={goToDashboard}
+          isLoading={validationStatus === 'loading'}
+          isOnline={isOnline}
+        />
+      )}
+
+      {/* Result Screen */}
+      {screen === 'result' && result && (
+        <ResultScreen
+          result={result}
+          onClear={clearResult}
+          onNewScan={handleNewScan}
+        />
+      )}
+
+      {/* ─── Pending sync footer indicator ────────────────── */}
+      {pendingCount > 0 && screen === 'dashboard' && (
+        <div className="fixed bottom-16 left-0 right-0 z-40 px-5">
+          <div className="max-w-lg mx-auto">
+            <div className="bg-sky-500/20 backdrop-blur-xl border border-sky-500/30 rounded-2xl px-4 py-3 flex items-center gap-3">
+              <CloudCheck className="w-5 h-5 text-sky-400 animate-pulse" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-sky-300">
+                  {pendingCount} validation{pendingCount > 1 ? 's' : ''} en attente de synchronisation
+                </p>
               </div>
-            )}
-
-            {/* PWA Token Expired Warning */}
-            {pwaGuard.expired && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20" title={pwaGuard.error}>
-                <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline">
-                  Token expiré
-                </span>
-              </div>
-            )}
-
-            {/* Online / Offline indicator */}
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#1f2937] border border-gray-700"
-              title={isOnline ? 'En ligne' : 'Hors ligne'}
-            >
-              {isOnline ? (
-                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-              ) : (
-                <WifiOff className="w-3.5 h-3.5 text-red-400" />
-              )}
-              <span
-                className={`text-[10px] font-medium hidden sm:inline ${
-                  isOnline ? 'text-emerald-400' : 'text-red-400'
-                }`}
-              >
-                {isOnline ? 'En ligne' : 'Hors ligne'}
-              </span>
             </div>
-
-            {/* Camera toggle */}
-            <button
-              type="button"
-              onClick={toggleCamera}
-              className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-all active:scale-95 ${
-                inputMode === 'camera'
-                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                  : 'bg-[#1f2937] border-gray-700 text-gray-400 hover:bg-[#374151] hover:text-gray-300'
-              }`}
-              aria-label={inputMode === 'camera' ? 'Passer au clavier' : 'Passer au scanner'}
-            >
-              <ScanLine className="w-5 h-5" />
-            </button>
           </div>
         </div>
-
-        {/* Agency name (single agency) */}
-        {selectedAgency && agencies.length > 1 && (
-          <div className="max-w-lg mx-auto mt-2">
-            <span className="text-xs text-gray-500 truncate">{selectedAgency.name}</span>
-          </div>
-        )}
-      </header>
-
-      {/* ═══ Main Content ════════════════════════════════════════════════ */}
-      <main className="flex-1 flex flex-col max-w-lg mx-auto w-full px-4 py-4 gap-4">
-        {/* ─── Agency Selector ──────────────────────────────────── */}
-        {agenciesLoaded && agencies.length > 1 && (
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setAgenciesDropdownOpen((o) => !o)}
-              className="w-full flex items-center justify-between bg-[#1f2937] border border-gray-700 rounded-xl px-4 py-3 text-sm active:scale-[0.98] transition-transform"
-              aria-label="S\u00E9lectionner une agence"
-              aria-expanded={agenciesDropdownOpen}
-            >
-              <span className={selectedAgency ? 'text-white' : 'text-gray-400'}>
-                {selectedAgency ? selectedAgency.name : 'S\u00E9lectionner une agence'}
-              </span>
-              <ChevronDown
-                className={`w-4 h-4 text-gray-400 transition-transform ${
-                  agenciesDropdownOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-            {agenciesDropdownOpen && (
-              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#1f2937] border border-gray-700 rounded-xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
-                {agencies.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAgencyId(a.id);
-                      setAgenciesDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 text-sm transition-colors ${
-                      a.id === selectedAgencyId
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
-                    }`}
-                  >
-                    {a.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ─── Input Mode Toggle ──────────────────────────────────── */}
-        {agenciesLoaded && (
-          <div className="flex bg-[#1f2937] border border-gray-700 rounded-xl p-1 gap-1">
-            <button
-              type="button"
-              onClick={() => setInputMode('keypad')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                inputMode === 'keypad'
-                  ? 'bg-emerald-500/20 text-emerald-300 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="4" width="16" height="16" rx="2" />
-                <line x1="6" y1="8" x2="6" y2="8.01" />
-                <line x1="10" y1="8" x2="10" y2="8.01" />
-                <line x1="14" y1="8" x2="14" y2="8.01" />
-                <line x1="8" y1="12" x2="8" y2="12.01" />
-                <line x1="12" y1="12" x2="12" y2="12.01" />
-                <line x1="16" y1="12" x2="16" y2="12.01" />
-                <line x1="6" y1="16" x2="6" y2="16.01" />
-                <line x1="10" y1="16" x2="10" y2="16.01" />
-              </svg>
-              Clavier
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputMode('camera')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                inputMode === 'camera'
-                  ? 'bg-emerald-500/20 text-emerald-300 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              <ScanLine className="w-4 h-4" />
-              Scanner
-            </button>
-          </div>
-        )}
-
-        {/* ─── Result Card (shared by both modes) ────────────────── */}
-        {result && <ResultCard result={result} onClear={clearResult} />}
-
-        {/* ═══ Camera Mode ════════════════════════════════════════════ */}
-        {inputMode === 'camera' && (
-          <div className="flex-1 flex flex-col gap-4">
-            {/* Camera viewport */}
-            <div className="bg-[#0a0f1a] border border-gray-700 rounded-2xl overflow-hidden flex-1 min-h-[260px] relative">
-              <div
-                id="scanner-container"
-                ref={scannerRef}
-                className="w-full h-full"
-                style={{ minHeight: '260px' }}
-              />
-              {/* Overlay hint */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-black/50 backdrop-blur-sm rounded-2xl px-5 py-3 flex items-center gap-2">
-                  <ScanLine className="w-5 h-5 text-emerald-400 animate-pulse" />
-                  <span className="text-sm text-emerald-300 font-medium">
-                    Pointez le QR code...
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Loading indicator for camera */}
-            {validationStatus === 'loading' && (
-              <button type="button" disabled className="w-full h-14 rounded-xl flex items-center justify-center gap-2 font-bold text-base bg-emerald-500/60 text-white cursor-not-allowed">
-                <Spinner size="md" />
-                V&eacute;rification en cours...
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ═══ Keypad Mode ══════════════════════════════════════════ */}
-        {inputMode === 'keypad' && (
-          <>
-            {/* Code display */}
-            <div className="bg-[#1f2937] border border-gray-700 rounded-2xl px-6 py-6 text-center">
-              <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">
-                Code de contr&ocirc;le
-              </p>
-              <div className="font-mono text-4xl sm:text-5xl tracking-[0.3em] text-white leading-relaxed relative">
-                {displayCode.split('').map((ch, i) => (
-                  <span
-                    key={i}
-                    className={`inline-block transition-colors duration-150 ${
-                      i < code.length ? 'text-white' : 'text-gray-600'
-                    }`}
-                  >
-                    {ch}
-                  </span>
-                ))}
-                {code.length < MAX_CODE_LENGTH && (
-                  <span
-                    className="inline-block w-[2px] h-8 bg-emerald-400 ml-0.5 animate-pulse absolute top-1/2 -translate-y-1/2"
-                    style={{
-                      left: `calc(${code.length} * 1em + ${code.length * 0.3}em + 50% - ${MAX_CODE_LENGTH * 0.65}em)`,
-                    }}
-                  />
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-3">
-                {code.length}/{MAX_CODE_LENGTH} chiffres
-              </p>
-            </div>
-
-            {/* Numeric keypad */}
-            <div className="grid grid-cols-3 gap-2.5 mt-auto">
-              {keys.map((row) =>
-                row.map((key) => {
-                  if (key === 'delete') {
-                    return (
-                      <button
-                        key="delete"
-                        type="button"
-                        onClick={handleDelete}
-                        disabled={code.length === 0 || validationStatus === 'loading'}
-                        className="h-[64px] rounded-xl flex items-center justify-center bg-[#374151] text-gray-300 hover:bg-[#4b5563] active:bg-[#6b7280] active:scale-95 transition-all duration-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                        aria-label="Supprimer"
-                      >
-                        <Delete className="w-7 h-7" />
-                      </button>
-                    );
-                  }
-
-                  if (key === 'validate') {
-                    return (
-                      <button
-                        key="validate"
-                        type="button"
-                        onClick={handleValidate}
-                        disabled={code.length < 6 || validationStatus === 'loading'}
-                        className={`h-[64px] rounded-xl flex items-center justify-center font-bold text-lg transition-all duration-100 disabled:opacity-30 disabled:cursor-not-allowed ${
-                          code.length >= 6 && validationStatus !== 'loading'
-                            ? 'bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 active:scale-95 shadow-lg shadow-emerald-500/25'
-                            : 'bg-[#374151] text-gray-500'
-                        }`}
-                        aria-label="Valider le billet"
-                      >
-                        {validationStatus === 'loading' ? (
-                          <Spinner size="lg" />
-                        ) : (
-                          <Check className="w-7 h-7" />
-                        )}
-                      </button>
-                    );
-                  }
-
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handleDigit(key)}
-                      disabled={validationStatus === 'loading' || code.length >= MAX_CODE_LENGTH}
-                      className="h-[64px] rounded-xl flex items-center justify-center text-2xl font-semibold text-white bg-[#374151] hover:bg-[#4b5563] active:bg-[#6b7280] active:scale-95 transition-all duration-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                      aria-label={`Chiffre ${key}`}
-                    >
-                      {key}
-                    </button>
-                  );
-                }),
-              )}
-            </div>
-
-            {/* Full-width validate button */}
-            <button
-              type="button"
-              onClick={handleValidate}
-              disabled={code.length < 6 || validationStatus === 'loading'}
-              className={`w-full h-14 rounded-xl flex items-center justify-center gap-2 font-bold text-base transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
-                code.length >= 6 && validationStatus !== 'loading'
-                  ? 'bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 active:scale-[0.98] shadow-lg shadow-emerald-500/25'
-                  : 'bg-[#1f2937] text-gray-500 border border-gray-700'
-              }`}
-              aria-label="Valider le billet"
-            >
-              {validationStatus === 'loading' ? (
-                <>
-                  <Spinner size="sm" />
-                  V&eacute;rification en cours...
-                </>
-              ) : (
-                <>
-                  <Check className="w-5 h-5" />
-                  VALIDER LE BILLET
-                </>
-              )}
-            </button>
-          </>
-        )}
-      </main>
-
-      {/* ═══ Stats Bar / Footer ════════════════════════════════════════ */}
-      <footer className="bg-[#0d1117] border-t border-gray-800 px-4 py-2.5 safe-bottom">
-        <div className="max-w-lg mx-auto flex items-center justify-center gap-3 sm:gap-4 text-xs flex-wrap">
-          <span className="text-gray-400">
-            Valid&eacute;s : <span className="font-bold text-emerald-400">{validCount}</span>
-          </span>
-          <span className="text-gray-700">|</span>
-          <span className="text-gray-400">
-            Invalides : <span className="font-bold text-red-400">{invalidCount}</span>
-          </span>
-          <span className="text-gray-700">|</span>
-          <span className="text-gray-500">
-            Total :{' '}
-            <span className="font-semibold text-gray-300">{validCount + invalidCount}</span>
-          </span>
-
-          {/* Sync indicator */}
-          {(pendingCount > 0 || isSyncing) && (
-            <>
-              <span className="text-gray-700">|</span>
-              <span
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-md font-medium ${
-                  isSyncing
-                    ? 'bg-emerald-500/20 text-emerald-300'
-                    : 'bg-amber-500/20 text-amber-300'
-                }`}
-              >
-                {isSyncing ? (
-                  <>
-                    <CloudCheck className="w-3.5 h-3.5 animate-pulse" />
-                    <span>Synchronisation...</span>
-                  </>
-                ) : (
-                  <>
-                    <CloudOff className="w-3.5 h-3.5" />
-                    <span>En attente : {pendingCount}</span>
-                  </>
-                )}
-              </span>
-            </>
-          )}
-
-          {/* Pending badge */}
-          {pendingCount > 0 && !isSyncing && (
-            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
-              {pendingCount}
-            </span>
-          )}
-        </div>
-      </footer>
+      )}
     </div>
   );
 }

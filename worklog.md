@@ -1401,3 +1401,34 @@ Stage Summary:
 - Ticket QR scan now shows ticket-specific info (passenger, seat, destination, control code)
 - Colis/parcel flow is completely untouched
 - 4 files modified, 397 lines added
+---
+Task ID: 16
+Agent: Main Agent
+Task: Redesign mobile PWA UI/UX for SmarticketS Controller app — 4 screens
+
+Work Log:
+- Explored full project structure, existing controller pages, Prisma schema, API routes
+- Read existing `/controller/validate/page.tsx` (1100+ lines) and `/controller/login/page.tsx` (253 lines)
+- Understood the complete controller flow: login → validate (keypad/camera) → result card
+- Analyzed validation API (`/api/validate-ticket`) — handles ACTIVE/VALIDATED/CANCELLED/NOT_FOUND
+- Understood offline sync system (IndexedDB queue + SyncEngine)
+- Designed and built complete 4-screen mobile PWA redesign:
+
+  **Écran 1 - Dashboard**: Profile header with controller name + "CONTRÔLE" badge, security shield, WiFi/online indicator, fullscreen toggle, profile dropdown with logout. Service summary card with glassmorphism (total/valid/invalid stats). Daily objective progress bar (50 controls). Two main action buttons: "Scanner un ticket" (gradient green, pulse glow) and "Saisie manuelle" (subtle). Offline orange banner. Connection indicator at bottom.
+
+  **Écran 2 - QR Scanner**: Full-screen camera view with semi-transparent overlay. Animated scan frame with 4 pulsing emerald corners. Scanning line animation (top-to-bottom). Instruction badge "Cadrez le QR code du ticket". Loading overlay with spinner. Top bar: back arrow, title, flashlight toggle. Bottom bar: fallback "Code non détecté ? Saisie manuelle".
+
+  **Écran 3 - Result Screen**: Full-screen gradient backgrounds per status (green=valid, red=used/cancelled, amber=not_found, blue=queued, dark=error). Large animated icon (SVG checkmark draw animation, X with shake animation). Details card with glassmorphism showing passenger name, destination, seat, departure time, control timestamp. Different action buttons per status. Auto-clear after 8 seconds.
+
+  **Écran 4 - Numeric Keypad**: Full-screen dark gradient. Back arrow header. 8-digit code display with colored slot indicators (filled=emerald, active=white border, empty=dim). 3x4 grid keypad with 72px buttons (above 48px minimum). Delete + check key buttons. Full-width "VALIDER LE BILLET" button (green when 6+ digits, gray when disabled). Loading state. Keyboard shortcut support.
+
+- Redesigned `/controller/login/page.tsx` to match new theme (gradient backgrounds, glassmorphism cards, emerald accent)
+- All business logic preserved: PWA token validation, agency selector, offline sync, audio (ding/buzz), haptic feedback, auto-clear timers
+- Both pages compile and render with HTTP 200, no lint errors
+
+Stage Summary:
+- `/src/app/controller/validate/page.tsx` — Complete rewrite with 4-screen architecture (dashboard/scanner/keypad/result)
+- `/src/app/controller/login/page.tsx` — Redesigned with new theme
+- CSS animations defined inline: scanLine, pulseCorners, fadeInUp, fadeInScale, shakeX, drawCheck, pulseGlow
+- Color system: #1a1a2e / #16213e backgrounds, #00d9a3 / #00b894 emerald accents
+- All existing features retained: PWA guard, offline queue, audio feedback, haptic, keyboard support

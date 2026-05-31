@@ -1,17 +1,17 @@
 /**
  * Controller PWA Login — /controller/login
  *
- * Minimalist code-based login for controllers.
+ * Modern code-based login for controllers with the new SmarticketS dark theme.
  * Uses phone number + 4-digit access code (sent via WhatsApp onboarding).
  * JWT tokens stored in localStorage for offline access.
- * Dark theme with emerald-500 accent matching controller pages.
+ * Dark theme (#1a1a2e, #16213e) with emerald accent (#00d9a3).
  */
 
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ScanSearch, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
+import { Bus, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 type LoginStatus = 'idle' | 'loading' | 'error';
@@ -41,7 +41,6 @@ export default function ControllerLoginPage() {
           router.replace('/controller/validate');
         }
       } catch {
-        // Invalid data, clear and show login
         localStorage.removeItem(STORAGE_KEYS.accessToken);
         localStorage.removeItem(STORAGE_KEYS.refreshToken);
         localStorage.removeItem(STORAGE_KEYS.staffData);
@@ -65,17 +64,14 @@ export default function ControllerLoginPage() {
         const data = await res.json();
 
         if (res.ok) {
-          // Store JWT tokens + staff data in localStorage
           localStorage.setItem(STORAGE_KEYS.accessToken, data.accessToken);
           localStorage.setItem(STORAGE_KEYS.refreshToken, data.refreshToken);
           localStorage.setItem(
             STORAGE_KEYS.staffData,
-            JSON.stringify(data.staff)
+            JSON.stringify(data.staff),
           );
 
-          // Haptic feedback if available
           if (navigator.vibrate) navigator.vibrate(100);
-
           toast.success(`Bienvenue, ${data.staff.name} !`);
           router.push('/controller/validate');
           return;
@@ -83,8 +79,6 @@ export default function ControllerLoginPage() {
 
         setError(data.error || 'Erreur de connexion');
         setStatus('error');
-
-        // Error vibration
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       } catch {
         setError('Erreur réseau. Vérifiez votre connexion.');
@@ -93,10 +87,9 @@ export default function ControllerLoginPage() {
         setStatus('idle');
       }
     },
-    [phone, code, router]
+    [phone, code, router],
   );
 
-  // Handle individual digit inputs for the code
   const handleDigitChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, '').slice(-1);
     const newCode = code.split('');
@@ -104,14 +97,12 @@ export default function ControllerLoginPage() {
     const joined = newCode.join('').slice(0, 4);
     setCode(joined);
 
-    // Auto-focus next input
     if (digit && index < 3) {
       const next = document.getElementById(`code-digit-${index + 1}`);
       next?.focus();
     }
   };
 
-  // Handle backspace navigation
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !code[index] && index > 0) {
       const prev = document.getElementById(`code-digit-${index - 1}`);
@@ -122,34 +113,35 @@ export default function ControllerLoginPage() {
   const isFormValid = phone.length >= 8 && code.length === 4;
 
   return (
-    <div className="min-h-screen bg-[#111827] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col">
       {/* Header */}
-      <header className="bg-[#0d1117] border-b border-gray-800 px-4 py-3 safe-top">
+      <header className="bg-[#0d1117]/60 backdrop-blur-xl border-b border-white/5 px-5 pt-4 pb-4 safe-top">
         <div className="max-w-lg mx-auto flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/20">
-            <ScanSearch className="w-5 h-5 text-emerald-400" />
+          <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-[#00d9a3] to-[#00b894] shadow-lg shadow-[#00d9a3]/20">
+            <Bus className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight">
-              Smarticket<span className="text-emerald-400">S</span>
+            <h1 className="text-lg font-bold tracking-tight text-white">
+              Smarticket<span className="text-[#00d9a3]">S</span>
             </h1>
-            <p className="text-[11px] text-gray-400 -mt-0.5">
-              Espace Contrôleur
-            </p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00d9a3]/15 text-[#00d9a3] border border-[#00d9a3]/20">
+              CONTRÔLE
+            </span>
           </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8">
+      <main className="flex-1 flex items-center justify-center px-5 py-8">
         <div className="w-full max-w-sm">
-          <div className="bg-[#1f2937] border border-gray-700 rounded-2xl p-6 space-y-6">
+          {/* Login Card with glassmorphism */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl">
             {/* Icon */}
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                <ShieldCheck className="w-8 h-8 text-emerald-400" />
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-[#00d9a3]/10 border border-[#00d9a3]/20">
+                <ShieldCheck className="w-10 h-10 text-[#00d9a3]" />
               </div>
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-2xl font-extrabold text-white">
                 Connexion Contrôleur
               </h2>
               <p className="text-sm text-gray-400">
@@ -160,9 +152,9 @@ export default function ControllerLoginPage() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Phone */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-300">
-                  <Smartphone className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                  <Smartphone className="w-4 h-4 inline mr-1.5 -mt-0.5 text-[#00d9a3]" />
                   Numéro de téléphone
                 </label>
                 <input
@@ -173,12 +165,12 @@ export default function ControllerLoginPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+221 77 123 45 67"
-                  className="w-full h-14 px-4 bg-[#111827] border border-gray-600 rounded-xl text-white placeholder-gray-500 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                  className="w-full h-14 px-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 text-base focus:outline-none focus:ring-2 focus:ring-[#00d9a3]/50 focus:border-[#00d9a3]/50 transition-colors"
                 />
               </div>
 
               {/* Code (4 digits) */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-300">
                   Code d&apos;accès
                 </label>
@@ -194,7 +186,7 @@ export default function ControllerLoginPage() {
                       onChange={(e) => handleDigitChange(i, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(i, e)}
                       onFocus={(e) => e.target.select()}
-                      className="w-full h-14 text-center text-2xl font-bold bg-[#111827] border border-gray-600 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                      className="w-full h-14 text-center text-2xl font-bold bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#00d9a3]/50 focus:border-[#00d9a3]/50 transition-colors"
                       aria-label={`Chiffre ${i + 1}`}
                     />
                   ))}
@@ -207,9 +199,10 @@ export default function ControllerLoginPage() {
               {/* Error */}
               {error && (
                 <div
-                  className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400"
+                  className="bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 text-sm text-red-400 flex items-center gap-2"
                   role="alert"
                 >
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
                   {error}
                 </div>
               )}
@@ -218,15 +211,15 @@ export default function ControllerLoginPage() {
               <button
                 type="submit"
                 disabled={status === 'loading' || !isFormValid}
-                className={`w-full h-14 rounded-xl flex items-center justify-center gap-2 font-bold text-base transition-all duration-200 min-h-[44px] ${
+                className={`w-full h-14 rounded-2xl flex items-center justify-center gap-2 font-bold text-base transition-all duration-200 min-h-[48px] ${
                   status !== 'loading' && isFormValid
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 active:scale-[0.98] shadow-lg shadow-emerald-500/25'
-                    : 'bg-[#374151] text-gray-500 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-[#00d9a3] to-[#00b894] text-white hover:shadow-xl hover:shadow-[#00d9a3]/25 active:scale-[0.97]'
+                    : 'bg-white/5 text-gray-500 cursor-not-allowed border border-white/10'
                 }`}
               >
                 {status === 'loading' ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />{' '}
+                    <Loader2 className="w-5 h-5 animate-spin" />
                     Connexion...
                   </>
                 ) : (
@@ -243,9 +236,9 @@ export default function ControllerLoginPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#0d1117] border-t border-gray-800 px-4 py-4 safe-bottom">
-        <p className="text-center text-xs text-gray-500">
-          © SmarticketS — Application Contrôleur
+      <footer className="bg-[#0d1117]/40 border-t border-white/5 px-5 py-4 safe-bottom">
+        <p className="text-center text-xs text-gray-600">
+          &copy; SmarticketS — Application Contrôleur
         </p>
       </footer>
     </div>
