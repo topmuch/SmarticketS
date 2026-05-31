@@ -684,10 +684,9 @@ function SolutionsSection() {
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-700"
                   />
-                  <div className={`absolute inset-0 bg-gradient-to-t ${solution.color} opacity-70`} />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <solution.icon className="w-8 h-8 text-white" />
+                    <div className="w-16 h-16 rounded-2xl bg-white/90 shadow-lg flex items-center justify-center">
+                      <solution.icon className="w-8 h-8 text-slate-700" />
                     </div>
                   </div>
                 </div>
