@@ -44,26 +44,14 @@ function ActivateChoiceContent() {
         if (data?.success && data?.colis) {
           setBaggageData(data);
           const status = data.colis.status;
-          const category = data.colis.category;
 
-          // If already in_transit → redirect to retrieve
+          // If already in_transit or delivered → redirect to retrieve
           if (status === 'in_transit' || status === 'delivered') {
             router.replace(`/retrieve/${qrCode}`);
             return;
           }
 
-          // Auto-redirect based on category
-          if (category === 'ticket') {
-            router.replace(`/activate/ticket/${qrCode}`);
-            return;
-          }
-          // Default: parcel
-          if (category === 'parcel') {
-            router.replace(`/activate/parcel/${qrCode}`);
-            return;
-          }
-
-          // No category set → show choice page
+          // Always show the choice page — let the user pick Ticket or Colis
           setChecking(false);
         } else {
           setNotFound(true);
@@ -115,9 +103,6 @@ function ActivateChoiceContent() {
       </div>
     );
   }
-
-  const agencyId = baggageData?.colis?.agencyId || '';
-  const baggageId = baggageData?.colis?.id || '';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
