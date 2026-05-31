@@ -746,8 +746,10 @@ function BottomBlueSection({
 
 function TimelineSection({
   timeline,
+  dark = false,
 }: {
   timeline: TimelineEntry[];
+  dark?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const VISIBLE_COUNT = 4;
@@ -760,15 +762,15 @@ function TimelineSection({
 
   return (
     <div
-      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
+      className={dark ? 'bg-[#215ae2] rounded-2xl border-2 border-dashed border-white/50 shadow-sm p-5 animate-fade-in-up' : 'bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up'}
       style={{ animationDelay: '560ms' }}
     >
       <div className="flex items-center gap-2 mb-4">
-        <Clock className="w-4 h-4 text-black" />
-        <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+        <Clock className={`w-4 h-4 ${dark ? 'text-white' : 'text-black'}`} />
+        <h3 className={`text-xs font-bold ${dark ? 'text-white' : 'text-black'} uppercase tracking-wider`}>
           Historique
         </h3>
-        <span className="ml-auto text-xs text-black">
+        <span className={`ml-auto text-xs ${dark ? 'text-white/70' : 'text-black'}`}>
           {timeline.length} événements
         </span>
       </div>
@@ -787,19 +789,19 @@ function TimelineSection({
                 >
                   {icon.icon}
                 </div>
-                {!isLast && <div className="w-0.5 flex-1 bg-gray-100 my-0.5" />}
+                {!isLast && <div className={`w-0.5 flex-1 ${dark ? 'bg-white/30' : 'bg-gray-100'} my-0.5`} />}
               </div>
 
               {/* Content */}
               <div className={`pb-4 ${isLast ? 'pb-0' : ''}`}>
-                <p className="text-sm font-semibold text-[#0f172a]">
+                <p className={`text-sm font-semibold ${dark ? 'text-white' : 'text-[#0f172a]}`}>
                   {entry.title}
                 </p>
-                <p className="text-xs text-black mt-0.5">
+                <p className={`text-xs ${dark ? 'text-white/70' : 'text-black'} mt-0.5`}>
                   {formatDateTime(entry.timestamp)}
                 </p>
                 {entry.location && (
-                  <p className="text-xs text-black mt-0.5 flex items-center gap-1">
+                  <p className={`text-xs ${dark ? 'text-white/70' : 'text-black'} mt-0.5 flex items-center gap-1`}>
                     <MapPin className="w-3 h-3" />
                     {entry.location}
                   </p>
@@ -814,7 +816,7 @@ function TimelineSection({
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center justify-center gap-1 w-full pt-3 mt-1 border-t border-gray-100 text-xs font-medium text-black hover:text-gray-600 transition-colors"
+          className={`flex items-center justify-center gap-1 w-full pt-3 mt-1 border-t ${dark ? 'border-white/30 text-white/70 hover:text-white' : 'border-gray-100 text-black hover:text-gray-600'} text-xs font-medium transition-colors`
         >
           {expanded
             ? 'Voir moins'
@@ -897,26 +899,26 @@ function ActionButtons({ reference, colis, ticket }: {
 //  FOOTER
 // ═══════════════════════════════════════════════════════════
 
-function PageFooter() {
+function PageFooter({ dark = false }: { dark?: boolean }) {
   return (
-    <footer className="mt-8 pt-6 border-t border-gray-200 text-center space-y-3">
+    <footer className={`mt-8 pt-6 border-t ${dark ? 'border-white/20' : 'border-gray-200'} text-center space-y-3`}>
       <div className="flex items-center justify-center gap-4">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-black hover:text-[#2563eb] transition-colors no-underline"
+          className={`inline-flex items-center gap-1.5 text-sm ${dark ? 'text-white/70 hover:text-white' : 'text-black hover:text-[#2563eb]'} transition-colors no-underline`}
         >
           <Home className="w-4 h-4" />
           Retour à l&apos;accueil
         </Link>
         <Link
           href="/help"
-          className="inline-flex items-center gap-1.5 text-sm text-black hover:text-[#2563eb] transition-colors no-underline"
+          className={`inline-flex items-center gap-1.5 text-sm ${dark ? 'text-white/70 hover:text-white' : 'text-black hover:text-[#2563eb]'} transition-colors no-underline`}
         >
           <MessageCircle className="w-4 h-4" />
           Besoin d&apos;aide ?
         </Link>
       </div>
-      <p className="text-[11px] text-black">
+      <p className={`text-[11px] ${dark ? 'text-white/50' : 'text-black'}`}>
         © {new Date().getFullYear()} SmarticketS. Tous droits réservés.
       </p>
     </footer>
@@ -1039,7 +1041,7 @@ function ParcelView({
         : 'bg-amber-100 text-amber-700';
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] flex flex-col">
+    <div className="min-h-screen bg-[#0d1b3e] flex flex-col">
       <Animations />
       <div className="max-w-[440px] mx-auto w-full px-4 py-6 space-y-4 safe-top">
         {/* Header */}
@@ -1066,57 +1068,57 @@ function ParcelView({
         </div>
 
         {/* Route */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-fade-in-up" style={{ animationDelay: '80ms' }}>
+        <div className="bg-[#215ae2] rounded-2xl border-2 border-dashed border-white/50 shadow-sm p-5 animate-fade-in-up" style={{ animationDelay: '80ms' }}>
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
-              <p className="text-xl font-black text-[#0f172a] uppercase">
+              <p className="text-xl font-black text-white uppercase">
                 {colis.departureCity || '—'}
               </p>
             </div>
             <div className="flex items-center gap-2 mx-3">
-              <div className="w-6 h-[2px] bg-gray-300 rounded" />
-              <div className="w-8 h-8 rounded-full bg-[#2563eb]/10 flex items-center justify-center">
-                <Package className="w-4 h-4 text-[#2563eb]" />
+              <div className="w-6 h-[2px] bg-white/50 rounded" />
+              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                <Package className="w-4 h-4 text-white" />
               </div>
-              <div className="w-6 h-[2px] bg-[#2563eb] rounded" />
+              <div className="w-6 h-[2px] bg-white/50 rounded" />
             </div>
             <div className="text-center flex-1">
-              <p className="text-xl font-black text-[#0f172a] uppercase">
+              <p className="text-xl font-black text-white uppercase">
                 {colis.arrivalCity || '—'}
               </p>
             </div>
           </div>
           {colis.company && (
-            <p className="text-xs text-black text-center mt-3">
+            <p className="text-xs text-white/80 text-center mt-3">
               {colis.company}
             </p>
           )}
         </div>
 
         {/* Details */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3 animate-fade-in-up" style={{ animationDelay: '160ms' }}>
-          <div className="flex items-center gap-3 bg-[#f8fafc] rounded-xl p-3">
-            <User className="w-4 h-4 text-black" />
+        <div className="bg-[#215ae2] rounded-2xl border-2 border-dashed border-white/50 shadow-sm p-5 space-y-3 animate-fade-in-up" style={{ animationDelay: '160ms' }}>
+          <div className="flex items-center gap-3 bg-white/10 rounded-xl p-3">
+            <User className="w-4 h-4 text-white" />
             <div className="flex-1">
-              <p className="text-[10px] text-black uppercase font-semibold">Expéditeur</p>
-              <p className="text-sm font-bold text-[#0f172a]">{colis.senderName || '—'}</p>
+              <p className="text-[10px] text-white/70 uppercase font-semibold">Expéditeur</p>
+              <p className="text-sm font-bold text-white">{colis.senderName || '—'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-[#f8fafc] rounded-xl p-3">
-            <User className="w-4 h-4 text-black" />
+          <div className="flex items-center gap-3 bg-white/10 rounded-xl p-3">
+            <User className="w-4 h-4 text-white" />
             <div className="flex-1">
-              <p className="text-[10px] text-black uppercase font-semibold">Destinataire</p>
-              <p className="text-sm font-bold text-[#0f172a]">{colis.receiverName || '—'}</p>
+              <p className="text-[10px] text-white/70 uppercase font-semibold">Destinataire</p>
+              <p className="text-sm font-bold text-white">{colis.receiverName || '—'}</p>
             </div>
           </div>
         </div>
 
         {/* Timeline */}
-        <TimelineSection timeline={timeline} />
+        <TimelineSection timeline={timeline} dark />
 
         {/* Footer */}
         <div className="safe-bottom">
-          <PageFooter />
+          <PageFooter dark />
         </div>
       </div>
     </div>

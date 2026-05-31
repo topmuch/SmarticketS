@@ -1569,3 +1569,43 @@ Stage Summary:
 - SVG dashboard illustration fully re-colored to blue accent
 - Zero compilation errors
 - All non-target colors (pink, green, emerald, amber, individual card colors) preserved
+
+---
+Task ID: 4
+Agent: general-purpose
+Task: Apply unified blue theme to ParcelView in /retrieve/[id]/page.tsx
+
+Work Log:
+- Read /src/app/retrieve/[id]/page.tsx (1222 lines) and identified all sections
+- ParcelView starts at line 1020, uses shared TimelineSection (line 747) and PageFooter (line 900) components
+- TicketView (line 930) uses same shared components — must NOT be changed
+- Added `dark?: boolean` prop to TimelineSection component for conditional blue/dark styling
+  - Card: bg-white → bg-[#215ae2] with border-2 border-dashed border-white/50
+  - Text: text-black → text-white, text-[#0f172a] → text-white, text-xs → text-white/70
+  - Vertical lines: bg-gray-100 → bg-white/30
+  - Expand button: border-gray-100 → border-white/30, text-black → text-white/70
+- Added `dark?: boolean` prop to PageFooter component for conditional white text
+  - Link text: text-black → text-white/70, hover:text-[#2563eb] → hover:text-white
+  - Copyright: text-black → text-white/50
+  - Border: border-gray-200 → border-white/20
+- Applied blue theme directly to ParcelView:
+  - Page background: bg-[#f1f5f9] → bg-[#0d1b3e] (dark navy)
+  - Route card: bg-white rounded-2xl border border-gray-100 → bg-[#215ae2] rounded-2xl border-2 border-dashed border-white/50
+  - Route text: text-[#0f172a] → text-white, bg-gray-300 → bg-white/50
+  - Route Package icon: bg-[#2563eb]/10 → bg-white/10, text-[#2563eb] → text-white
+  - Company text: text-black → text-white/80
+  - Details card (sender/receiver): bg-white border-gray-100 → bg-[#215ae2] border-2 border-dashed border-white/50
+  - Sender/receiver inner bg: bg-[#f8fafc] → bg-white/10
+  - Sender/receiver text: text-black → text-white/70 (labels), text-[#0f172a] → text-white (names)
+  - User icons: text-black → text-white
+  - Passed `dark` prop to TimelineSection and PageFooter from ParcelView
+- TicketView remains completely untouched (no dark prop passed, keeps original styling)
+- Compilation verified: ✓ Compiled in 364ms, 0 errors
+
+Stage Summary:
+- 1 file modified: /src/app/retrieve/[id]/page.tsx
+- 3 components updated: ParcelView (direct), TimelineSection (dark prop), PageFooter (dark prop)
+- Blue theme (#215ae2) with dashed white borders applied to all ParcelView cards
+- Dark navy background (#0d1b3e) for ParcelView page
+- TicketView and its boarding pass design completely preserved
+- Shared components use conditional rendering — no cross-contamination between views
