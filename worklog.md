@@ -1342,3 +1342,35 @@ Stage Summary:
 - 3 seed stations: Dakar-Peters, Guédiawaye, Diamniadio
 - Sidebar: New GARES section with MapPin + Warehouse icons
 - Lint clean (only pre-existing scripts/migrate-db.js error)
+---
+Task ID: ticket-activation-bugfix
+Agent: Main Agent
+Task: Fix ticket activation validation error + runtime testing
+
+Work Log:
+- User reported: "la validation du ticket de transport ne marche pas" — erreur validation when activating ticket + sending WhatsApp
+- Read full ticket creation flow: activate/ticket/[id] → GET /api/arrivee/[id] → TicketActivationForm → POST /api/activate/ticket
+- Root cause: /api/arrivee/[id] did NOT return `agencyId` in response → TicketActivationForm sent empty agencyId → Zod validation failed (z.string().min(1))
+- Fixed 3 files:
+  - src/app/api/arrivee/[id]/route.ts: Added `agencyId: colis.agencyId || ''` to colis response
+  - src/components/activation/TicketActivationForm.tsx: Show detailed error message (data.message) instead of generic "validation" + added console.error
+  - src/app/api/activate/ticket/route.ts: Added console.error for validation debugging
+- Pushed to GitHub: commit ff57920
+- Runtime testing — full end-to-end flow verified:
+  - Created test Agency, Baggage (status: pending_activation), User in SQLite
+  - TEST 1: GET /api/arrivee/TEST-QR-ACTIV1 → agencyId returned ✅
+  - TEST 2: POST /api/activate/ticket with valid data → success: true ✅
+    - PassengerTicket created in DB (Amadou Ba, CNI, Seat 14A, Saint-Louis)
+    - Control code generated: 2758508
+    - WhatsApp link generated: wa.me/221778001122?text=...
+    - Baggage status updated: pending_activation → in_transit ✅
+    - Receiver fields populated (receiverName, receiverWhatsapp) ✅
+    - ColisEvent logged (activation event) ✅
+  - TEST 3: DB verification — PassengerTicket exists with all fields, Baggage status = in_transit, 1 ColisEvent ✅
+  - Cleaned up all test data
+
+Stage Summary:
+- Bug FIXED: agencyId missing from /api/arrivee response caused Zod validation failure
+- Full end-to-end runtime test PASSED: create → validate → activate → DB verification
+- 3 files modified, 1 commit pushed to GitHub (ff57920)
+- Données de test nettoyées après vérification
