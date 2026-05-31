@@ -70,21 +70,25 @@ const SERVICES = [
     title: 'Passagers',
     subtitle: 'Personne avec téléphone, achat 24/7, sans impression, suivi temps réel',
     image: '/images/services/passagers.jpg',
+    href: '/passagers',
   },
   {
     title: 'Expéditeurs',
     subtitle: 'Envoi colis, QR code unique, traçabilité totale, alertes WhatsApp',
     image: '/images/services/expediteurs.jpg',
+    href: '/expediteurs',
   },
   {
     title: 'Compagnies',
     subtitle: 'Rapports automatisés, gestion flotte, statistiques live',
     image: '/images/services/compagnies.jpg',
+    href: '/compagnies',
   },
   {
     title: 'Écrans Affichage',
     subtitle: 'Horaires live, départs & arrivées, alertes voyageurs',
     image: '/images/services/affichage.jpg',
+    href: '/ecrans-affichage',
   },
 ];
 
@@ -681,9 +685,10 @@ function ServicesSection() {
         <FadeIn>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-0">
             {SERVICES.map((service) => (
-              <div
+              <Link
                 key={service.title}
-                className="group relative overflow-hidden rounded-[4px] shadow-[0_2px_12px_rgba(0,0,0,0.08)] h-[400px] sm:h-[520px] lg:h-[680px] cursor-pointer"
+                href={service.href}
+                className="group relative overflow-hidden rounded-[4px] shadow-[0_2px_12px_rgba(0,0,0,0.08)] h-[400px] sm:h-[520px] lg:h-[680px] cursor-pointer block"
               >
                 {/* Image — full height */}
                 <Image
@@ -723,7 +728,7 @@ function ServicesSection() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </FadeIn>
