@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/webp'],
     qualities: [75, 90],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
   },
   allowedDevOrigins: [
     "preview-chat-85c5b960-1b57-4ff4-a65d-6df0767d05e6.space-z.ai",

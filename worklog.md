@@ -1700,3 +1700,76 @@ Stage Summary:
 - PWA: Created controller manifest + layout, iOS install guide modal, proper Android native prompt
 - Files modified: controller/validate/page.tsx, NEW: controller/layout.tsx, manifest-controller.json
 - No pre-existing lint errors introduced
+---
+Task ID: landing-page-redesign
+Agent: Full-Stack Agent
+Task: Replace landing page with professional HTML/CSS design using Tailwind + shadcn/ui
+
+Work Log:
+- Read existing page.tsx, layout.tsx, and all landing components (Navigation, HeroSection, Footer, etc.)
+- Read existing UI components (Button, Input, Card) for shadcn/ui compatibility
+- Analyzed existing API endpoints (/api/arrivee/[id], /api/baggage/[id]) for search box integration
+- Read globals.css for CSS variables and theme configuration
+- Wrote complete new page.tsx with all 10 sections converted to Tailwind CSS + shadcn/ui
+- Sections implemented: Navigation, Hero, Stats, Solutions, Features, How It Works, Why Choose Us, Testimonials, CTA, Footer
+- Replaced all Font Awesome icons with Lucide React equivalents
+- Used shadcn/ui Button, Input, Card components where appropriate
+- Added scroll-based animations using framer-motion (FadeIn, useInView, useScroll)
+- Made fully responsive with mobile-first design
+- Search box calls /api/arrivee/[ref] endpoint for validation before redirecting
+- Added WhatsApp floating button
+- Verified homepage returns 200 with no errors in dev.log
+- Lint passes for the new page.tsx (pre-existing lint errors are in unrelated files)
+
+Stage Summary:
+- Successfully replaced the entire landing page (src/app/page.tsx) with a comprehensive 10-section design
+- All CSS converted to Tailwind classes (no inline styles)
+- All icons use Lucide React (no Font Awesome)
+- shadcn/ui components used: Button, Input, Card, CardContent
+- framer-motion animations: scroll-triggered FadeIn, parallax hero, hover effects
+- Responsive design: mobile hamburger menu, grid breakpoints, touch-friendly targets
+- Search box validates via API and redirects to /activate/[ref] or /retrieve/[ref] based on status
+
+---
+Task ID: delivery-whatsapp-buttons-fix
+Agent: Main Agent
+Task: Fix WhatsApp notification buttons on driver delivery confirmation page
+
+Work Log:
+- Investigated why WhatsApp buttons weren't showing on delivery success screen
+- Found root cause: `/api/driver/deliveries` MASKS phone numbers (e.g., +221****00) for privacy
+- The success screen used `parcel.whatsappOwner` (masked) → generated invalid wa.me links
+- The delivery confirmation API (`/api/driver/deliver/[id]`) already returns unmasked data: `wa_sender`, `wa_receiver`, `sender.name`, `receiver.name`
+- Added new state variables: `waSender`, `waReceiver`, `deliverySenderName`, `deliveryReceiverName`
+- Updated `handleConfirm` to capture unmasked WhatsApp links from API response
+- Replaced success screen buttons with proper WhatsApp-branded green buttons (#25D366)
+- Added WhatsApp SVG icon, sender/receiver names, arrow indicators
+- Added fallback message when no WhatsApp numbers available
+
+Stage Summary:
+- File modified: `src/app/driver/deliver/[id]/page.tsx`
+- WhatsApp buttons now use UNMASKED phone numbers from delivery confirmation API
+- Buttons are visually prominent with WhatsApp green branding, SVG icons, names displayed
+- Fallback warning when no WhatsApp numbers are configured for a parcel
+
+---
+Task ID: landing-page-redesign
+Agent: Full-Stack Agent
+Task: Replace landing page with user-provided professional HTML/CSS design
+
+Work Log:
+- Read existing page.tsx and landing components (14 files in /src/components/landing/)
+- Converted full HTML/CSS landing page to Next.js + Tailwind CSS + shadcn/ui
+- 10 sections: Nav, Hero, Stats, Solutions, Features, How It Works, Why Us, Testimonials, CTA, Footer
+- Replaced all Font Awesome icons with Lucide React equivalents
+- Added framer-motion animations: scroll-triggered fade-in, parallax hero, hover/tap micro-interactions
+- Mobile hamburger menu with AnimatePresence
+- Search box with API validation and redirect to tracking
+- Floating WhatsApp button with 2s delay animation
+- Added unsplash.com to next.config.ts remotePatterns for images
+
+Stage Summary:
+- Files modified: `src/app/page.tsx` (complete rewrite), `next.config.ts` (image config)
+- Color scheme: primary #2563eb (blue), secondary #10b981 (green), dark #0f172a
+- Both GET / and GET /controller/validate return 200 OK
+- No new lint errors introduced
