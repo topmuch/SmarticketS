@@ -67,27 +67,24 @@ const STATS = [
 const SOLUTIONS = [
   {
     title: 'Passagers',
-    description: 'Scannez votre billet QR code, recevez vos notifications WhatsApp en temps réel et suivez votre trajet sans stress.',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&h=400&fit=crop',
+    description: 'Achetez, recevez sur WhatsApp, montrez le QR code.',
+    image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=400&fit=crop',
     icon: TicketCheck,
-    color: 'from-blue-500 to-blue-600',
-    features: ['Billet QR code', 'Notifications WhatsApp', 'Suivi en temps réel'],
+    features: ['Achat 24/7', 'Sans impression', 'Suivi en temps réel'],
   },
   {
     title: 'Expéditeurs',
-    description: 'Activez vos colis en 30 secondes, sécurisez avec un code PIN et suivez chaque étape de la livraison.',
-    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&h=400&fit=crop',
+    description: 'Suivez vos colis en temps réel, notifications auto.',
+    image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&h=400&fit=crop',
     icon: Package,
-    color: 'from-emerald-500 to-emerald-600',
-    features: ['Activation QR rapide', 'Code PIN sécurisé', 'Suivi GPS'],
+    features: ['QR code unique', 'Traçabilité totale', 'Alertes WhatsApp'],
   },
   {
     title: 'Compagnies',
-    description: 'Dashboard complet, gestion de flotte, statistiques en temps réel et export comptable automatisé.',
-    image: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=600&h=400&fit=crop',
+    description: 'Gérez votre flotte, vos départs et vos équipes en un seul endroit.',
+    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop',
     icon: LayoutDashboard,
-    color: 'from-violet-500 to-violet-600',
-    features: ['Dashboard agence', 'Rapports automatisés', 'Gestion flotte'],
+    features: ['Rapports automatisés', 'Gestion flotte', 'Statistiques live'],
   },
 ];
 
