@@ -1773,3 +1773,45 @@ Stage Summary:
 - Color scheme: primary #2563eb (blue), secondary #10b981 (green), dark #0f172a
 - Both GET / and GET /controller/validate return 200 OK
 - No new lint errors introduced
+
+---
+Task ID: demo-affichage-page
+Agent: Main Agent
+Task: Create demo page for bus display screen + add "Voir la Démo" button to hero
+
+Work Log:
+- Created /src/app/demo-affichage/page.tsx — full demo/preview page with:
+  - Sticky header with back arrow (ArrowLeft) link to /, title "Écran d'Affichage — Démo en Direct"
+  - Subtitle explaining real-time demo of bus departure/arrival display system
+  - Device mockup: iframe embedded in dark bezel monitor frame (rounded corners, gradient, shadow)
+    - iframe loads /signage-slug/demo-agency-1 (real signage page with database data)
+    - "Plein Écran" button (Maximize icon) using Fullscreen API
+    - "EN DIRECT" live indicator badge with pulsing dot
+    - Responsive: full width on mobile, centered 16:9 monitor on desktop
+    - Monitor stand visible on desktop (neck + base)
+  - 3 info cards below screen (Clock, ArrowRight, Bell icons):
+    1. "Horaires en Temps Réel" — explains 15-second auto-refresh
+    2. "Départs & Arrivées" — explains split board view
+    3. "Alertes Embarquement" — explains audio + visual alerts
+  - CTA section: "Voulez-vous cet écran dans votre gare?" with WhatsApp contact button (MessageCircle)
+  - Footer with SmarticketS branding
+  - Uses 'use client', Tailwind CSS, Lucide icons, shadcn Button/Card components
+  - White background, clean modern design, scrollable page (not fullscreen)
+- Modified /src/app/page.tsx hero section (Dual CTA):
+  - Added 3rd button "Voir la Démo" between "Espace Chauffeur" and "Espace Transporteur"
+  - Green (#00A887) styling with shadow, Monitor icon
+  - Links to /demo-affichage
+  - 3 buttons stack vertically on mobile, display side-by-side on desktop (sm:flex-row)
+  - Monitor icon already imported in page.tsx — no new import needed
+- Verification:
+  - GET /demo-affichage → HTTP 200 ✅
+  - ESLint: 0 new errors (only pre-existing scripts/migrate-db.js) ✅
+  - Dev server running stable on port 3000 ✅
+
+Stage Summary:
+- 1 new page created (/demo-affichage) with device mockup iframe, info cards, and WhatsApp CTA
+- 1 file modified (page.tsx hero section) with "Voir la Démo" button
+- Real signage page embedded in attractive monitor frame
+- Fullscreen support via Fullscreen API
+- Responsive design (mobile + desktop)
+- Clean white background scrollable page

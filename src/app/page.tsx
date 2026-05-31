@@ -578,6 +578,14 @@ function HeroSection() {
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Link href="/demo-affichage">
+                <Button className="w-full sm:w-auto bg-[#00A887] hover:bg-[#008f72] text-white px-7 py-3.5 rounded-xl font-semibold text-sm shadow-xl shadow-[#00A887]/30 transition-all gap-2">
+                  <Monitor className="w-4 h-4" />
+                  Voir la Démo
+                </Button>
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Link href="/agence/connexion">
                 <Button className="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md border-2 border-white/30 text-white px-7 py-3.5 rounded-xl font-semibold text-sm transition-all gap-2">
                   <Building2 className="w-4 h-4" />
