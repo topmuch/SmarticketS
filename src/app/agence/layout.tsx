@@ -198,7 +198,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
                   {/* Section Header */}
                   {item.section && index > 0 && (
                     <li className="mt-4 mb-1">
-                      <span className="px-4 text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                      <span className="px-4 text-[10px] font-bold text-white uppercase tracking-widest">
                         {item.section}
                       </span>
                     </li>
@@ -206,7 +206,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
                   {/* First section without top margin */}
                   {item.section && index === 0 && (
                     <li className="mb-1">
-                      <span className="px-4 text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                      <span className="px-4 text-[10px] font-bold text-white uppercase tracking-widest">
                         {item.section}
                       </span>
                     </li>
