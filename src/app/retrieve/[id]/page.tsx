@@ -780,33 +780,396 @@ function ActionButtons({ reference, colis, ticket }: {
   colis: ColisData;
   ticket: TicketData;
 }) {
-  const shareText = `🎫 Ticket de transport\n` +
-    `Réf: ${reference}\n` +
-    `${colis.departureCity} → ${ticket.destination || colis.arrivalCity}\n` +
-    `Départ: ${ticket.departureTime || colis.departureTime || ''} | Siège: ${ticket.seatNumber}\n` +
-    `Passager: ${ticket.passengerName}\n` +
-    `Code: ${ticket.controlCode}`;
+  const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
-  const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+  // Generate PDF blob using jsPDF
+  const generatePdfBlob = async (): Promise<Blob> => {
+    const jsPDF = (await import('jspdf')).default;
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [85, 170], // Mobile boarding pass size
+    });
+
+    const pw = 85; // page width
+    const blue = [37, 99, 235]; // #2563eb
+    const dark = [15, 23, 42]; // #0f172a
+    const gray = [100, 116, 139]; // #64748b
+    const green = [16, 185, 129]; // #10b981
+
+    // ═══ HEADER ═══
+    doc.setFillColor(...blue);
+    doc.roundedRect(0, 0, pw, 25, 0, 0, 0, 'F');
+    // bottom corners
+    doc.roundedRect(0, 22, pw, 6, [0, 0, 3, 3], 'F');
+
+    // Logo circle
+    doc.setFillColor(255, 255, 255, 0.2);
+    doc.circle(10, 12.5, 5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('S', 8.5, 14);
+
+    // Title
+    doc.setFontSize(7);
+    doc.text('TICKET DE TRANSPORT', 17, 9);
+    doc.setFontSize(5);
+    doc.setTextColor(255, 255, 255, 0.6);
+    doc.text(reference, 17, 14);
+
+    // Status badge
+    const status = ticket.ticketStatus?.toUpperCase() || '';
+    const statusLabel = status.includes('ACTIVE') || status.includes('VALID') ? 'VALIDÉ'
+      : status.includes('CANCEL') || status.includes('EXPIR') ? 'ANNULÉ'
+      : 'EN ATTENTE';
+    const statusClr = statusLabel === 'VALIDÉ' ? green : statusLabel === 'ANNULÉ' ? [239, 68, 68] : [245, 158, 11];
+
+    doc.setFillColor(255, 255, 255, 0.9);
+    doc.roundedRect(58, 6, 23, 12, 2, 'F');
+    doc.setFillColor(...statusClr);
+    doc.circle(62, 12, 1.5, 'F');
+    doc.setTextColor(...statusClr);
+    doc.setFontSize(5.5);
+    doc.text(statusLabel, 64, 12);
+
+    // ═══ SEAT + COMPANY ═══
+    const y1 = 28;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(3, y1, pw - 6, 22, 2, 'FD');
+
+    // Seat box
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(5, y1 + 3, 18, 16, 1.5, 'F');
+    doc.setTextColor(...gray);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'normal');
+    doc.text('SIÈGE', 8, y1 + 6, { align: 'center' });
+    doc.setTextColor(...dark);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ticket.seatNumber || '—', 14, y1 + 15, { align: 'center' });
+
+    // Company
+    doc.setTextColor(...gray);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'normal');
+    doc.text('COMPAGNIE', 26, y1 + 5);
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    const company = colis.company || '—';
+    doc.text(company.length > 20 ? company.slice(0, 20) + '…' : company, 26, y1 + 10);
+    doc.setTextColor(...gray);
+    doc.setFontSize(4.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(colis.reference, 26, y1 + 16);
+
+    // ═══ DARK BAND ═══
+    const bandY = y1 + 22;
+    doc.setFillColor(...dark);
+    doc.roundedRect(3, bandY, pw - 6, 10, [0, 0, 2, 2], 'F');
+
+    const dateStr = colis.departureDate
+      ? new Date(colis.departureDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+      : '—';
+    const timeStr = ticket.departureTime || colis.departureTime || '—';
+
+    doc.setTextColor(255, 255, 255, 0.5);
+    doc.setFontSize(3.5);
+    doc.text('DATE', 10, bandY + 3.5);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(dateStr, 10, bandY + 7.5);
+
+    doc.setTextColor(255, 255, 255, 0.5);
+    doc.setFontSize(3.5);
+    doc.text('HEURE', 35, bandY + 3.5);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(5.5);
+    doc.text(timeStr, 35, bandY + 7.5);
+
+    doc.setTextColor(255, 255, 255, 0.5);
+    doc.setFontSize(3.5);
+    doc.text('RÉF', 55, bandY + 3.5);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(5.5);
+    doc.text(colis.reference, 55, bandY + 7.5);
+
+    // ═══ TRAJET ═══
+    const y2 = bandY + 13;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(3, y2, pw - 6, 18, 2, 'FD');
+
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text((colis.departureCity || '—').toUpperCase(), 14, y2 + 8, { align: 'center' });
+
+    // Arrow line
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.5);
+    doc.line(27, y2 + 7, 37, y2 + 7);
+    doc.setFillColor(...blue);
+    doc.setDrawColor(...blue);
+    doc.roundedRect(37, y2 + 4, 10, 6, 1, 'F');
+    doc.setFillColor(255, 255, 255);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.text('>', 39.5, y2 + 8.5, { align: 'center' });
+    doc.setDrawColor(...blue);
+    doc.line(48, y2 + 7, 57, y2 + 7);
+
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text((ticket.destination || colis.arrivalCity || '—').toUpperCase(), 67, y2 + 8, { align: 'center' });
+
+    // Info row
+    doc.setDrawColor(241, 245, 249);
+    doc.line(5, y2 + 12, pw - 5, y2 + 12);
+    doc.setTextColor(...gray);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${timeStr} | Siege ${ticket.seatNumber || '—'}`, 14, y2 + 15, { align: 'center' });
+
+    // ═══ PASSENGER ═══
+    const y3 = y2 + 22;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(3, y3, pw - 6, 25, 2, 'FD');
+
+    doc.setTextColor(...gray);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PASSAGER', 5, y3 + 4);
+
+    doc.setDrawColor(241, 245, 249);
+    doc.line(5, y3 + 6, pw - 5, y3 + 6);
+
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ticket.passengerName || '—', 5, y3 + 10);
+
+    // 3 info boxes
+    const bw = 23;
+    const bg = 1.5;
+
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(5, y3 + 13, bw, 9, 1, 'F');
+    doc.setTextColor(...gray);
+    doc.setFontSize(3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ÂGE', 6, y3 + 15);
+    doc.setTextColor(...dark);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${ticket.passengerAge || '—'} ans`, 6, y3 + 19.5);
+
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(5 + bw + bg, y3 + 13, bw, 9, 1, 'F');
+    doc.setTextColor(...gray);
+    doc.setFontSize(3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('DOCUMENT', 6 + bw + bg, y3 + 15);
+    doc.setTextColor(...dark);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ticket.documentType || '—', 6 + bw + bg, y3 + 19.5);
+
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(5 + (bw + bg) * 2, y3 + 13, bw, 9, 1, 'F');
+    doc.setTextColor(...gray);
+    doc.setFontSize(3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('N° DOC', 6 + (bw + bg) * 2, y3 + 15);
+    doc.setTextColor(...dark);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    const docNum = (ticket.documentNumber || '—').length > 12
+      ? (ticket.documentNumber || '—').slice(0, 12) + '…'
+      : (ticket.documentNumber || '—');
+    doc.text(docNum, 6 + (bw + bg) * 2, y3 + 19.5);
+
+    // ═══ BAGAGES ═══
+    const y4 = y3 + 28;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(3, y4, pw - 6, 17, 2, 'FD');
+
+    doc.setTextColor(...gray);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BAGAGES', 5, y4 + 3);
+
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(5, y4 + 5, bw, 9, 1, 'F');
+    doc.setTextColor(...gray);
+    doc.setFontSize(3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('QTÉ', 8, y4 + 7.5);
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${ticket.luggageCount || 0}`, 8, y4 + 12);
+
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(5 + bw + bg, y4 + 5, bw, 9, 1, 'F');
+    doc.setTextColor(...gray);
+    doc.setFontSize(3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('POIDS', 8 + bw + bg, y4 + 7.5);
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${ticket.luggageWeightKg || 0}kg`, 8 + bw + bg, y4 + 12);
+
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(5 + (bw + bg) * 2, y4 + 5, bw, 9, 1, 'F');
+    doc.setTextColor(...gray);
+    doc.setFontSize(3.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('FRAIS', 8 + (bw + bg) * 2, y4 + 7.5);
+    doc.setTextColor(...dark);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${ticket.luggageFee || 0}F`, 8 + (bw + bg) * 2, y4 + 12);
+
+    // ═══ CODE CONTRÔLE ═══
+    const y5 = y4 + 20;
+    doc.setFillColor(209, 250, 229);
+    doc.roundedRect(3, y5, pw - 6, 15, 2, 'F');
+
+    doc.setTextColor(5, 150, 105);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CODE DE CONTRÔLE', 14, y5 + 4, { align: 'center' });
+
+    const spacedCode = (ticket.controlCode || '').split('').join(' ');
+    doc.setTextColor(6, 78, 59);
+    doc.setFontSize(12);
+    doc.text(spacedCode, 14, y5 + 11, { align: 'center', charSpace: 1 });
+
+    // ═══ QR CODE ═══
+    const y6 = y5 + 18;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(3, y6, pw - 6, 35, 2, 'FD');
+
+    try {
+      const QRCode = (await import('qrcode')).default;
+      const qrUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://s21-senegal.com'}/retrieve/${reference}`;
+      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+        width: 200,
+        margin: 1,
+        errorCorrectionLevel: 'H',
+        color: { dark: '#0f172a', light: '#ffffff' },
+      });
+      doc.addImage(qrDataUrl, 'PNG', 22, y6 + 2, 40, 40);
+    } catch {
+      // QR generation failed - skip
+    }
+
+    // ═══ FOOTER ═══
+    const y7 = y6 + 38;
+    doc.setTextColor(...gray);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`© ${new Date().getFullYear()} SmarticketS`, 14, y7, { align: 'center' });
+    doc.setTextColor(203, 213, 225);
+    doc.setFontSize(3.5);
+    doc.text('Scannez le QR pour vérifier', 14, y7 + 3, { align: 'center' });
+
+    return doc.output('blob');
+  };
+
+  // Download PDF
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      const blob = await generatePdfBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ticket-${reference}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Share PDF via Web Share API (supports WhatsApp on mobile)
+  const handleShare = async () => {
+    // Try Web Share API with file first (mobile - can share PDF to WhatsApp)
+    if (navigator.share && typeof navigator.canShare === 'function') {
+      try {
+        setSharing(true);
+        const blob = await generatePdfBlob();
+        const file = new File([blob], `ticket-${reference}.pdf`, { type: 'application/pdf' });
+
+        const shareData: ShareData = { files: [file] };
+        const shareText = `🎫 Ticket de transport\nRéf: ${reference}\n${colis.departureCity} → ${ticket.destination || colis.arrivalCity}\nPassager: ${ticket.passengerName}`;
+
+        if (navigator.canShare(shareData)) {
+          await navigator.share({ ...shareData, text: shareText });
+          return;
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        console.warn('File share failed, falling back to text share');
+      } finally {
+        setSharing(false);
+      }
+    }
+
+    // Fallback: WhatsApp text share
+    const shareText = `🎫 Ticket de transport\n` +
+      `Réf: ${reference}\n` +
+      `${colis.departureCity} → ${ticket.destination || colis.arrivalCity}\n` +
+      `Départ: ${ticket.departureTime || colis.departureTime || ''} | Siège: ${ticket.seatNumber}\n` +
+      `Passager: ${ticket.passengerName}\n` +
+      `Code: ${ticket.controlCode}`;
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    window.open(waUrl, '_blank');
+  };
 
   return (
     <div className="flex gap-3 animate-fade-in-up" style={{ animationDelay: '640ms' }}>
-      <a
-        href={waUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md no-underline"
-      >
-        <MessageCircle className="w-4 h-4" />
-        Partager
-      </a>
       <button
         type="button"
-        disabled
-        className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#f1f5f9] text-gray-400 rounded-xl font-semibold text-sm cursor-not-allowed"
+        onClick={handleShare}
+        disabled={sharing}
+        className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-wait"
       >
-        <Download className="w-4 h-4" />
-        Télécharger
+        {sharing ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <MessageCircle className="w-4 h-4" />
+        )}
+        {sharing ? 'Partage...' : 'Partager'}
+      </button>
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={downloading}
+        className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#2563eb] hover:bg-[#1d4ed8] active:bg-[#1e40af] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-wait"
+      >
+        {downloading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Download className="w-4 h-4" />
+        )}
+        {downloading ? 'Génération...' : 'Télécharger'}
       </button>
     </div>
   );
