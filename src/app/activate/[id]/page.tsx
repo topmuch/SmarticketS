@@ -134,7 +134,7 @@ function ActivateChoiceContent() {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="group relative bg-gradient-to-br from-emerald-600/80 to-emerald-800/80 hover:from-emerald-500 hover:to-emerald-700 border-2 border-emerald-400/30 hover:border-emerald-300/60 rounded-2xl p-6 sm:p-8 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/20 active:scale-[0.98]"
+            className="group relative bg-[#1da1f3] hover:bg-[#1b91de] border-2 border-[#1da1f3]/50 hover:border-[#1da1f3]/80 rounded-2xl p-6 sm:p-8 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-[#1da1f3]/30 active:scale-[0.98]"
           >
             <div className="flex flex-col items-center sm:items-start gap-4">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
@@ -160,7 +160,7 @@ function ActivateChoiceContent() {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="group relative bg-gradient-to-br from-orange-500/80 to-orange-700/80 hover:from-orange-400 hover:to-orange-600 border-2 border-orange-400/30 hover:border-orange-300/60 rounded-2xl p-6 sm:p-8 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/20 active:scale-[0.98]"
+            className="group relative bg-[#FF1D8D] hover:bg-[#e6187d] border-2 border-[#FF1D8D]/50 hover:border-[#FF1D8D]/80 rounded-2xl p-6 sm:p-8 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-[#FF1D8D]/30 active:scale-[0.98]"
           >
             <div className="flex flex-col items-center sm:items-start gap-4">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
