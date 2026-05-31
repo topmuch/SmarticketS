@@ -135,7 +135,7 @@ export default function DemoAffichagePage() {
                 {/* iframe container for fullscreen */}
                 <div ref={iframeRef} className="w-full">
                   <iframe
-                    src="/signage-slug/demo-agency-1"
+                    src="/signage-slug/dakar-peters"
                     className="w-full block"
                     style={{ aspectRatio: '16 / 9' }}
                     title="Écran d'affichage SmarticketS"
