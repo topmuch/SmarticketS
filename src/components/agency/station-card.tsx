@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Zap,
   Building2,
+  Trash2,
 } from 'lucide-react';
 import {
   Card,
@@ -43,13 +44,15 @@ interface StationCardProps {
   station: StationCardStation;
   stats: StationCardStats;
   onClick: () => void;
+  onDelete?: (stationId: string, stationName: string) => void;
+  deleteLoading?: boolean;
 }
 
 /* ══════════════════════════════════════════════════════════
    Component
    ══════════════════════════════════════════════════════════ */
 
-export function StationCard({ station, stats, onClick }: StationCardProps) {
+export function StationCard({ station, stats, onClick, onDelete, deleteLoading }: StationCardProps) {
   return (
     <Card
       className={`
@@ -105,20 +108,37 @@ export function StationCard({ station, stats, onClick }: StationCardProps) {
             </div>
           </div>
 
-          {/* Active badge */}
-          <Badge
-            variant="outline"
-            className={`
-              shrink-0 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide
-              ${
-                station.isActive
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                  : 'border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
-              }
-            `}
-          >
-            {station.isActive ? 'Active' : 'Inactive'}
-          </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Delete button */}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(station.id, station.name);
+                }}
+                disabled={deleteLoading}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                title="Supprimer cette gare"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Active badge */}
+            <Badge
+              variant="outline"
+              className={`
+                text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide
+                ${
+                  station.isActive
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : 'border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                }
+              `}
+            >
+              {station.isActive ? 'Active' : 'Inactive'}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 

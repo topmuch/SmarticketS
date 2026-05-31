@@ -121,6 +121,7 @@ export default function GaresPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createForm, setCreateForm] = useState<StationFormData>(emptyForm);
   const [createLoading, setCreateLoading] = useState(false);
+  const [deletingStationId, setDeletingStationId] = useState<string | null>(null);
 
   /* ── Fetch Stations & Stats ── */
   const fetchData = useCallback(async () => {
@@ -202,6 +203,26 @@ export default function GaresPage() {
       toast.error('Erreur réseau');
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  /* ── Delete Station ── */
+  const handleDeleteStation = async (stationId: string, stationName: string) => {
+    if (!confirm(`Supprimer la gare "${stationName}" ? Les QR codes assignés ne seront pas supprimés.`)) return;
+    setDeletingStationId(stationId);
+    try {
+      const res = await fetch(`/api/stations/${stationId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success(`Gare "${stationName}" supprimée`);
+        fetchData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || err.message || 'Erreur lors de la suppression');
+      }
+    } catch {
+      toast.error('Erreur réseau');
+    } finally {
+      setDeletingStationId(null);
     }
   };
 
@@ -431,6 +452,8 @@ export default function GaresPage() {
                     }
                   }
                   onClick={() => router.push(`/agence/gares/${station.slug}`)}
+                  onDelete={handleDeleteStation}
+                  deleteLoading={deletingStationId === station.id}
                 />
               </motion.div>
             ))}

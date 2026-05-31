@@ -470,7 +470,8 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// ─── DELETE – Delete departure ─────────────────────────────────────────
+// ─── DELETE – Delete departure(s) ──────────────────────────────────────
+// Supports both single (?id=xxx) and bulk ({ ids: [...] })
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -482,52 +483,75 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
+    const contentType = request.headers.get('content-type') || '';
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const singleId = searchParams.get('id');
 
-    if (!id) {
+    let idsToDelete: string[] = [];
+
+    // Bulk delete: JSON body with { ids: [...] }
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      if (Array.isArray(body.ids) && body.ids.length > 0) {
+        idsToDelete = body.ids;
+      }
+    } else if (singleId) {
+      // Single delete via query param
+      idsToDelete = [singleId];
+    }
+
+    if (idsToDelete.length === 0) {
       return NextResponse.json(
-        { error: 'L\'identifiant du départ est requis' },
+        { error: "Aucun identifiant fourni" },
         { status: 400 }
       );
     }
 
-    // Find departure and check ownership
-    const existing = await db.departure.findUnique({
-      where: { id },
+    // Fetch departures to validate ownership & check tickets
+    const departures = await db.departure.findMany({
+      where: { id: { in: idsToDelete } },
       include: {
-        _count: {
-          select: { tickets: true },
-        },
+        _count: { select: { tickets: true } },
       },
     });
 
-    if (!existing) {
+    if (departures.length === 0) {
       return NextResponse.json(
-        { error: 'Départ introuvable' },
+        { error: 'Départ(s) introuvable(s)' },
         { status: 404 }
       );
     }
 
-    // Ownership check
-    if (user.role === 'agency' && existing.agencyId !== user.agencyId) {
-      return NextResponse.json(
-        { error: 'Accès non autorisé' },
-        { status: 403 }
-      );
+    // Validate ownership
+    for (const dep of departures) {
+      if (user.role === 'agency' && dep.agencyId !== user.agencyId) {
+        return NextResponse.json(
+          { error: 'Accès non autorisé' },
+          { status: 403 }
+        );
+      }
     }
 
-    // Check for existing tickets
-    if (existing._count.tickets > 0) {
+    // Check for tickets on any departure
+    const withTickets = departures.filter(d => d._count.tickets > 0);
+    if (withTickets.length > 0) {
       return NextResponse.json(
-        { error: 'Impossible de supprimer un départ avec billets' },
+        {
+          error: 'Impossible de supprimer',
+          message: `${withTickets.length} départ(s) ont des billets et ne peuvent pas être supprimés.`,
+        },
         { status: 409 }
       );
     }
 
-    await db.departure.delete({ where: { id } });
+    // Delete all valid departures
+    const validIds = departures.map(d => d.id);
+    await db.departure.deleteMany({ where: { id: { in: validIds } } });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      deletedCount: validIds.length,
+    });
   } catch (error) {
     console.error('[/api/admin/departures] DELETE error:', error);
     return NextResponse.json(

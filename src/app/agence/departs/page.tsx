@@ -810,8 +810,11 @@ export default function DepartsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvResult, setCsvResult] = useState<{ created: number; errors: string[] } | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   // Multi-gare: stations list
   const [stations, setStations] = useState<StationOption[]>([]);
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Fetch stations
   const fetchStations = useCallback(async () => {
@@ -970,6 +973,11 @@ export default function DepartsPage() {
       const res = await fetch(`/api/admin/departures?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         showToast('Départ supprimé', 'success');
+        setSelectedIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
         fetchDepartures();
       } else {
         const err = await res.json();
@@ -977,6 +985,52 @@ export default function DepartsPage() {
       }
     } catch {
       showToast('Erreur réseau', 'error');
+    }
+  };
+
+  // Bulk delete departures
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Supprimer ${selectedIds.size} départ(s) sélectionné(s) ?`)) return;
+    setBulkDeleting(true);
+    try {
+      const res = await fetch('/api/admin/departures', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast(`${data.deletedCount} départ(s) supprimé(s)`, 'success');
+        setSelectedIds(new Set());
+        fetchDepartures();
+      } else {
+        const err = await res.json();
+        showToast(err.error || err.message || 'Erreur', 'error');
+      }
+    } catch {
+      showToast('Erreur réseau', 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // Toggle departure selection
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Toggle select all filtered departures
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredDepartures.length && filteredDepartures.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredDepartures.map(d => d.id)));
     }
   };
 
@@ -1212,11 +1266,51 @@ export default function DepartsPage() {
         </div>
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          {/* Bulk Action Bar */}
+          <AnimatePresence>
+            {selectedIds.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-5 py-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-red-700 dark:text-red-300">
+                    {selectedIds.size} départ(s) sélectionné(s)
+                  </span>
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-xs text-red-500 hover:text-red-700 underline"
+                  >
+                    Tout désélectionner
+                  </button>
+                </div>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-70"
+                >
+                  {bulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Supprimer ({selectedIds.size})
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-3 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={filteredDepartures.length > 0 && selectedIds.size === filteredDepartures.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-[#FF1D8D] focus:ring-[#FF1D8D]/30"
+                    />
+                  </th>
                   <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-5 py-3">Type</th>
                   <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-5 py-3">Ligne</th>
                   <th className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider px-5 py-3">Destination</th>
@@ -1233,6 +1327,7 @@ export default function DepartsPage() {
                   const StatusIcon = status.icon;
                   const nextAction = getNextStatus(dep.status);
                   const fillPercent = dep.totalSeats > 0 ? Math.round((dep.soldSeats / dep.totalSeats) * 100) : 0;
+                  const isSelected = selectedIds.has(dep.id);
 
                   return (
                     <motion.tr
@@ -1240,8 +1335,16 @@ export default function DepartsPage() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: index * 0.03 }}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      className={`border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}
                     >
+                      <td className="px-3 py-3.5 w-10">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(dep.id)}
+                          className="w-4 h-4 rounded border-slate-300 text-[#FF1D8D] focus:ring-[#FF1D8D]/30"
+                        />
+                      </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
                           dep.departureType === 'RETURN'
@@ -1354,11 +1457,18 @@ export default function DepartsPage() {
               const StatusIcon = status.icon;
               const nextAction = getNextStatus(dep.status);
               const fillPercent = dep.totalSeats > 0 ? Math.round((dep.soldSeats / dep.totalSeats) * 100) : 0;
+              const isSelected = selectedIds.has(dep.id);
 
               return (
-                <div key={dep.id} className="p-4 space-y-3">
+                <div key={dep.id} className={`p-4 space-y-3 ${isSelected ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(dep.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#FF1D8D] focus:ring-[#FF1D8D]/30"
+                      />
                       <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
                         dep.departureType === 'RETURN'
                           ? 'bg-purple-100 text-purple-600'
