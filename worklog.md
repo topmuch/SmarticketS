@@ -664,7 +664,32 @@ Task: Overwrite signage display page with "Style Aéroport" Premium Card design
 
 Work Log:
 - Read worklog.md and existing signage page (1100+ lines, old sig2- prefix split-screen design)
-- Read audioSystem module at /src/lib/audioSystem.ts — exports playDingDong, playBoardingAnnouncement, cancelAnnouncements, preloadVoices
+- Read audioSystem module at /src/lib/audioSystem.ts — exports playDingDong
+
+---
+Task ID: retrieve-page-fix
+Agent: Main Agent
+Task: Fix 4 issues in /retrieve/[id]/page.tsx — WhatsApp share, PDF download, gray text, dark band labels
+
+Work Log:
+- Read full page.tsx (1494 lines) and Prisma schema to understand data model
+- **Issue 1 — WhatsApp Share Fix**: Removed entire Web Share API + jsPDF blob generation from handleShare. Replaced with simple wa.me text share link only (https://wa.me/?text=...). No PDF, no Web Share API, no loading states.
+- **Issue 2 — PDF Download Fix**: Created new API route `/api/ticket-pdf/[ref]/route.ts` that fetches baggage + passengerTicket from Prisma DB and returns a fully styled printable HTML page (no PDF library needed). Download handler now opens `/api/ticket-pdf/[ref]` in a new tab. HTML includes print CSS (`@media print`) and a "Imprimer / Enregistrer en PDF" button that triggers `window.print()`.
+- **Issue 3 — Gray Text → Black**: Replaced ALL instances of `text-gray-400`, `text-gray-500`, and `text-gray-300` with `text-black` in page.tsx using replace_all. Affected components: MainInfoCard (Siège, Compagnie, reference), TrajetCard (time/seat/platform row), PassengerCard (header, Âge, Document, N° Document), LuggageCard (header, Quantité, Poids, Frais, kg/F units), TimelineSection (header, event count, timestamps, location), QRCodeSection (scan text), PageFooter (links, copyright), ParcelView (company, sender/receiver labels).
+- **Issue 4 — Dark Band Labels → White**: Replaced all 3 instances of `text-white/40` with `text-white` in MainInfoCard's dark band (`bg-[#0f172a]`) for Date, Heure départ, and Référence labels.
+- **Cleanup**: Removed entire `generatePdfBlob` function (~300 lines of jsPDF code), removed `downloading`/`sharing` state variables, removed `Loader2` import, simplified button JSX (no loading spinners/disabled states).
+- Created API route file: `/src/app/api/ticket-pdf/[ref]/route.ts` — server-side, fetches from Prisma, returns styled HTML with inline CSS, print-friendly layout with ticket card design matching the app's blue theme.
+- Verification: `GET /retrieve/TKT-DEMO-001` → 200 ✅, `GET /api/ticket-pdf/TKT-DEMO-001` → 200 (valid HTML) ✅
+
+Stage Summary:
+- 4 issues fixed in retrieve/[id]/page.tsx
+- 1 new API route created (/api/ticket-pdf/[ref])
+- ~300 lines of jsPDF code removed from client bundle
+- WhatsApp share: simple wa.me link (works everywhere)
+- PDF download: printable HTML page opened in new tab (browser handles Save as PDF via print dialog)
+- All gray text replaced with black across all card sections
+- Dark band labels now fully opaque white
+- 0 new lint errors, both routes verified returning HTTP 200g, playBoardingAnnouncement, cancelAnnouncements, preloadVoices
 - Read signage-slug API at /src/app/api/signage-slug/[slug]/route.ts — returns station data with departures (outbound), arrivals (inbound), ticker messages, logoUrl
 - Completely rewrote /src/app/signage/[stationId]/page.tsx with "Style Aéroport" Premium Card design:
   - Color palette: #0b0f19 background, #131a2b cards, #1e293b borders, white primary, #94a3b8 secondary, #f97316 orange accent, #22c55e green, #ef4444 red, #f59e0b amber
