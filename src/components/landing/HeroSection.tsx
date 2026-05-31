@@ -74,7 +74,7 @@ export default function HeroSection() {
             Billets & Colis,
             <br />
             simplifiés par la technologie{' '}
-            <span className="text-[#FF6B35] drop-shadow-[0_2px_8px_rgba(255,107,53,0.4)]">QR</span>
+            <span className="text-[#215ae2] drop-shadow-[0_2px_8px_rgba(33,90,226,0.4)]">QR</span>
           </h1>
         </FadeIn>
 
@@ -89,7 +89,7 @@ export default function HeroSection() {
         {/* Tracking bar */}
         <FadeIn delay={0.3}>
           <form onSubmit={handleSubmit} className="mt-10 max-w-xl mx-auto">
-            <div className="flex items-center bg-white rounded-2xl border-2 border-white/40 shadow-[0_8px_40px_rgba(0,0,0,0.25)] focus-within:border-[#FF6B35] focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden">
+            <div className="flex items-center bg-white rounded-2xl border-2 border-white/40 shadow-[0_8px_40px_rgba(0,0,0,0.25)] focus-within:border-[#215ae2] focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden">
               <div className="relative flex-1 flex items-center">
                 <Search className="absolute left-4 w-5 h-5 text-[#64748B]" />
                 <input
@@ -104,7 +104,7 @@ export default function HeroSection() {
               <button
                 type="submit"
                 disabled={!isValid}
-                className="flex items-center gap-2 px-7 py-5 font-bold text-sm bg-[#FF6B35] hover:bg-[#e65a28] text-white shadow-[0_4px_16px_rgba(255,107,53,0.4)] hover:shadow-[0_6px_20px_rgba(255,107,53,0.5)] transition-all duration-300 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-7 py-5 font-bold text-sm bg-[#215ae2] hover:bg-[#1a4fc0] text-white shadow-[0_4px_16px_rgba(33,90,226,0.4)] hover:shadow-[0_6px_20px_rgba(33,90,226,0.5)] transition-all duration-300 disabled:cursor-not-allowed"
               >
                 Suivre
                 <ArrowRight className="w-4 h-4" />
@@ -118,7 +118,7 @@ export default function HeroSection() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Link href="/inscrire">
-                <Button className="w-full sm:w-auto bg-[#FF6B35] hover:bg-[#e65a28] text-white px-7 py-3.5 rounded-lg font-semibold text-sm shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)] transition-all gap-2">
+                <Button className="w-full sm:w-auto bg-[#215ae2] hover:bg-[#1a4fc0] text-white px-7 py-3.5 rounded-lg font-semibold text-sm shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)] transition-all gap-2">
                   <Truck className="w-4 h-4" />
                   Espace Chauffeur
                 </Button>

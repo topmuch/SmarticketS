@@ -196,7 +196,7 @@ export default function TestimonialsSection() {
                 onClick={() => setCurrentIndex(i)}
                 className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                   i === currentIndex
-                    ? 'bg-[#FF6B35] w-8'
+                    ? 'bg-[#215ae2] w-8'
                     : 'bg-[#E2E8F0] hover:bg-[#CBD5E1]'
                 }`}
                 aria-label={`Aller au groupe ${i + 1}`}

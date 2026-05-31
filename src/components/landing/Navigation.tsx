@@ -48,7 +48,7 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#FF6B35] shadow-[0_4px_12px_rgba(255,107,53,0.25)] group-hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)] transition-shadow">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#215ae2] shadow-[0_4px_12px_rgba(33,90,226,0.25)] group-hover:shadow-[0_4px_16px_rgba(33,90,226,0.35)] transition-shadow">
               <QrCode className="w-5 h-5 text-white" />
             </div>
             <span className={`text-xl font-bold tracking-tight transition-colors duration-300 ${isOnHero ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]' : 'text-[#0A2540]'}`}>
@@ -69,7 +69,7 @@ export default function Navigation() {
                 <LinkTag
                   key={link.label}
                   {...props}
-                  className={`text-sm font-medium transition-colors duration-200 relative after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-[#FF6B35] after:transition-all after:duration-300 hover:after:w-full ${
+                  className={`text-sm font-medium transition-colors duration-200 relative after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-[#215ae2] after:transition-all after:duration-300 hover:after:w-full ${
                     isOnHero
                       ? 'text-white/90 hover:text-white after:bg-white/60'
                       : 'text-[#475569] hover:text-[#0A2540]'
@@ -84,7 +84,7 @@ export default function Navigation() {
           {/* Desktop CTA button */}
           <div className="hidden md:flex items-center gap-3">
             <Link href="/devenir-partenaire">
-              <Button className="bg-[#FF6B35] hover:bg-[#e65a28] text-white font-medium text-sm rounded-lg px-5 shadow-[0_4px_12px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)] transition-all hover:scale-[1.02]">
+              <Button className="bg-[#215ae2] hover:bg-[#1a4fc0] text-white font-medium text-sm rounded-lg px-5 shadow-[0_4px_12px_rgba(33,90,226,0.25)] hover:shadow-[0_4px_16px_rgba(33,90,226,0.35)] transition-all hover:scale-[1.02]">
                 Devenir Partenaire
               </Button>
             </Link>
@@ -119,7 +119,7 @@ export default function Navigation() {
                         key={link.label}
                         href={link.href}
                         onClick={() => setIsOpen(false)}
-                        className="text-[#0A2540] hover:text-[#FF6B35] font-medium py-2 text-lg"
+                        className="text-[#0A2540] hover:text-[#215ae2] font-medium py-2 text-lg"
                       >
                         {link.label}
                       </Link>
@@ -129,7 +129,7 @@ export default function Navigation() {
                     <a
                       key={link.label}
                       href={link.href}
-                      className="text-[#0A2540] hover:text-[#FF6B35] font-medium py-2 text-lg"
+                      className="text-[#0A2540] hover:text-[#215ae2] font-medium py-2 text-lg"
                       onClick={() => handleNavClick(link.href)}
                     >
                       {link.label}
@@ -138,7 +138,7 @@ export default function Navigation() {
                 })}
                 <hr className="border-[#E2E8F0]" />
                 <Link href="/devenir-partenaire" onClick={() => setIsOpen(false)}>
-                  <Button className="w-full bg-[#FF6B35] hover:bg-[#e65a28] text-white font-medium rounded-lg">
+                  <Button className="w-full bg-[#215ae2] hover:bg-[#1a4fc0] text-white font-medium rounded-lg">
                     Devenir Partenaire
                   </Button>
                 </Link>

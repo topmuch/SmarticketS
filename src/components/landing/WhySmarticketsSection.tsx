@@ -21,7 +21,7 @@ const inlineStats = [
 function DashboardIllustration() {
   return (
     <div className="relative">
-      <div className="absolute -inset-4 bg-gradient-to-br from-[#FF6B35]/10 to-[#10B981]/10 rounded-3xl blur-2xl" />
+      <div className="absolute -inset-4 bg-gradient-to-br from-[#215ae2]/10 to-[#10B981]/10 rounded-3xl blur-2xl" />
       <div className="relative bg-white rounded-2xl p-6 lg:p-8 shadow-[0_8px_32px_rgba(10,37,64,0.1)] border border-[#E2E8F0]">
         <svg
           viewBox="0 0 480 360"
@@ -44,7 +44,7 @@ function DashboardIllustration() {
           {/* Sidebar */}
           <rect x="20" y="68" width="90" height="272" fill="#0F172A" />
           <rect x="30" y="85" width="70" height="8" rx="4" fill="#1A3A52" />
-          <rect x="30" y="100" width="55" height="8" rx="4" fill="#FF6B35" />
+          <rect x="30" y="100" width="55" height="8" rx="4" fill="#215ae2" />
           <rect x="30" y="115" width="60" height="8" rx="4" fill="#1A3A52" />
           <rect x="30" y="130" width="50" height="8" rx="4" fill="#1A3A52" />
           <rect x="30" y="145" width="65" height="8" rx="4" fill="#1A3A52" />
@@ -57,7 +57,7 @@ function DashboardIllustration() {
 
           <rect x="240" y="80" width="100" height="56" rx="10" fill="white" stroke="#E2E8F0" strokeWidth="1" />
           <text x="255" y="102" fontSize="8" fill="#475569">En transit</text>
-          <text x="255" y="122" fontSize="18" fill="#FF6B35" fontWeight="bold">124</text>
+          <text x="255" y="122" fontSize="18" fill="#215ae2" fontWeight="bold">124</text>
 
           <rect x="355" y="80" width="90" height="56" rx="10" fill="white" stroke="#E2E8F0" strokeWidth="1" />
           <text x="368" y="102" fontSize="8" fill="#475569">Taux livrés</text>
@@ -67,11 +67,11 @@ function DashboardIllustration() {
           <rect x="125" y="150" width="210" height="130" rx="10" fill="white" stroke="#E2E8F0" strokeWidth="1" />
           <text x="140" y="170" fontSize="9" fill="#0A2540" fontWeight="bold">Volume hebdomadaire</text>
           {/* Bar chart */}
-          <rect x="145" y="250" width="20" height="18" rx="3" fill="#FF6B35" opacity="0.5" />
-          <rect x="175" y="240" width="20" height="28" rx="3" fill="#FF6B35" opacity="0.65" />
-          <rect x="205" y="230" width="20" height="38" rx="3" fill="#FF6B35" opacity="0.8" />
-          <rect x="235" y="220" width="20" height="48" rx="3" fill="#FF6B35" opacity="0.9" />
-          <rect x="265" y="210" width="20" height="58" rx="3" fill="#FF6B35" />
+          <rect x="145" y="250" width="20" height="18" rx="3" fill="#215ae2" opacity="0.5" />
+          <rect x="175" y="240" width="20" height="28" rx="3" fill="#215ae2" opacity="0.65" />
+          <rect x="205" y="230" width="20" height="38" rx="3" fill="#215ae2" opacity="0.8" />
+          <rect x="235" y="220" width="20" height="48" rx="3" fill="#215ae2" opacity="0.9" />
+          <rect x="265" y="210" width="20" height="58" rx="3" fill="#215ae2" />
           <rect x="295" y="225" width="20" height="43" rx="3" fill="#10B981" opacity="0.7" />
           <text x="148" y="268" fontSize="6" fill="#475569">L</text>
           <text x="178" y="268" fontSize="6" fill="#475569">M</text>
@@ -89,19 +89,19 @@ function DashboardIllustration() {
             Temps réel
           </text>
           {/* Map dots */}
-          <circle cx="370" cy="245" r="4" fill="#FF6B35" />
+          <circle cx="370" cy="245" r="4" fill="#215ae2" />
           <circle cx="397" cy="230" r="4" fill="#10B981" />
-          <circle cx="420" cy="250" r="4" fill="#FF6B35" />
+          <circle cx="420" cy="250" r="4" fill="#215ae2" />
           <circle cx="385" cy="260" r="4" fill="#10B981" />
           {/* Connecting lines */}
-          <line x1="370" y1="245" x2="397" y2="230" stroke="#FF6B35" strokeWidth="1" opacity="0.3" />
+          <line x1="370" y1="245" x2="397" y2="230" stroke="#215ae2" strokeWidth="1" opacity="0.3" />
           <line x1="397" y1="230" x2="420" y2="250" stroke="#10B981" strokeWidth="1" opacity="0.3" />
 
           {/* Recent activity */}
           <rect x="125" y="293" width="320" height="38" rx="8" fill="white" stroke="#E2E8F0" strokeWidth="1" />
           <text x="140" y="312" fontSize="8" fill="#475569">Dernière livraison</text>
           <text x="140" y="324" fontSize="9" fill="#10B981" fontWeight="bold">✅ DKR-2026-0089 → Livré à 14:32</text>
-          <text x="350" y="316" fontSize="7" fill="#FF6B35" fontWeight="bold">● Live</text>
+          <text x="350" y="316" fontSize="7" fill="#215ae2" fontWeight="bold">● Live</text>
         </svg>
       </div>
     </div>
@@ -126,7 +126,7 @@ export default function WhySmarticketSSection() {
           <FadeIn direction="left" delay={0.15}>
             <div>
               {/* Badge */}
-              <span className="inline-block px-4 py-1.5 bg-[#FF6B35]/10 text-[#FF6B35] text-xs font-bold tracking-[0.15em] uppercase rounded-full mb-6">
+              <span className="inline-block px-4 py-1.5 bg-[#215ae2]/10 text-[#215ae2] text-xs font-bold tracking-[0.15em] uppercase rounded-full mb-6">
                 AVANTAGES OPÉRATIONNELS
               </span>
 
@@ -167,7 +167,7 @@ export default function WhySmarticketSSection() {
 
               {/* CTA */}
               <Link href="/devenir-partenaire">
-                <Button className="bg-[#FF6B35] hover:bg-[#e65a28] text-white px-7 py-3.5 rounded-lg font-semibold text-sm shadow-[0_4px_12px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)] transition-all hover:scale-[1.02] gap-2">
+                <Button className="bg-[#215ae2] hover:bg-[#1a4fc0] text-white px-7 py-3.5 rounded-lg font-semibold text-sm shadow-[0_4px_12px_rgba(33,90,226,0.25)] hover:shadow-[0_4px_16px_rgba(33,90,226,0.35)] transition-all hover:scale-[1.02] gap-2">
                   📞 Demander une démo agence
                   <ArrowRight className="w-4 h-4" />
                 </Button>

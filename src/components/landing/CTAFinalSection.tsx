@@ -25,7 +25,7 @@ export default function CTAFinalSection() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/devenir-partenaire"
-              className="inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 bg-[#FF6B35] hover:bg-[#e85d2a] text-white font-semibold rounded-lg shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-200 text-sm sm:text-base w-full sm:w-auto"
+              className="inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 bg-[#215ae2] hover:bg-[#1a4fc0] text-white font-semibold rounded-lg shadow-lg shadow-[#215ae2]/25 hover:shadow-[#215ae2]/40 transition-all duration-200 text-sm sm:text-base w-full sm:w-auto"
             >
               🚀 Commencer gratuitement
             </Link>

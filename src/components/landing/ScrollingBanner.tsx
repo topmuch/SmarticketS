@@ -39,7 +39,7 @@ export default function ScrollingBanner() {
               key={`a-${i}`}
               className="inline-flex items-center gap-2 text-white/90 font-semibold text-sm sm:text-base whitespace-nowrap"
             >
-              <span className="w-2 h-2 rounded-full bg-[#FF6B35] shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-[#215ae2] shrink-0" />
               {keyword}
             </span>
           ))}

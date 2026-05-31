@@ -61,7 +61,7 @@ export default function ProcessSection() {
           {/* Connecting line */}
           <div className="absolute top-[20%] left-[18%] right-[18%] h-0.5 bg-white/10 rounded-full overflow-hidden hidden lg:block">
             <motion.div
-              className="h-full bg-gradient-to-r from-[#FF6B35] to-[#10B981] rounded-full"
+              className="h-full bg-gradient-to-r from-[#215ae2] to-[#10B981] rounded-full"
               initial={{ width: '0%' }}
               animate={isInView ? { width: '100%' } : { width: '0%' }}
               transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
@@ -81,12 +81,12 @@ export default function ProcessSection() {
                 }}
               >
                 {/* Step number badge */}
-                <div className="relative z-10 w-10 h-10 bg-[#FF6B35] rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#FF6B35]/30">
+                <div className="relative z-10 w-10 h-10 bg-[#215ae2] rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#215ae2]/30">
                   <span className="text-sm font-bold text-white">{step.number}</span>
                 </div>
 
                 {/* Image card */}
-                <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-5 shadow-xl shadow-black/20 group-hover:shadow-2xl group-hover:shadow-[#FF6B35]/10 transition-all duration-500 group-hover:-translate-y-2">
+                <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-5 shadow-xl shadow-black/20 group-hover:shadow-2xl group-hover:shadow-[#215ae2]/10 transition-all duration-500 group-hover:-translate-y-2">
                   <Image
                     src={step.image}
                     alt={step.title}
@@ -118,7 +118,7 @@ export default function ProcessSection() {
           {/* Vertical line */}
           <div className="absolute left-[23px] top-0 bottom-0 w-0.5 bg-white/10 rounded-full overflow-hidden lg:hidden">
             <motion.div
-              className="w-full bg-gradient-to-b from-[#FF6B35] to-[#10B981] rounded-full"
+              className="w-full bg-gradient-to-b from-[#215ae2] to-[#10B981] rounded-full"
               initial={{ height: '0%' }}
               animate={isInView ? { height: '100%' } : { height: '0%' }}
               transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
@@ -138,7 +138,7 @@ export default function ProcessSection() {
                 }}
               >
                 {/* Step number circle */}
-                <div className="w-12 h-12 bg-[#FF6B35] rounded-full flex items-center justify-center flex-shrink-0 relative z-10 shadow-lg shadow-[#FF6B35]/30">
+                <div className="w-12 h-12 bg-[#215ae2] rounded-full flex items-center justify-center flex-shrink-0 relative z-10 shadow-lg shadow-[#215ae2]/30">
                   <span className="text-sm font-bold text-white">{step.number}</span>
                 </div>
 

@@ -18,7 +18,7 @@ export default function SecondaryPageLayout({ children, title, subtitle }: Secon
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#FF6B35] shadow-[0_4px_12px_rgba(255,107,53,0.25)]">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#215ae2] shadow-[0_4px_12px_rgba(33,90,226,0.25)]">
                 <QrCode className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold text-[#0A2540] tracking-tight">
@@ -61,7 +61,7 @@ export default function SecondaryPageLayout({ children, title, subtitle }: Secon
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#215ae2] flex items-center justify-center">
                 <QrCode className="w-4 h-4 text-white" />
               </div>
               <span className="text-lg font-bold">SmarticketS</span>

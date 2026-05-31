@@ -85,7 +85,7 @@ export default function Footer() {
           {/* Column 1: Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#215ae2] flex items-center justify-center">
                 <svg
                   width="18"
                   height="18"

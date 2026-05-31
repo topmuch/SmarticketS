@@ -29,8 +29,8 @@ const articles: Article[] = [
     excerpt:
       "La bonne gestion des itinéraires et le suivi en temps réel permettent aux chauffeurs et agences de gagner du temps et d'améliorer leur rentabilité.",
     href: '#',
-    bg: 'bg-[#FF6B35]',
-    hoverShadow: 'hover:shadow-[0_8px_32px_rgba(255,107,53,0.35)]',
+    bg: 'bg-[#215ae2]',
+    hoverShadow: 'hover:shadow-[0_8px_32px_rgba(33,90,226,0.35)]',
     iconBg: 'bg-white/20',
   },
   {

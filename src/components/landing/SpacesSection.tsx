@@ -60,11 +60,11 @@ export default function SpacesSection() {
             <motion.div
               whileHover={{ y: -4 }}
               transition={{ duration: 0.3 }}
-              className="group h-full bg-white border-2 border-[#FF6B35]/30 rounded-xl p-8 lg:p-10 shadow-[0_4px_24px_rgba(10,37,64,0.04)] hover:shadow-[0_8px_32px_rgba(255,107,53,0.12)] transition-shadow duration-300"
+              className="group h-full bg-white border-2 border-[#215ae2]/30 rounded-xl p-8 lg:p-10 shadow-[0_4px_24px_rgba(10,37,64,0.04)] hover:shadow-[0_8px_32px_rgba(33,90,226,0.12)] transition-shadow duration-300"
             >
               {/* Icon */}
-              <div className="w-14 h-14 bg-[#FF6B35]/10 rounded-xl flex items-center justify-center mb-6">
-                <Building2 className="w-7 h-7 text-[#FF6B35]" />
+              <div className="w-14 h-14 bg-[#215ae2]/10 rounded-xl flex items-center justify-center mb-6">
+                <Building2 className="w-7 h-7 text-[#215ae2]" />
               </div>
 
               {/* Title */}
@@ -80,7 +80,7 @@ export default function SpacesSection() {
 
               {/* CTA */}
               <Link href="/devenir-partenaire">
-                <Button className="w-full bg-[#FF6B35] hover:bg-[#e65a28] text-white font-semibold text-sm rounded-lg px-6 py-3.5 shadow-[0_4px_12px_rgba(255,107,53,0.25)] hover:shadow-[0_4px_16px_rgba(255,107,53,0.35)] transition-all hover:scale-[1.02] gap-2">
+                <Button className="w-full bg-[#215ae2] hover:bg-[#1a4fc0] text-white font-semibold text-sm rounded-lg px-6 py-3.5 shadow-[0_4px_12px_rgba(33,90,226,0.25)] hover:shadow-[0_4px_16px_rgba(33,90,226,0.35)] transition-all hover:scale-[1.02] gap-2">
                   Devenir partenaire
                   <ArrowRight className="w-4 h-4" />
                 </Button>
