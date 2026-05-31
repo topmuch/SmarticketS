@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowRight, Truck, Building2 } from 'lucide-react';
+import { Search, ArrowRight, Truck, Building2, Loader2 } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import FadeIn from './FadeIn';
 
@@ -13,6 +13,7 @@ export default function HeroSection() {
   const router = useRouter();
   const [refValue, setRefValue] = useState('');
   const [isValid, setIsValid] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   const { scrollYProgress } = useScroll({
@@ -30,9 +31,40 @@ export default function HeroSection() {
     setIsValid(pattern.test(val));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isValid) router.push(`/activate/${refValue}`);
+    if (!isValid || isSearching) return;
+    setIsSearching(true);
+
+    try {
+      // Check status before routing: already activated items go directly to /retrieve
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+      const res = await fetch(`/api/arrivee/${encodeURIComponent(refValue)}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && data?.colis) {
+          const status = data.colis.status;
+          // If already in_transit or delivered, go straight to retrieve page
+          if (status === 'in_transit' || status === 'delivered') {
+            router.replace(`/retrieve/${refValue}`);
+            return;
+          }
+        }
+      }
+      // Otherwise (pending, error, timeout) go to activation page
+      router.push(`/activate/${refValue}`);
+    } catch {
+      // On error/timeout, fallback to activation page
+      router.push(`/activate/${refValue}`);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (
@@ -103,11 +135,20 @@ export default function HeroSection() {
               </div>
               <button
                 type="submit"
-                disabled={!isValid}
-                className="flex items-center gap-2 px-7 py-5 font-bold text-sm bg-[#215ae2] hover:bg-[#1a4fc0] text-white shadow-[0_4px_16px_rgba(33,90,226,0.4)] hover:shadow-[0_6px_20px_rgba(33,90,226,0.5)] transition-all duration-300 disabled:cursor-not-allowed"
+                disabled={!isValid || isSearching}
+                className="flex items-center gap-2 px-7 py-5 font-bold text-sm bg-[#215ae2] hover:bg-[#1a4fc0] text-white shadow-[0_4px_16px_rgba(33,90,226,0.4)] hover:shadow-[0_6px_20px_rgba(33,90,226,0.5)] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-80"
               >
-                Suivre
-                <ArrowRight className="w-4 h-4" />
+                {isSearching ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Recherche...
+                  </>
+                ) : (
+                  <>
+                    Suivre
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           </form>

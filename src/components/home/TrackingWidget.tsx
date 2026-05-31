@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 /**
@@ -18,11 +18,12 @@ export default function TrackingWidget() {
 
   const [inputValue, setInputValue] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const inputId = 'tracking-reference-input';
   const errorId = 'tracking-reference-error';
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     const trimmed = inputValue.trim();
 
     // Empty check
@@ -37,8 +38,34 @@ export default function TrackingWidget() {
       return;
     }
 
-    // Navigate to tracking page
-    router.push(`/activate/${trimmed}`);
+    setIsSearching(true);
+
+    try {
+      // Check status before routing: already activated items go directly to /retrieve
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+
+      const res = await fetch(`/api/arrivee/${encodeURIComponent(trimmed)}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && data?.colis) {
+          const status = data.colis.status;
+          if (status === 'in_transit' || status === 'delivered') {
+            router.replace(`/retrieve/${trimmed}`);
+            return;
+          }
+        }
+      }
+      router.push(`/activate/${trimmed}`);
+    } catch {
+      router.push(`/activate/${trimmed}`);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -98,17 +125,22 @@ export default function TrackingWidget() {
           <button
             type="button"
             onClick={handleSubmit}
+            disabled={isSearching}
             className="
               flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl
               bg-[#FF6B35] hover:bg-orange-600 active:bg-orange-700
               text-white font-semibold text-base
               shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40
               transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]
-              min-h-[48px]
+              min-h-[48px] disabled:opacity-80 disabled:cursor-not-allowed
             "
           >
-            <Search className="w-4 h-4" />
-            <span>{t('home.tracking_button')}</span>
+            {isSearching ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+            <span>{isSearching ? '...' : t('home.tracking_button')}</span>
           </button>
         </div>
 
