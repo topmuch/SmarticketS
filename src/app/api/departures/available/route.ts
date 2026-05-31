@@ -41,6 +41,13 @@ export async function GET(request: NextRequest) {
             name: true,
           },
         },
+        originStation: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+          },
+        },
       },
       orderBy: { scheduledTime: 'asc' },
     });
@@ -54,6 +61,7 @@ export async function GET(request: NextRequest) {
       availableSeats: dep.availableSeats,
       departureType: dep.departureType,
       routeName: dep.route?.name || null,
+      originStationName: dep.originStation?.name || dep.originStation?.city || null,
     }));
 
     return NextResponse.json({ departures: result });

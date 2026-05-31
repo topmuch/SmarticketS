@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock, MapPin, Users, CheckCircle } from 'lucide-react';
 
 interface Props {
   baggageId: string;
@@ -10,10 +10,25 @@ interface Props {
   reference: string;
 }
 
+interface AvailableDeparture {
+  id: string;
+  lineNumber: string;
+  destination: string;
+  scheduledTime: string;
+  platform: string | null;
+  availableSeats: number;
+  departureType: string;
+  routeName?: string;
+  originStationName?: string;
+}
+
 export default function TicketActivationForm({ baggageId, agencyId, reference }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [departures, setDepartures] = useState<AvailableDeparture[]>([]);
+  const [departuresLoading, setDeparturesLoading] = useState(true);
+  const [hasDepartures, setHasDepartures] = useState(false);
 
   const [form, setForm] = useState({
     passengerName: '',
@@ -30,7 +45,69 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
     luggageWeightKg: 0,
     departureDate: '',
     departureTime: '',
+    departureId: '',
   });
+
+  // Charger les départs disponibles pour l'agence
+  useEffect(() => {
+    if (!agencyId) {
+      setDeparturesLoading(false);
+      return;
+    }
+
+    async function loadDepartures() {
+      try {
+        const res = await fetch(`/api/departures/available?agencyId=${agencyId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const deps = data.departures || [];
+          setDepartures(deps);
+          setHasDepartures(deps.length > 0);
+        }
+      } catch (err) {
+        console.error('Erreur chargement départs:', err);
+      } finally {
+        setDeparturesLoading(false);
+      }
+    }
+    loadDepartures();
+  }, [agencyId]);
+
+  // Quand un départ est sélectionné, auto-remplir les champs trajet
+  const handleDepartureSelect = (departureId: string) => {
+    if (!departureId) {
+      setForm(prev => ({
+        ...prev,
+        departureId: '',
+        destination: '',
+        departureTime: '',
+        departureStation: '',
+        departureDate: '',
+        busCompany: '',
+      }));
+      return;
+    }
+
+    const dep = departures.find(d => d.id === departureId);
+    if (dep) {
+      const time = new Date(dep.scheduledTime);
+      const hours = time.getHours().toString().padStart(2, '0');
+      const minutes = time.getMinutes().toString().padStart(2, '0');
+      const dateStr = time.getFullYear() + '-' +
+        String(time.getMonth() + 1).padStart(2, '0') + '-' +
+        String(time.getDate()).padStart(2, '0');
+
+      setForm(prev => ({
+        ...prev,
+        departureId: dep.id,
+        destination: dep.destination,
+        departureTime: `${hours}:${minutes}`,
+        departureDate: dateStr,
+        departureStation: dep.originStationName || prev.departureStation,
+        busCompany: dep.routeName || prev.busCompany,
+      }));
+    }
+  };
 
   const passengerAge = parseInt(form.passengerAge) || 0;
 
@@ -56,6 +133,11 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         luggageWeightKg: parseFloat(String(form.luggageWeightKg)),
         luggageFee,
       };
+
+      // Si pas de départ sélectionné, ne pas envoyer departureId
+      if (!submitData.departureId) {
+        (submitData as Record<string, unknown>).departureId = undefined;
+      }
 
       const res = await fetch('/api/activate/ticket', {
         method: 'POST',
@@ -87,6 +169,10 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
 
   const inputClass = "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition text-sm";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+  const selectedDep = departures.find(d => d.id === form.departureId);
+
+  // Si un départ est sélectionné, les champs trajet sont pré-remplis (read-only pour certains)
+  const isAutoFilled = !!form.departureId;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -97,7 +183,85 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         </div>
       )}
 
-      {/* Section Passager */}
+      {/* ── SECTION DÉPART INTELLIGENTE ── */}
+      {hasDepartures && (
+        <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200 shadow-sm">
+          <h3 className="font-bold text-lg mb-4 text-emerald-800 flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            🚌 Sélection du Départ
+          </h3>
+
+          <div className="space-y-3">
+            <div>
+              <label className={labelClass}>Départ du jour</label>
+              <select
+                className={inputClass}
+                value={form.departureId}
+                onChange={(e) => handleDepartureSelect(e.target.value)}
+              >
+                <option value="">-- Saisie manuelle --</option>
+                {departures.map(dep => {
+                  const time = new Date(dep.scheduledTime);
+                  const hours = time.getHours().toString().padStart(2, '0');
+                  const minutes = time.getMinutes().toString().padStart(2, '0');
+                  return (
+                    <option key={dep.id} value={dep.id}>
+                      {hours}:{minutes} — {dep.lineNumber} → {dep.destination} ({dep.availableSeats} places)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Carte résumé du départ sélectionné */}
+            {selectedDep && (
+              <div className="p-4 bg-white rounded-lg border-2 border-emerald-300 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <span className="font-bold text-emerald-800 text-sm">Départ sélectionné</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-600 font-medium">🕐</span>
+                    <span className="font-medium">
+                      {new Date(selectedDep.scheduledTime).getHours().toString().padStart(2, '0')}:
+                      {new Date(selectedDep.scheduledTime).getMinutes().toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span className="font-medium">{selectedDep.destination}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-600" />
+                    <span>{selectedDep.availableSeats} places disponibles</span>
+                  </div>
+                  {selectedDep.platform && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-600">🏷️</span>
+                      <span>Quai {selectedDep.platform}</span>
+                    </div>
+                  )}
+                  {selectedDep.originStationName && (
+                    <div className="flex items-center gap-2 col-span-2">
+                      <span className="text-emerald-600">📍</span>
+                      <span>Départ : {selectedDep.originStationName}</span>
+                    </div>
+                  )}
+                  {selectedDep.routeName && (
+                    <div className="flex items-center gap-2 col-span-2">
+                      <span className="text-emerald-600">🛤️</span>
+                      <span className="text-xs text-gray-500">{selectedDep.routeName}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION PASSAGER ── */}
       <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
         <h3 className="font-bold text-lg mb-4 text-gray-800">👤 Informations Passager</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -178,9 +342,16 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         )}
       </div>
 
-      {/* Section Trajet */}
+      {/* ── SECTION TRAJET (pré-rempli si départ sélectionné, sinon manuel) ── */}
       <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="font-bold text-lg mb-4 text-gray-800">🚌 Informations Trajet</h3>
+        <h3 className="font-bold text-lg mb-4 text-gray-800">
+          🚌 Informations Trajet
+          {isAutoFilled && (
+            <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+              <CheckCircle className="w-3 h-3" /> Auto-rempli
+            </span>
+          )}
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Lieu de départ *</label>
@@ -198,7 +369,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="text"
               required
-              className={inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-emerald-300 rounded-lg bg-emerald-50 text-sm font-medium text-gray-800' : inputClass}
               placeholder="Ex: Saint-Louis"
               value={form.destination}
               onChange={(e) => handleChange('destination', e.target.value)}
@@ -220,7 +391,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="date"
               required
-              className={inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-emerald-300 rounded-lg bg-emerald-50 text-sm font-medium text-gray-800' : inputClass}
               value={form.departureDate}
               onChange={(e) => handleChange('departureDate', e.target.value)}
             />
@@ -230,7 +401,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="time"
               required
-              className={inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-emerald-300 rounded-lg bg-emerald-50 text-sm font-medium text-gray-800' : inputClass}
               value={form.departureTime}
               onChange={(e) => handleChange('departureTime', e.target.value)}
             />
@@ -249,7 +420,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         </div>
       </div>
 
-      {/* Section Bagages */}
+      {/* ── SECTION BAGAGES ── */}
       <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
         <h3 className="font-bold text-lg mb-4 text-gray-800">🧳 Bagages</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
