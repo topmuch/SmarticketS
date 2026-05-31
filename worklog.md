@@ -1665,3 +1665,38 @@ Stage Summary:
 - Le flux de validation livraison est maintenant clairement expliqué après l'activation
 - L'utilisateur peut directement accéder au suivi depuis la page de succès
 - Les boutons de saisie du code PIN sont plus visibles et accompagnés de texte explicatif
+
+---
+Task ID: controller-scanner-pwa-fix
+Agent: Main Agent
+Task: Fix controller scanner (not working) and PWA installation (not triggering)
+
+Work Log:
+- Diagnosed scanner issue: Found CRITICAL bugs in controller/validate/page.tsx
+  - `startScanner` referenced `validateWithCode` in dependency array BEFORE it was defined (temporal dead zone)
+  - `stopScannerInternal` and `startScanner` were DUPLICATED (defined twice, ~lines 1340 and 1530)
+  - This caused ReferenceError: Cannot access 'startScanner' before initialization
+- Fixed scanner by:
+  - Reordering: `validateWithCode` defined BEFORE `startScanner`
+  - Added `validateWithCodeRef` pattern to avoid stale closures in scanner callback
+  - Removed ALL duplicate function definitions
+  - Improved scanner config: fps 15, aspectRatio 1.0, facingMode: { ideal: 'environment' }
+  - Increased scanner start delay from 300ms to 500ms for better camera init
+- Diagnosed PWA install issue:
+  - No controller-specific layout existed (no /src/app/controller/layout.tsx)
+  - Global manifest had scope "/" — no separate PWA identity for controller
+  - `beforeinstallprompt` doesn't fire on iOS — no install option for iOS users
+- Fixed PWA install by:
+  - Created `/public/manifest-controller.json` with controller-specific name, scope="/controller/", start_url="/controller/validate"
+  - Created `/src/app/controller/layout.tsx` with metadata export linking to manifest-controller.json
+  - Added iOS detection (`/iPad|iPhone|iPod/` or Mac with touch) — always show install button on iOS
+  - Added standalone detection — hide install button when already running as PWA
+  - Added iOS install guide modal (3-step bottom sheet: Share → Scroll → Add to Home Screen)
+  - Android users still get native `beforeinstallprompt` handling
+- Verified compilation: controller/validate returns 200 OK, no errors
+
+Stage Summary:
+- Scanner: Fixed circular dependency and duplicate functions — scanner should now initialize correctly
+- PWA: Created controller manifest + layout, iOS install guide modal, proper Android native prompt
+- Files modified: controller/validate/page.tsx, NEW: controller/layout.tsx, manifest-controller.json
+- No pre-existing lint errors introduced

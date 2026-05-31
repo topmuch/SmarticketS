@@ -193,6 +193,8 @@ function DashboardScreen({
   onLogout,
   showInstallPrompt,
   onInstallApp,
+  showInstallGuide,
+  onCloseInstallGuide,
 }: {
   controllerName: string;
   onGoToScanner: () => void;
@@ -205,6 +207,8 @@ function DashboardScreen({
   onLogout: () => void;
   showInstallPrompt: boolean;
   onInstallApp: () => void;
+  showInstallGuide: boolean;
+  onCloseInstallGuide: () => void;
 }) {
   const [showProfile, setShowProfile] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -448,6 +452,64 @@ function DashboardScreen({
           </p>
         </div>
       </div>
+
+      {/* ─── iOS Install Guide Modal ──────────────────────────── */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCloseInstallGuide} />
+          {/* Modal content */}
+          <div className="relative w-full max-w-lg bg-[#1a1a2e] rounded-t-3xl p-6 pb-10 safe-bottom animate-fade-in-up">
+            {/* Handle bar */}
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            <h3 className="text-xl font-bold text-white mb-2 text-center">Installer l&apos;application</h3>
+            <p className="text-sm text-gray-400 text-center mb-6">
+              Ajoutez SmarticketS Contrôleur sur votre écran d&apos;accueil
+            </p>
+
+            <div className="space-y-4">
+              {/* Step 1 */}
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#00d9a3]/20 border border-[#00d9a3]/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-sm font-bold text-[#00d9a3]">1</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Appuyez sur le bouton Partager</p>
+                  <p className="text-xs text-gray-400 mt-1">L&apos;icône <span className="inline-block">↑</span> dans la barre de navigation en bas de l&apos;écran</p>
+                </div>
+              </div>
+              {/* Step 2 */}
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#00d9a3]/20 border border-[#00d9a3]/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-sm font-bold text-[#00d9a3]">2</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Scroll vers le bas</p>
+                  <p className="text-xs text-gray-400 mt-1">Descendez dans le menu des options</p>
+                </div>
+              </div>
+              {/* Step 3 */}
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#00d9a3]/20 border border-[#00d9a3]/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-sm font-bold text-[#00d9a3]">3</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Appuyez sur &quot;Ajouter à l&apos;écran d&apos;accueil&quot;</p>
+                  <p className="text-xs text-gray-400 mt-1">Confirmez l&apos;ajout</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onCloseInstallGuide}
+              className="w-full mt-6 bg-gradient-to-r from-[#00d9a3] to-[#00b894] rounded-2xl py-4 text-white font-bold text-base active:scale-[0.97] transition-all shadow-lg shadow-[#00d9a3]/20"
+            >
+              Compris
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1188,8 +1250,39 @@ export default function ControllerValidatePage() {
     };
   }, []);
 
-  // ─── PWA install prompt listener ─────────────────────────────
+  // ─── PWA install: detect platform ─────────────────────────────
+  const [isiOS, setIsiOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+
   useEffect(() => {
+    // Detect iOS
+    const ua = navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document);
+    setIsiOS(ios);
+
+    // Check if already running as installed PWA
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.matchMedia('(display-mode: fullscreen)').matches
+      || ('standalone' in navigator && (navigator as Navigator & { standalone: boolean }).standalone);
+    setIsStandalone(standalone);
+
+    // Don't show install if already standalone
+    if (standalone) {
+      setShowInstallPrompt(false);
+      return;
+    }
+
+    // On iOS, always show install button (no beforeinstallprompt event)
+    if (ios) {
+      setShowInstallPrompt(true);
+    }
+  }, []);
+
+  // ─── PWA install prompt listener (Android/Chrome only) ────────
+  useEffect(() => {
+    if (isiOS || isStandalone) return;
+
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       deferredPromptRef.current = e as BeforeInstallPromptEvent;
@@ -1208,10 +1301,17 @@ export default function ControllerValidatePage() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isiOS, isStandalone]);
 
   // ─── PWA install handler ─────────────────────────────────────
   const handleInstallApp = useCallback(async () => {
+    if (isiOS) {
+      // iOS: show manual install guide
+      setShowInstallGuide(true);
+      return;
+    }
+
+    // Android/Chrome: use native prompt
     const prompt = deferredPromptRef.current;
     if (!prompt) return;
 
@@ -1225,7 +1325,7 @@ export default function ControllerValidatePage() {
     } catch {
       // Install prompt dismissed or failed
     }
-  }, []);
+  }, [isiOS]);
 
   // ─── Start sync engine on mount, stop on unmount ──────────────
   useEffect(() => {
@@ -1350,85 +1450,7 @@ export default function ControllerValidatePage() {
     }
   }, []);
 
-  // ─── QR Scanner: start ──────────────────────────────────────
-  const startScanner = useCallback(async () => {
-    if (!scannerRef.current || scannerStartingRef.current) return;
-    scannerStartingRef.current = true;
-    setScannerError(null);
-    await stopScannerInternal();
-
-    try {
-      const html5QrCode = new Html5Qrcode('scanner-container');
-      html5QrCodeRef.current = html5QrCode;
-
-      const cameraConfig: MediaTrackConstraints = {
-        facingMode: 'environment',
-      };
-
-      const scannerConfig = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        disableFlip: true,
-      };
-
-      await html5QrCode.start(
-        cameraConfig,
-        scannerConfig,
-        (decodedText) => {
-          const extracted = extractControlCode(decodedText);
-          if (extracted) {
-            setCode(extracted);
-            validateWithCode(extracted);
-            stopScannerInternal();
- }
-        },
-        () => { /* Ignore scan errors — normal during continuous scanning */ },
-      );
-    } catch (err) {
-      console.error('[Scanner] Failed to start:', err);
-      html5QrCodeRef.current = null;
-      const message = err instanceof Error ? err.message : String(err);
-      if (message.includes('NotAllowedError') || message.includes('Permission')) {
-        setScannerError('Autorisation caméra refusée. Veuillez autoriser l\'accès à la caméra.');
-      } else if (message.includes('NotFoundError') || message.includes('Requested device not found')) {
-        setScannerError('Aucune caméra trouvée sur cet appareil.');
-      } else if (message.includes('NotReadableError') || message.includes('Could not start video')) {
-        setScannerError('La caméra est déjà utilisée par une autre application.');
-      } else {
-        setScannerError('Impossible de démarrer la caméra. Veuillez réessayer.');
-      }
-    } finally {
-      scannerStartingRef.current = false;
-    }
-  }, [extractControlCode, validateWithCode, stopScannerInternal]);
-
-  // ─── Navigate to scanner ─────────────────────────────────────
-  const goToScanner = useCallback(() => {
-    setCode('');
-    setResult(null);
-    setValidationStatus('idle');
-    setScannerError(null);
-    setScreen('scanner');
-  }, []);
-
-  // ─── Retry scanner ───────────────────────────────────────────
-  const handleRetryScanner = useCallback(() => {
-    setScannerError(null);
-    startScanner();
-  }, [startScanner]);
-
-  // ─── Navigate to keypad ──────────────────────────────────────
-  const goToKeypad = useCallback(() => {
-    stopScannerInternal();
-    setScreen('keypad');
-  }, []);
-
-  // ─── Stop scanner on unmount ────────────────────────────────
-  useEffect(() => {
-    return () => { stopScannerInternal(); };
-  }, [stopScannerInternal]);
-
-  // ─── Validate ticket with a given code ─────────────────────
+  // ─── Validate ticket with a given code (defined BEFORE startScanner) ─────────────────────
   const validateWithCode = useCallback(
     async (controlCode: string) => {
       if (controlCode.length < 6 || validationStatus === 'loading') return;
@@ -1526,19 +1548,9 @@ export default function ControllerValidatePage() {
     [validationStatus, triggerHaptic, playDing, playBuzz, clearResult],
   );
 
-  // ─── QR Scanner: stop (internal, no deps) ──────────────────
-  const stopScannerInternal = useCallback(async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        const state = html5QrCodeRef.current.getState();
-        if (state === 2 || state === 1) {
-          await html5QrCodeRef.current.stop();
-        }
-      } catch { /* Ignore */ }
-      try { html5QrCodeRef.current.clear(); } catch { /* Ignore */ }
-      html5QrCodeRef.current = null;
-    }
-  }, []);
+  // ─── Keep validateWithCode in a ref for scanner callback ──
+  const validateWithCodeRef = useRef(validateWithCode);
+  validateWithCodeRef.current = validateWithCode;
 
   // ─── QR Scanner: start ──────────────────────────────────────
   const startScanner = useCallback(async () => {
@@ -1552,13 +1564,14 @@ export default function ControllerValidatePage() {
       html5QrCodeRef.current = html5QrCode;
 
       const cameraConfig: MediaTrackConstraints = {
-        facingMode: 'environment',
+        facingMode: { ideal: 'environment' },
       };
 
       const scannerConfig = {
-        fps: 10,
+        fps: 15,
         qrbox: { width: 250, height: 250 },
         disableFlip: true,
+        aspectRatio: 1.0,
       };
 
       await html5QrCode.start(
@@ -1568,7 +1581,8 @@ export default function ControllerValidatePage() {
           const extracted = extractControlCode(decodedText);
           if (extracted) {
             setCode(extracted);
-            validateWithCode(extracted);
+            // Use ref to avoid stale closure
+            validateWithCodeRef.current(extracted);
             stopScannerInternal();
           }
         },
@@ -1590,7 +1604,33 @@ export default function ControllerValidatePage() {
     } finally {
       scannerStartingRef.current = false;
     }
-  }, [extractControlCode, validateWithCode, stopScannerInternal]);
+  }, [extractControlCode, stopScannerInternal]);
+
+  // ─── Navigate to scanner ─────────────────────────────────────
+  const goToScanner = useCallback(() => {
+    setCode('');
+    setResult(null);
+    setValidationStatus('idle');
+    setScannerError(null);
+    setScreen('scanner');
+  }, []);
+
+  // ─── Retry scanner ───────────────────────────────────────────
+  const handleRetryScanner = useCallback(() => {
+    setScannerError(null);
+    startScanner();
+  }, [startScanner]);
+
+  // ─── Navigate to keypad ──────────────────────────────────────
+  const goToKeypad = useCallback(() => {
+    stopScannerInternal();
+    setScreen('keypad');
+  }, []);
+
+  // ─── Stop scanner on unmount ────────────────────────────────
+  useEffect(() => {
+    return () => { stopScannerInternal(); };
+  }, [stopScannerInternal]);
 
   // ─── Flashlight ──────────────────────────────────────────────
   const handleStartFlashlight = useCallback(() => {
@@ -1608,7 +1648,7 @@ export default function ControllerValidatePage() {
   // ─── Start scanner when entering scanner screen ──────────────
   useEffect(() => {
     if (screen === 'scanner') {
-      const timer = setTimeout(() => { startScanner(); }, 300);
+      const timer = setTimeout(() => { startScanner(); }, 500);
       return () => clearTimeout(timer);
     } else {
       stopScannerInternal();
@@ -1731,6 +1771,8 @@ export default function ControllerValidatePage() {
             onLogout={handleLogout}
             showInstallPrompt={showInstallPrompt}
             onInstallApp={handleInstallApp}
+            showInstallGuide={showInstallGuide}
+            onCloseInstallGuide={() => setShowInstallGuide(false)}
           />
         </div>
       )}
