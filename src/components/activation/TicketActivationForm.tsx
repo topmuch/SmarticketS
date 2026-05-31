@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Clock, MapPin, Users } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface Props {
   baggageId: string;
@@ -10,23 +10,10 @@ interface Props {
   reference: string;
 }
 
-interface AvailableDeparture {
-  id: string;
-  lineNumber: string;
-  destination: string;
-  scheduledTime: string;
-  platform: string | null;
-  availableSeats: number;
-  departureType: string;
-  routeName?: string;
-}
-
 export default function TicketActivationForm({ baggageId, agencyId, reference }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [departures, setDepartures] = useState<AvailableDeparture[]>([]);
-  const [departuresLoading, setDeparturesLoading] = useState(true);
 
   const [form, setForm] = useState({
     passengerName: '',
@@ -43,59 +30,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
     luggageWeightKg: 0,
     departureDate: '',
     departureTime: '',
-    departureId: '',
   });
-
-  // Charger les départs disponibles pour l'agence
-  useEffect(() => {
-    async function loadDepartures() {
-      try {
-        const res = await fetch(`/api/departures/available?agencyId=${agencyId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setDepartures(data.departures || []);
-        }
-      } catch (err) {
-        console.error('Erreur chargement départs:', err);
-      } finally {
-        setDeparturesLoading(false);
-      }
-    }
-    loadDepartures();
-  }, [agencyId]);
-
-  // Quand un départ est sélectionné, auto-remplir les champs
-  const handleDepartureSelect = (departureId: string) => {
-    setForm(prev => ({ ...prev, departureId }));
-
-    if (!departureId) {
-      setForm(prev => ({
-        ...prev,
-        departureId: '',
-        destination: '',
-        departureTime: '',
-        departureStation: '',
-        departureDate: '',
-        busCompany: '',
-      }));
-      return;
-    }
-
-    const dep = departures.find(d => d.id === departureId);
-    if (dep) {
-      const time = new Date(dep.scheduledTime);
-      const hours = time.getHours().toString().padStart(2, '0');
-      const minutes = time.getMinutes().toString().padStart(2, '0');
-
-      setForm(prev => ({
-        ...prev,
-        departureId: dep.id,
-        destination: dep.destination,
-        departureTime: `${hours}:${minutes}`,
-        busCompany: dep.routeName || prev.busCompany,
-      }));
-    }
-  };
 
   const passengerAge = parseInt(form.passengerAge) || 0;
 
@@ -122,16 +57,10 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         luggageFee,
       };
 
-      // Si pas de départ sélectionné, ne pas envoyer departureId
-      const cleanedData = { ...submitData };
-      if (!cleanedData.departureId) {
-        (cleanedData as Record<string, unknown>).departureId = undefined;
-      }
-
       const res = await fetch('/api/activate/ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleanedData),
+        body: JSON.stringify(submitData),
       });
 
       const data = await res.json();
@@ -159,8 +88,6 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
   const inputClass = "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition text-sm";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
-  const selectedDep = departures.find(d => d.id === form.departureId);
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
@@ -169,78 +96,6 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
           {error}
         </div>
       )}
-
-      {/* Section Départ (SÉLECTION HORAIRE) */}
-      <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200 shadow-sm">
-        <h3 className="font-bold text-lg mb-4 text-emerald-800 flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          🚌 Sélection du Départ
-        </h3>
-
-        {!departuresLoading && departures.length === 0 && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
-            ⚠️ Aucun départ prévu aujourd&apos;hui. Saisissez les informations manuellement ci-dessous.
-          </div>
-        )}
-
-        {departures.length > 0 && (
-          <div className="space-y-3">
-            <div>
-              <label className={labelClass}>Départ du jour *</label>
-              <select
-                className={inputClass}
-                value={form.departureId}
-                onChange={(e) => handleDepartureSelect(e.target.value)}
-              >
-                <option value="">-- Choisir un départ --</option>
-                {departures.map(dep => {
-                  const time = new Date(dep.scheduledTime);
-                  const hours = time.getHours().toString().padStart(2, '0');
-                  const minutes = time.getMinutes().toString().padStart(2, '0');
-                  return (
-                    <option key={dep.id} value={dep.id}>
-                      {hours}:{minutes} — {dep.lineNumber} → {dep.destination} ({dep.availableSeats} places restantes)
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            {/* Info carte du départ sélectionné */}
-            {selectedDep && (
-              <div className="p-3 bg-white rounded-lg border border-emerald-100 grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-600" />
-                  <span className="font-medium">{selectedDep.destination}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-emerald-600" />
-                  <span>{selectedDep.availableSeats} places disponibles</span>
-                </div>
-                {selectedDep.platform && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-600">🏷️</span>
-                    <span>Quai {selectedDep.platform}</span>
-                  </div>
-                )}
-                {selectedDep.routeName && (
-                  <div className="flex items-center gap-2 col-span-2">
-                    <span className="text-emerald-600">🛤️</span>
-                    <span className="text-xs text-gray-500">{selectedDep.routeName}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {departuresLoading && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Chargement des départs...
-          </div>
-        )}
-      </div>
 
       {/* Section Passager */}
       <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -323,128 +178,76 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         )}
       </div>
 
-      {/* Section Trajet (manuel si pas de départ sélectionné) */}
-      {!form.departureId && (
-        <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 text-gray-800">🚌 Informations Trajet</h3>
-          <p className="text-xs text-gray-500 mb-4">Saisie manuelle (aucun départ automatique sélectionné)</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Lieu de départ *</label>
-              <input
-                type="text"
-                required={!form.departureId}
-                className={inputClass}
-                placeholder="Ex: Gare Peters, Dakar"
-                value={form.departureStation}
-                onChange={(e) => handleChange('departureStation', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Destination *</label>
-              <input
-                type="text"
-                required
-                className={inputClass}
-                placeholder="Ex: Saint-Louis"
-                value={form.destination}
-                onChange={(e) => handleChange('destination', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Compagnie de transport *</label>
-              <input
-                type="text"
-                required={!form.departureId}
-                className={inputClass}
-                placeholder="Ex: DTW, SOTRAMAC"
-                value={form.busCompany}
-                onChange={(e) => handleChange('busCompany', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Date de départ *</label>
-              <input
-                type="date"
-                required={!form.departureId}
-                className={inputClass}
-                value={form.departureDate}
-                onChange={(e) => handleChange('departureDate', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Heure de départ *</label>
-              <input
-                type="time"
-                required={!form.departureId}
-                className={inputClass}
-                value={form.departureTime}
-                onChange={(e) => handleChange('departureTime', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>N° Siège *</label>
-              <input
-                type="text"
-                required
-                className={inputClass}
-                placeholder="Ex: 12A"
-                value={form.seatNumber}
-                onChange={(e) => handleChange('seatNumber', e.target.value)}
-              />
-            </div>
+      {/* Section Trajet */}
+      <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <h3 className="font-bold text-lg mb-4 text-gray-800">🚌 Informations Trajet</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Lieu de départ *</label>
+            <input
+              type="text"
+              required
+              className={inputClass}
+              placeholder="Ex: Gare Peters, Dakar"
+              value={form.departureStation}
+              onChange={(e) => handleChange('departureStation', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Destination *</label>
+            <input
+              type="text"
+              required
+              className={inputClass}
+              placeholder="Ex: Saint-Louis"
+              value={form.destination}
+              onChange={(e) => handleChange('destination', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Compagnie de transport *</label>
+            <input
+              type="text"
+              required
+              className={inputClass}
+              placeholder="Ex: DTW, SOTRAMAC"
+              value={form.busCompany}
+              onChange={(e) => handleChange('busCompany', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Date de départ *</label>
+            <input
+              type="date"
+              required
+              className={inputClass}
+              value={form.departureDate}
+              onChange={(e) => handleChange('departureDate', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Heure de départ *</label>
+            <input
+              type="time"
+              required
+              className={inputClass}
+              value={form.departureTime}
+              onChange={(e) => handleChange('departureTime', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>N° Siège *</label>
+            <input
+              type="text"
+              required
+              className={inputClass}
+              placeholder="Ex: 12A"
+              value={form.seatNumber}
+              onChange={(e) => handleChange('seatNumber', e.target.value)}
+            />
           </div>
         </div>
-      )}
-
-      {/* Si départ sélectionné: siège + compagnie + lieu/date */}
-      {form.departureId && (
-        <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 text-gray-800">💺 Assignation Siège & Détails</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>N° Siège *</label>
-              <input
-                type="text"
-                required
-                className={inputClass}
-                placeholder="Ex: 12A"
-                value={form.seatNumber}
-                onChange={(e) => handleChange('seatNumber', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Lieu de départ</label>
-              <input
-                type="text"
-                className={inputClass}
-                placeholder="Ex: Gare Peters, Dakar"
-                value={form.departureStation}
-                onChange={(e) => handleChange('departureStation', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Compagnie de transport</label>
-              <input
-                type="text"
-                className={inputClass}
-                placeholder="Ex: DTW, SOTRAMAC"
-                value={form.busCompany}
-                onChange={(e) => handleChange('busCompany', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Date de départ</label>
-              <input
-                type="date"
-                className={inputClass}
-                value={form.departureDate}
-                onChange={(e) => handleChange('departureDate', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Section Bagages */}
       <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
