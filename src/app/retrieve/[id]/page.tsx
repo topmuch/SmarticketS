@@ -225,64 +225,69 @@ function Animations() {
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-[#f1f5f9] flex flex-col">
+    <div className="min-h-screen bg-[#e8f0fe] flex flex-col">
       <Animations />
-      <div className="max-w-[440px] mx-auto w-full px-4 py-6 space-y-4 safe-top">
-        {/* Header skeleton */}
-        <div className="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-3xl p-6 pb-8 space-y-3">
-          <div className="skeleton h-5 w-48 bg-white/20" />
-          <div className="skeleton h-3 w-28 bg-white/15" />
-        </div>
-        {/* Main info skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-          <div className="flex gap-4">
-            <div className="skeleton h-20 w-20 rounded-xl" />
-            <div className="flex-1 space-y-2">
-              <div className="skeleton h-4 w-36" />
-              <div className="skeleton h-3 w-24" />
+      <div className="max-w-[440px] mx-auto w-full px-4 py-6 safe-top">
+        {/* Unified card skeleton */}
+        <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+          {/* Header skeleton */}
+          <div className="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] p-6 pb-8 space-y-3">
+            <div className="skeleton h-5 w-40 bg-white/20" />
+            <div className="skeleton h-3 w-24 bg-white/15" />
+          </div>
+          {/* Seat + company skeleton */}
+          <div className="p-5 flex items-center justify-center gap-4">
+            <div className="skeleton h-20 w-24 rounded-2xl" />
+            <div className="skeleton h-11 w-11 rounded-full" />
+            <div className="skeleton h-20 w-24 rounded-2xl" />
+          </div>
+          {/* Black band skeleton */}
+          <div className="bg-[#0f172a] p-4 grid grid-cols-3 gap-3">
+            <div className="skeleton h-5 mx-auto w-16 bg-white/15" />
+            <div className="skeleton h-5 mx-auto w-16 bg-white/15" />
+            <div className="skeleton h-5 mx-auto w-16 bg-white/15" />
+          </div>
+          {/* Trajet skeleton */}
+          <div className="p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="skeleton h-10 w-28" />
+              <div className="skeleton h-10 w-10 rounded-full" />
+              <div className="skeleton h-10 w-28" />
             </div>
           </div>
-          <div className="skeleton h-12 w-full rounded-xl" />
-        </div>
-        {/* Trajet skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="skeleton h-8 w-28" />
-            <div className="skeleton h-8 w-8 rounded-full" />
-            <div className="skeleton h-8 w-28" />
+          {/* Passenger skeleton */}
+          <div className="p-5 space-y-3 border-t border-gray-100">
+            <div className="skeleton h-4 w-20" />
+            <div className="skeleton h-6 w-48" />
+            <div className="flex gap-3">
+              <div className="skeleton h-12 flex-1 rounded-xl" />
+              <div className="skeleton h-12 flex-1 rounded-xl" />
+              <div className="skeleton h-12 flex-1 rounded-xl" />
+            </div>
           </div>
-          <div className="flex gap-3">
-            <div className="skeleton h-10 flex-1" />
-            <div className="skeleton h-10 flex-1" />
-            <div className="skeleton h-10 flex-1" />
+          {/* Luggage skeleton */}
+          <div className="p-5 border-t border-gray-100">
+            <div className="flex gap-3">
+              <div className="skeleton h-16 flex-1 rounded-xl" />
+              <div className="skeleton h-16 flex-1 rounded-xl" />
+              <div className="skeleton h-16 flex-1 rounded-xl" />
+            </div>
           </div>
-        </div>
-        {/* Passenger skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-          <div className="skeleton h-5 w-24" />
-          <div className="skeleton h-6 w-48" />
-          <div className="flex gap-3">
-            <div className="skeleton h-10 flex-1" />
-            <div className="skeleton h-10 flex-1" />
-          </div>
-        </div>
-        {/* Luggage skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex gap-3">
-            <div className="skeleton h-16 flex-1" />
-            <div className="skeleton h-16 flex-1" />
-            <div className="skeleton h-16 flex-1" />
+          {/* Bottom blue + QR skeleton */}
+          <div className="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] p-5 flex gap-4 items-center">
+            <div className="flex-1 space-y-3">
+              <div className="skeleton h-3 w-24 bg-white/15" />
+              <div className="skeleton h-4 w-32 bg-white/20" />
+              <div className="skeleton h-3 w-20 bg-white/15" />
+              <div className="skeleton h-4 w-36 bg-white/20" />
+            </div>
+            <div className="skeleton w-[130px] h-[130px] rounded-2xl bg-white/10" />
           </div>
         </div>
         {/* Control code skeleton */}
-        <div className="bg-[#d1fae5] rounded-2xl p-5 text-center space-y-2">
+        <div className="bg-[#d1fae5] rounded-2xl border-2 border-dashed border-[#10b981]/30 p-5 text-center space-y-2 mt-4">
           <div className="skeleton h-4 w-40 mx-auto" />
           <div className="skeleton h-10 w-56 mx-auto" />
-        </div>
-        {/* QR skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col items-center">
-          <div className="skeleton h-[250px] w-[250px] rounded-2xl" />
-          <div className="skeleton h-3 w-48 mt-3" />
         </div>
       </div>
     </div>
@@ -294,7 +299,6 @@ function LoadingSkeleton() {
 // ═══════════════════════════════════════════════════════════
 
 function TicketHeader({
-  reference,
   statusConfig,
 }: {
   reference: string;
@@ -302,7 +306,7 @@ function TicketHeader({
 }) {
   return (
     <div
-      className="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-3xl p-6 pb-8 text-white relative overflow-hidden animate-fade-in-up"
+      className="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-t-3xl p-6 pb-8 text-white relative overflow-hidden animate-fade-in-up"
       style={{ animationDelay: '0ms' }}
     >
       {/* Decorative circles */}
@@ -312,15 +316,15 @@ function TicketHeader({
       <div className="flex items-start justify-between relative z-10">
         {/* Left: Logo + Title */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <span className="text-lg font-black">S</span>
+          <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <span className="text-xl font-black">S</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight leading-tight">
-              TICKET DE TRANSPORT
+            <h1 className="text-xl font-extrabold tracking-tight leading-tight">
+              SMARTICKETS
             </h1>
-            <p className="text-[11px] text-white/60 font-mono leading-tight mt-0.5">
-              {reference}
+            <p className="text-[11px] text-white/50 font-medium leading-tight mt-0.5">
+              Ticket de transport
             </p>
           </div>
         </div>
@@ -350,33 +354,40 @@ function MainInfoCard({
 }) {
   return (
     <div
-      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm overflow-hidden animate-fade-in-up"
+      className="bg-white shadow-sm overflow-hidden animate-fade-in-up"
       style={{ animationDelay: '80ms' }}
     >
-      {/* Top: Seat + Company */}
-      <div className="p-5 flex items-center gap-4">
+      {/* Top: Seat + Bus icon + Company */}
+      <div className="p-5 flex items-center justify-center gap-4">
         {/* Seat number */}
-        <div className="flex flex-col items-center bg-[#f1f5f9] rounded-2xl px-5 py-3 min-w-[80px]">
+        <div className="flex flex-col items-center bg-[#f1f5f9] rounded-2xl px-6 py-3.5 min-w-[90px]">
           <Armchair className="w-5 h-5 text-[#2563eb] mb-1" />
           <span className="text-3xl font-black text-[#0f172a] leading-none">
             {ticket.seatNumber || '—'}
           </span>
-          <span className="text-[10px] text-black font-semibold uppercase tracking-wider mt-1">
+          <span className="text-[10px] text-[#475569] font-semibold uppercase tracking-widest mt-1">
             Siège
           </span>
         </div>
 
-        {/* Company info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-black font-medium uppercase tracking-wider">
-            Compagnie
-          </p>
-          <p className="text-base font-bold text-[#0f172a] truncate">
+        {/* Bus icon separator */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-[2px] bg-[#cbd5e1] rounded" />
+          <div className="w-11 h-11 rounded-full bg-[#2563eb]/10 flex items-center justify-center">
+            <Bus className="w-5 h-5 text-[#2563eb]" />
+          </div>
+          <div className="w-7 h-[2px] bg-[#cbd5e1] rounded" />
+        </div>
+
+        {/* Company box */}
+        <div className="flex flex-col items-center bg-[#f1f5f9] rounded-2xl px-6 py-3.5 min-w-[90px]">
+          <span className="text-lg mb-1">🏢</span>
+          <span className="text-base font-bold text-[#0f172a] truncate max-w-[120px]">
             {colis.company || '—'}
-          </p>
-          <p className="text-xs text-black font-mono mt-0.5">
-            {colis.reference}
-          </p>
+          </span>
+          <span className="text-[10px] text-[#475569] font-semibold uppercase tracking-widest mt-1">
+            Compagnie
+          </span>
         </div>
       </div>
 
@@ -384,24 +395,30 @@ function MainInfoCard({
       <div className="bg-[#0f172a] px-5 py-3.5">
         <div className="grid grid-cols-3 gap-2">
           <div className="text-center">
-            <p className="text-[10px] text-white font-semibold uppercase tracking-wider">
+            <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wider">
               Date
             </p>
             <p className="text-sm font-bold text-white mt-0.5">
-              {formatDate(colis.departureDate)}
+              {colis.departureDate
+                ? new Date(colis.departureDate).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: '2-digit',
+                  })
+                : '—'}
             </p>
           </div>
           <div className="text-center border-x border-white/10">
-            <p className="text-[10px] text-white font-semibold uppercase tracking-wider">
-              Heure départ
+            <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wider">
+              Départ
             </p>
             <p className="text-sm font-bold text-white mt-0.5">
               {ticket.departureTime || colis.departureTime || '—'}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] text-white font-semibold uppercase tracking-wider">
-              Référence
+            <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wider">
+              Code réservation
             </p>
             <p className="text-sm font-bold text-white mt-0.5 font-mono">
               {colis.reference}
@@ -426,52 +443,52 @@ function TrajetCard({
 }) {
   return (
     <div
-      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
+      className="bg-white shadow-sm p-5 animate-fade-in-up"
       style={{ animationDelay: '160ms' }}
     >
-      <div className="flex items-center justify-between items-center">
-        {/* Departure */}
+      <div className="flex items-center justify-between">
+        {/* Departure - Blue city code style */}
         <div className="text-center flex-1">
-          <p className="text-2xl font-black text-[#0f172a] uppercase tracking-tight">
+          <p className="text-3xl font-black text-[#2563eb] uppercase tracking-tight">
             {colis.departureCity || '—'}
           </p>
         </div>
 
         {/* Bus icon + line */}
         <div className="flex items-center gap-2 mx-3 flex-shrink-0">
-          <div className="w-6 h-[2px] bg-gray-300 rounded" />
-          <div className="w-10 h-10 rounded-full bg-[#2563eb]/10 flex items-center justify-center">
+          <div className="w-8 h-[2px] bg-[#93c5fd] rounded" />
+          <div className="w-11 h-11 rounded-full bg-[#2563eb]/10 flex items-center justify-center">
             <Bus className="w-5 h-5 text-[#2563eb]" />
           </div>
-          <div className="w-6 h-[2px] bg-[#2563eb] rounded" />
+          <div className="w-8 h-[2px] bg-[#93c5fd] rounded" />
         </div>
 
-        {/* Arrival */}
+        {/* Arrival - Blue city code style */}
         <div className="text-center flex-1">
-          <p className="text-2xl font-black text-[#0f172a] uppercase tracking-tight">
+          <p className="text-3xl font-black text-[#2563eb] uppercase tracking-tight">
             {ticket.destination || colis.arrivalCity || '—'}
           </p>
         </div>
       </div>
 
       {/* Info row */}
-      <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-center gap-5 mt-4 pt-4 border-t border-gray-100">
         <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-black" />
-          <span className="text-xs text-black font-medium">
+          <Clock className="w-3.5 h-3.5 text-[#475569]" />
+          <span className="text-xs text-[#475569] font-medium">
             {ticket.departureTime || colis.departureTime || '—'}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Armchair className="w-3.5 h-3.5 text-black" />
-          <span className="text-xs text-black font-medium">
+          <Armchair className="w-3.5 h-3.5 text-[#475569]" />
+          <span className="text-xs text-[#475569] font-medium">
             Siège {ticket.seatNumber || '—'}
           </span>
         </div>
         {ticket.platform && (
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-black" />
-            <span className="text-xs text-black font-medium">
+            <MapPin className="w-3.5 h-3.5 text-[#475569]" />
+            <span className="text-xs text-[#475569] font-medium">
               Quai {ticket.platform}
             </span>
           </div>
@@ -496,21 +513,21 @@ function PassengerCard({
 }) {
   return (
     <div
-      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
+      className="bg-white shadow-sm p-5 animate-fade-in-up"
       style={{ animationDelay: '240ms' }}
     >
       <div className="flex items-center gap-2 mb-3">
         <User className="w-4 h-4 text-[#2563eb]" />
-        <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+        <h3 className="text-xs font-bold text-[#475569] uppercase tracking-wider">
           Passager
         </h3>
       </div>
 
-      <p className="text-xl font-bold text-[#0f172a]">{ticket.passengerName}</p>
+      <p className="text-xl font-extrabold text-[#0f172a]">{ticket.passengerName}</p>
 
       <div className="grid grid-cols-3 gap-3 mt-3">
         <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-3 text-center">
-          <p className="text-[10px] text-black font-semibold uppercase">
+          <p className="text-[10px] text-[#475569] font-semibold uppercase">
             Âge
           </p>
           <p className="text-sm font-bold text-[#0f172a] mt-0.5">
@@ -518,7 +535,7 @@ function PassengerCard({
           </p>
         </div>
         <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-3 text-center">
-          <p className="text-[10px] text-black font-semibold uppercase">
+          <p className="text-[10px] text-[#475569] font-semibold uppercase">
             Document
           </p>
           <p className="text-sm font-bold text-[#0f172a] mt-0.5">
@@ -526,7 +543,7 @@ function PassengerCard({
           </p>
         </div>
         <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-3 text-center">
-          <p className="text-[10px] text-black font-semibold uppercase">
+          <p className="text-[10px] text-[#475569] font-semibold uppercase">
             N° Document
           </p>
           <button
@@ -539,9 +556,9 @@ function PassengerCard({
               {showDoc ? ticket.documentNumber : maskDocument(ticket.documentNumber)}
             </p>
             {showDoc ? (
-              <EyeOff className="w-3.5 h-3.5 text-black flex-shrink-0" />
+              <EyeOff className="w-3.5 h-3.5 text-[#475569] flex-shrink-0" />
             ) : (
-              <Eye className="w-3.5 h-3.5 text-black flex-shrink-0" />
+              <Eye className="w-3.5 h-3.5 text-[#475569] flex-shrink-0" />
             )}
           </button>
         </div>
@@ -557,12 +574,12 @@ function PassengerCard({
 function LuggageCard({ ticket }: { ticket: TicketData }) {
   return (
     <div
-      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
+      className="bg-white shadow-sm p-5 border-t border-gray-100 animate-fade-in-up"
       style={{ animationDelay: '320ms' }}
     >
       <div className="flex items-center gap-2 mb-4">
-        <Package className="w-4 h-4 text-black" />
-        <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+        <Package className="w-4 h-4 text-[#475569]" />
+        <h3 className="text-xs font-bold text-[#475569] uppercase tracking-wider">
           Bagages
         </h3>
       </div>
@@ -572,25 +589,25 @@ function LuggageCard({ ticket }: { ticket: TicketData }) {
           <p className="text-2xl font-black text-[#0f172a]">
             {ticket.luggageCount}
           </p>
-          <p className="text-[10px] text-black font-semibold uppercase mt-1">
+          <p className="text-[10px] text-[#475569] font-semibold uppercase mt-1">
             Quantité
           </p>
         </div>
         <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-4 text-center">
           <p className="text-2xl font-black text-[#0f172a]">
             {ticket.luggageWeightKg}
-            <span className="text-sm font-semibold text-black ml-0.5">kg</span>
+            <span className="text-sm font-semibold text-[#475569] ml-0.5">kg</span>
           </p>
-          <p className="text-[10px] text-black font-semibold uppercase mt-1">
+          <p className="text-[10px] text-[#475569] font-semibold uppercase mt-1">
             Poids
           </p>
         </div>
         <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-4 text-center">
           <p className="text-2xl font-black text-[#0f172a]">
             {ticket.luggageFee}
-            <span className="text-sm font-semibold text-black ml-0.5">F</span>
+            <span className="text-sm font-semibold text-[#475569] ml-0.5">F</span>
           </p>
-          <p className="text-[10px] text-black font-semibold uppercase mt-1">
+          <p className="text-[10px] text-[#475569] font-semibold uppercase mt-1">
             Frais
           </p>
         </div>
@@ -651,10 +668,18 @@ function ControlCodeCard({
 }
 
 // ═══════════════════════════════════════════════════════════
-//  SECTION 7: QR CODE
+//  SECTION 7: BOTTOM BLUE SECTION WITH QR CODE
 // ═══════════════════════════════════════════════════════════
 
-function QRCodeSection({ reference }: { reference: string }) {
+function BottomBlueSection({
+  reference,
+  colis,
+  ticket,
+}: {
+  reference: string;
+  colis: ColisData;
+  ticket: TicketData;
+}) {
   const qrUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/retrieve/${reference}`
@@ -662,22 +687,56 @@ function QRCodeSection({ reference }: { reference: string }) {
 
   return (
     <div
-      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-6 flex flex-col items-center animate-fade-in-up"
+      className="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] p-5 flex gap-4 items-center animate-fade-in-up rounded-b-3xl"
       style={{ animationDelay: '480ms' }}
     >
-      <div className="w-[250px] h-[250px] rounded-2xl border-2 border-[#2563eb]/20 p-3 bg-white animate-pulse-qr shadow-lg shadow-[#2563eb]/5">
+      {/* Left: Info */}
+      <div className="flex-1 text-white space-y-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-white/50">
+            Passager
+          </p>
+          <p className="text-sm font-bold mt-0.5">
+            {ticket.passengerName || '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-white/50">
+            Compagnie
+          </p>
+          <p className="text-sm font-bold mt-0.5">
+            {colis.company || '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-white/50">
+            Siège / Compagnie
+          </p>
+          <p className="text-sm font-bold mt-0.5">
+            {ticket.seatNumber || '—'} / {colis.company || '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-white/50">
+            Code réservation
+          </p>
+          <p className="text-sm font-bold font-mono mt-0.5">
+            {reference}
+          </p>
+        </div>
+      </div>
+
+      {/* Right: QR Code */}
+      <div className="w-[130px] h-[130px] bg-white rounded-2xl p-2 flex-shrink-0 animate-pulse-qr">
         <QRCodeSVG
           value={qrUrl}
-          size={222}
+          size={114}
           level="H"
           includeMargin={false}
           bgColor="#ffffff"
           fgColor="#0f172a"
         />
       </div>
-      <p className="text-xs text-black mt-3 text-center">
-        Scannez pour vérifier l&apos;authenticité
-      </p>
     </div>
   );
 }
@@ -882,46 +941,56 @@ function TicketView({
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] flex flex-col">
+    <div className="min-h-screen bg-[#e8f0fe] flex flex-col">
       <Animations />
-      <div className="max-w-[440px] mx-auto w-full px-4 py-6 space-y-4 safe-top">
-        {/* 1. Header */}
-        <TicketHeader reference={colis.reference} statusConfig={statusConfig} />
+      <div className="max-w-[440px] mx-auto w-full px-4 py-6 safe-top">
+        {/* Unified ticket card wrapper */}
+        <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+          {/* 1. Header (blue, rounded top) */}
+          <TicketHeader reference={colis.reference} statusConfig={statusConfig} />
 
-        {/* 2. Main Info */}
-        <MainInfoCard ticket={ticket} colis={colis} />
+          {/* 2. Main Info (seat + company + black band) */}
+          <MainInfoCard ticket={ticket} colis={colis} />
 
-        {/* 3. Trajet */}
-        <TrajetCard colis={colis} ticket={ticket} />
+          {/* 3. Trajet (city route in blue) */}
+          <TrajetCard colis={colis} ticket={ticket} />
 
-        {/* 4. Passager */}
-        <PassengerCard
-          ticket={ticket}
-          showDoc={showDoc}
-          onToggleDoc={() => setShowDoc(!showDoc)}
-        />
+          {/* 4. Passager */}
+          <PassengerCard
+            ticket={ticket}
+            showDoc={showDoc}
+            onToggleDoc={() => setShowDoc(!showDoc)}
+          />
 
-        {/* 5. Bagages */}
-        <LuggageCard ticket={ticket} />
+          {/* 5. Bagages */}
+          <LuggageCard ticket={ticket} />
 
-        {/* 6. Code de contrôle */}
-        <ControlCodeCard
-          ticket={ticket}
-          copied={copied}
-          onCopy={handleCopyControlCode}
-        />
+          {/* 6. Bottom Blue Section with QR Code (rounded bottom) */}
+          <BottomBlueSection reference={colis.reference} colis={colis} ticket={ticket} />
+        </div>
+        {/* End unified ticket card */}
 
-        {/* 7. QR Code */}
-        <QRCodeSection reference={colis.reference} />
+        {/* Code de contrôle (outside ticket card) */}
+        <div className="mt-4">
+          <ControlCodeCard
+            ticket={ticket}
+            copied={copied}
+            onCopy={handleCopyControlCode}
+          />
+        </div>
 
         {/* Action buttons */}
-        <ActionButtons reference={colis.reference} colis={colis} ticket={ticket} />
+        <div className="mt-4">
+          <ActionButtons reference={colis.reference} colis={colis} ticket={ticket} />
+        </div>
 
-        {/* 8. Historique */}
-        <TimelineSection timeline={timeline} />
+        {/* Historique */}
+        <div className="mt-4">
+          <TimelineSection timeline={timeline} />
+        </div>
 
         {/* Footer */}
-        <div className="safe-bottom">
+        <div className="safe-bottom mt-8">
           <PageFooter />
         </div>
       </div>

@@ -1489,3 +1489,35 @@ Stage Summary:
 - API `/api/arrivee/[id]` already returns all needed data — no backend changes needed
 - Zero compilation errors, page compiles in <500ms
 - HTTP 200 for `/retrieve/TKT-DEMO-001` with loading skeleton + client-side data render
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Redesign ticket visualization page and PDF to match reference image design with QR code, no footer, no date/reference in header
+
+Work Log:
+- Analyzed uploaded reference image (10027579.jpg) using VLM: blue header, white seat/company boxes, black date band, blue city codes, lower blue section with QR code
+- Rewrote `/src/app/api/ticket-pdf/[ref]/route.ts` with:
+  - QR code generation using server-side `qrcode` package (toDataURL)
+  - Reference design matching: blue header, seat+company boxes, black band, blue city route, bottom blue section with QR code
+  - `@page { margin: 0 }` CSS to remove browser print header/footer
+  - `print-color-adjust: exact` for proper color printing
+  - Print button with `no-print` class
+- Redesigned `/src/app/retrieve/[id]/page.tsx`:
+  - TicketHeader: removed reference display, changed to "SMARTICKETS" title with "Ticket de transport" subtitle
+  - MainInfoCard: centered layout with SEAT box | bus icon | COMPANY box, black band with Date/Départ/Code réservation
+  - TrajetCard: blue city codes (#2563eb) with larger font, blue icon lines
+  - Unified card wrapper: all sections inside one `bg-white rounded-3xl shadow-lg overflow-hidden` div
+  - BottomBlueSection: new component replacing QRCodeSection - blue gradient section with passenger/company/seat info + QR code
+  - LoadingSkeleton: updated to match unified card design
+  - Background color: `bg-[#e8f0fe]` (light blue) matching reference
+  - Text colors: `text-[#475569]` for labels, `text-[#0f172a]` for values (all black/dark, no gray)
+- WhatsApp share still uses wa.me text share (working)
+
+Stage Summary:
+- `/src/app/api/ticket-pdf/[ref]/route.ts` — Complete rewrite with QR code + reference design + print-optimized CSS
+- `/src/app/retrieve/[id]/page.tsx` — Major redesign: unified card, blue header without reference, seat+company boxes, blue city codes, bottom blue section with QR code
+- PDF download opens print-ready HTML in new tab with "Imprimer / Enregistrer en PDF" button
+- No browser footer/header on print (via @page { margin: 0 })
+- All text is dark/black for readability
+- Both pages compile and render correctly (200 OK)
