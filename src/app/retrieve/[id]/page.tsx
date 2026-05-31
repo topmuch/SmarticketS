@@ -25,6 +25,9 @@ import {
   Banknote,
   MapPinned,
   ChevronRight,
+  Ticket,
+  Luggage,
+  ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import { notificationSound } from '@/lib/notification-sound';
@@ -38,6 +41,7 @@ interface ColisData {
   id: string;
   reference: string;
   status: string;
+  category?: string;
   transportType: string;
   company: string;
   arrivalCity: string;
@@ -63,6 +67,23 @@ interface ColisData {
   deliveryLocation?: string | null;
   deliveryNotes?: string | null;
   arrivedAt?: string | null;
+}
+
+interface TicketData {
+  passengerName: string;
+  passengerAge: number;
+  documentType: string;
+  documentNumber: string;
+  destination: string;
+  seatNumber: string;
+  platform: string | null;
+  departureTime: string | null;
+  luggageCount: number;
+  luggageWeightKg: number;
+  luggageFee: number;
+  controlCode: string;
+  ticketStatus: string;
+  activatedAt: string | null;
 }
 
 interface TimelineEntry {
@@ -444,6 +465,163 @@ function LogisticsCard({ colis, lang }: { colis: ColisData; lang: 'fr' | 'en' })
 }
 
 // ═══════════════════════════════════════════════════
+//  TICKET INFO CARD
+// ═══════════════════════════════════════════════════
+
+function TicketInfoCard({ colis, ticket, lang }: { colis: ColisData; ticket: TicketData; lang: 'fr' | 'en' }) {
+  const t = (fr: string, en: string) => (lang === 'fr' ? fr : en);
+  const transportIcon = TRANSPORT_ICONS[colis.transportType] || '🚌';
+
+  const statusBadge = ticket.ticketStatus === 'ACTIVE'
+    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+    : ticket.ticketStatus === 'CANCELLED'
+      ? 'bg-red-50 border-red-200 text-red-700'
+      : 'bg-amber-50 border-amber-200 text-amber-700';
+
+  const statusLabel = ticket.ticketStatus === 'ACTIVE'
+    ? t('✅ ACTIF', '✅ ACTIVE')
+    : ticket.ticketStatus === 'CANCELLED'
+      ? t('❌ ANNULÉ', '❌ CANCELLED')
+      : t('⏳ EN ATTENTE', '⏳ PENDING');
+
+  return (
+    <div className="space-y-4">
+      {/* Ticket Header */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <Ticket className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900">🎫 {t('Billet de Transport', 'Transport Ticket')}</h3>
+              <p className="text-xs font-mono text-gray-400">{colis.reference}</p>
+            </div>
+          </div>
+          <div className={`flex items-center gap-1.5 border rounded-full px-3 py-1.5 text-xs font-semibold ${statusBadge}`}>
+            {statusLabel}
+          </div>
+        </div>
+
+        {/* Route */}
+        <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mb-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-gray-500">{t('Départ', 'Departure')}</p>
+            <p className="font-bold text-gray-900 text-sm truncate">{colis.departureCity || '—'}</p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-8 h-0.5 bg-gray-300 rounded" />
+            <span className="text-base">{transportIcon}</span>
+            <div className="w-8 h-0.5 bg-emerald-400 rounded" />
+          </div>
+          <div className="flex-1 min-w-0 text-right">
+            <p className="text-xs text-gray-500">{t('Destination', 'Destination')}</p>
+            <p className="font-bold text-gray-900 text-sm truncate">{ticket.destination || colis.arrivalCity || '—'}</p>
+          </div>
+        </div>
+
+        {/* Passenger info */}
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Passager', 'Passenger')}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500">{t('Nom complet', 'Full name')}</p>
+              <p className="font-bold text-gray-900 text-sm">{ticket.passengerName}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500">{t('Âge', 'Age')}</p>
+              <p className="font-bold text-gray-900 text-sm">{ticket.passengerAge} {t('ans', 'years')}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500">{t('Type de document', 'Document type')}</p>
+              <p className="font-bold text-gray-900 text-sm">{ticket.documentType}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500">{t('N° document', 'Document #')}</p>
+              <p className="font-bold text-gray-900 text-sm font-mono">{ticket.documentNumber}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Trajet Details Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Navigation className="w-4 h-4 text-emerald-600" />
+          <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">{t('Trajet', 'Journey')}</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">{t('Départ', 'Departure')}</p>
+            <p className="font-bold text-gray-900 text-sm">
+              {formatDate(colis.departureDate, lang)}
+            </p>
+            {ticket.departureTime && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                <Clock className="w-3 h-3 inline mr-0.5" />
+                {new Date(ticket.departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">{t('Siège', 'Seat')}</p>
+            <p className="font-bold text-gray-900 text-sm">{ticket.seatNumber || '—'}</p>
+          </div>
+          {ticket.platform && (
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500">{t('Quai', 'Platform')}</p>
+              <p className="font-bold text-gray-900 text-sm">{ticket.platform}</p>
+            </div>
+          )}
+          {colis.company && (
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500">{t('Compagnie', 'Company')}</p>
+              <p className="font-bold text-gray-900 text-sm truncate">{colis.company}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bagages Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Luggage className="w-4 h-4 text-gray-500" />
+          <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">{t('Bagages', 'Luggage')}</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-500">{t('Quantité', 'Count')}</p>
+            <p className="font-bold text-gray-900 text-lg">{ticket.luggageCount}</p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-500">{t('Poids', 'Weight')}</p>
+            <p className="font-bold text-gray-900 text-lg">{ticket.luggageWeightKg}<span className="text-sm font-normal">kg</span></p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-500">{t('Frais', 'Fee')}</p>
+            <p className="font-bold text-gray-900 text-lg">{ticket.luggageFee}<span className="text-sm font-normal">F</span></p>
+          </div>
+        </div>
+      </div>
+
+      {/* Control Code Card — Prominent */}
+      <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-emerald-600" />
+          <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider">{t('Code de contrôle', 'Control code')}</h3>
+        </div>
+        <p className="text-3xl font-mono font-black text-emerald-900 tracking-[0.15em] py-2">
+          {ticket.controlCode}
+        </p>
+        <p className="text-xs text-emerald-600">
+          {t('Présentez ce code lors du contrôle.', 'Present this code during inspection.')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
 //  CARD 4: TIMELINE
 // ═══════════════════════════════════════════════════
 
@@ -755,6 +933,7 @@ function RetrieveContent() {
   const [colis, setColis] = useState<ColisData | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
+  const [ticket, setTicket] = useState<TicketData | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [successData, setSuccessData] = useState<{ wa_sender: string; wa_receiver: string } | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -783,6 +962,7 @@ function RetrieveContent() {
           c.pinAttempts = data.pinAttempts ?? 0;
           setColis(c);
           setTimeline(data.timeline || []);
+          setTicket(data.ticket || null);
 
           // Check if already confirmed (returning from /sending)
           const stored = sessionStorage.getItem(`wa_${reference}`);
@@ -914,7 +1094,8 @@ function RetrieveContent() {
   // ─── Status helpers ───
   const isAlreadyDelivered = colis?.status === 'delivered';
   const isInTransit = colis?.status === 'in_transit';
-  const isNormal = colis && isInTransit && !confirmed;
+  const isTicket = colis?.category === 'ticket';
+  const isNormal = colis && isInTransit && !confirmed && !isTicket;
 
   // ═══════════════════════════════════════════════════
   //  RENDER — Loading
@@ -949,6 +1130,52 @@ function RetrieveContent() {
             <Link
               href="/"
               className="inline-flex items-center gap-2 px-5 h-12 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-semibold text-sm transition-colors no-underline"
+            >
+              <Home className="w-4 h-4" />
+              {tFn("Retour à l'accueil", 'Back to home')}
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  RENDER — TICKET VIEW (category === 'ticket')
+  // ═══════════════════════════════════════════════════
+  if (colis && isTicket) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <RetrieveHeader qrCode={reference} status={colis.status} lang={currentLang} onLangChange={setCurrentLang} />
+        <main className="max-w-[600px] mx-auto px-4 py-6 pb-20">
+          <div className="mb-5">
+            <h1 className="text-xl font-bold text-gray-900">
+              {tFn('Billet de transport', 'Transport ticket')}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="font-mono bg-gray-100 px-2.5 py-1 rounded-lg text-sm font-bold text-gray-900">
+                #{reference}
+              </span>
+            </div>
+          </div>
+
+          {ticket ? (
+            <>
+              <TicketInfoCard colis={colis} ticket={ticket} lang={currentLang} />
+              {timeline.length > 0 && <TimelineCard timeline={timeline} lang={currentLang} />}
+            </>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <p className="text-sm text-gray-500 text-center">
+                {tFn('Aucune information de billet disponible.', 'No ticket information available.')}
+              </p>
+            </div>
+          )}
+
+          <div className="text-center pt-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors no-underline"
             >
               <Home className="w-4 h-4" />
               {tFn("Retour à l'accueil", 'Back to home')}

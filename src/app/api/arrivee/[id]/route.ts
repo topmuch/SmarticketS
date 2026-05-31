@@ -71,6 +71,20 @@ export async function GET(
       })),
     ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
+    // Fetch PassengerTicket data if category is 'ticket'
+    let ticket = null;
+    if (colis.category === 'ticket') {
+      ticket = await db.passengerTicket.findUnique({
+        where: { baggageId: colis.id },
+        select: {
+          passengerName: true, passengerAge: true, documentType: true, documentNumber: true,
+          destination: true, seatNumber: true, platform: true, departureTime: true,
+          luggageCount: true, luggageWeightKg: true, luggageFee: true,
+          controlCode: true, ticketStatus: true, activatedAt: true,
+        }
+      });
+    }
+
     // Return colis data for the arrival page
     return NextResponse.json({
       success: true,
@@ -78,6 +92,7 @@ export async function GET(
         id: colis.id,
         reference: colis.reference,
         status: colis.status,
+        category: colis.category,
         agencyId: colis.agencyId || '',
         transportType: colis.transportMode,
         company: colis.busCompany || colis.airlineName || '',
@@ -103,6 +118,7 @@ export async function GET(
         shareDriverPhone: colis.shareDriverPhone,
         deliveredAt: colis.deliveredAt,
       },
+      ticket,
       pin_masked,
       pinAttempts: colis.pinAttempts ?? 0,
       timeline,

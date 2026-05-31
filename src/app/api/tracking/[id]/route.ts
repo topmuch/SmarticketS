@@ -178,11 +178,26 @@ export async function GET(
       boat: '🚢',
     };
 
+    // Fetch PassengerTicket data if category is 'ticket'
+    let ticket = null;
+    if (colis.category === 'ticket') {
+      ticket = await db.passengerTicket.findUnique({
+        where: { baggageId: colis.id },
+        select: {
+          passengerName: true, passengerAge: true, documentType: true, documentNumber: true,
+          destination: true, seatNumber: true, platform: true, departureTime: true,
+          luggageCount: true, luggageWeightKg: true, luggageFee: true,
+          controlCode: true, ticketStatus: true, activatedAt: true,
+        }
+      });
+    }
+
     return NextResponse.json({
       success: true,
       colis: {
         reference: colis.reference,
         status: colis.status,
+        category: colis.category,
         statusLabel: currentStatus.label,
         statusColor: currentStatus.color,
         statusIcon: currentStatus.icon,
@@ -203,6 +218,7 @@ export async function GET(
         driverPhone: colis.shareDriverPhone ? (colis.driverPhone || null) : null,
         shareDriverPhone: colis.shareDriverPhone,
       },
+      ticket,
       timeline,
       totalEvents: timeline.length,
     });

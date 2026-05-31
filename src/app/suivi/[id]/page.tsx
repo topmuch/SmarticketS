@@ -22,6 +22,9 @@ import {
   Send,
   Copy,
   Phone,
+  Ticket,
+  Luggage,
+  ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -47,6 +50,7 @@ interface TimelineEntry {
 interface ColisInfo {
   reference: string;
   status: string;
+  category?: string;
   statusLabel: string;
   statusColor: string;
   statusIcon: string;
@@ -65,6 +69,23 @@ interface ColisInfo {
   deliveryLocation: string | null;
   driverPhone: string | null;
   shareDriverPhone: boolean;
+}
+
+interface TicketData {
+  passengerName: string;
+  passengerAge: number;
+  documentType: string;
+  documentNumber: string;
+  destination: string;
+  seatNumber: string;
+  platform: string | null;
+  departureTime: string | null;
+  luggageCount: number;
+  luggageWeightKg: number;
+  luggageFee: number;
+  controlCode: string;
+  ticketStatus: string;
+  activatedAt: string | null;
 }
 
 // ═══════════════════════════════════════════════════
@@ -232,6 +253,7 @@ export default function SuiviPage() {
   const [loading, setLoading] = useState(true);
   const [colis, setColis] = useState<ColisInfo | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
+  const [ticket, setTicket] = useState<TicketData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
@@ -252,6 +274,7 @@ export default function SuiviPage() {
         if (res.ok && data.success) {
           setColis(data.colis);
           setTimeline(data.timeline || []);
+          setTicket(data.ticket || null);
         } else {
           setError(data.message || t('Colis introuvable.', 'Package not found.'));
         }
@@ -362,7 +385,7 @@ export default function SuiviPage() {
         )}
 
         {/* ─── COLIS INFO CARD (color: Voyage green #10b981) ─── */}
-        {colis && (
+        {colis && !ticket && (
           <div className="bg-[#10b981] rounded-2xl p-5 shadow-lg shadow-emerald-500/20 space-y-3">
             <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
               {t('Détails du colis', 'Package details')}
@@ -396,6 +419,11 @@ export default function SuiviPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ─── TICKET INFO CARD ─── */}
+        {colis && ticket && (
+          <SuiviTicketCard colis={colis} ticket={ticket} lang={lang} t={t} />
         )}
 
         {/* ─── TIMELINE (color: Sender orange #f97316) ─── */}
@@ -468,6 +496,114 @@ export default function SuiviPage() {
           </Link>
         </div>
       </main>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+//  TICKET INFO CARD (for suivi page)
+// ═══════════════════════════════════════════════════
+
+function SuiviTicketCard({ colis, ticket, lang, t }: { colis: ColisInfo; ticket: TicketData; lang: 'fr' | 'en'; t: (fr: string, en: string) => string }) {
+  const statusBadge = ticket.ticketStatus === 'ACTIVE'
+    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+    : ticket.ticketStatus === 'CANCELLED'
+      ? 'bg-red-50 border-red-200 text-red-700'
+      : 'bg-amber-50 border-amber-200 text-amber-700';
+
+  const statusLabel = ticket.ticketStatus === 'ACTIVE'
+    ? t('✅ ACTIF', '✅ ACTIVE')
+    : ticket.ticketStatus === 'CANCELLED'
+      ? t('❌ ANNULÉ', '❌ CANCELLED')
+      : t('⏳ EN ATTENTE', '⏳ PENDING');
+
+  return (
+    <div className="space-y-4">
+      {/* Ticket Header Card */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <Ticket className="w-5 h-5 text-emerald-700" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-emerald-800">🎫 {t('Billet de Transport', 'Transport Ticket')}</h3>
+              <p className="text-xs font-mono text-emerald-500">{colis.reference}</p>
+            </div>
+          </div>
+          <div className={`flex items-center gap-1.5 border rounded-full px-3 py-1.5 text-xs font-semibold ${statusBadge}`}>
+            {statusLabel}
+          </div>
+        </div>
+
+        {/* Passenger info */}
+        <div className="grid grid-cols-2 gap-3">
+          <TicketInfoItem label={t('Passager', 'Passenger')} value={ticket.passengerName} />
+          <TicketInfoItem label={t('Âge', 'Age')} value={`${ticket.passengerAge} ${t('ans', 'years')}`} />
+          <TicketInfoItem label={t('Document', 'Document')} value={`${ticket.documentType} — ${ticket.documentNumber}`} />
+          <TicketInfoItem label={t('Siège', 'Seat')} value={ticket.seatNumber} />
+          <TicketInfoItem label={t('Destination', 'Destination')} value={ticket.destination || colis.arrivalCity} />
+          {ticket.platform && (
+            <TicketInfoItem label={t('Quai', 'Platform')} value={ticket.platform} />
+          )}
+        </div>
+
+        {/* Departure time */}
+        {ticket.departureTime && (
+          <div className="flex items-center gap-2 text-sm text-emerald-700">
+            <Clock className="w-4 h-4" />
+            <span className="font-semibold">
+              {t('Départ', 'Departure')} : {formatDate(ticket.departureTime, lang)}{' '}
+              {new Date(ticket.departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Luggage Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Luggage className="w-4 h-4 text-gray-500" />
+          <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">{t('Bagages', 'Luggage')}</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-500">{t('Quantité', 'Count')}</p>
+            <p className="font-bold text-gray-900 text-lg">{ticket.luggageCount}</p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-500">{t('Poids', 'Weight')}</p>
+            <p className="font-bold text-gray-900 text-lg">{ticket.luggageWeightKg}<span className="text-sm font-normal">kg</span></p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-gray-500">{t('Frais', 'Fee')}</p>
+            <p className="font-bold text-gray-900 text-lg">{ticket.luggageFee}<span className="text-sm font-normal">F</span></p>
+          </div>
+        </div>
+      </div>
+
+      {/* Control Code Card — Prominent */}
+      <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-emerald-600" />
+          <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider">{t('Code de contrôle', 'Control code')}</h3>
+        </div>
+        <p className="text-3xl font-mono font-black text-emerald-900 tracking-[0.15em] py-2">
+          {ticket.controlCode}
+        </p>
+        <p className="text-xs text-emerald-600">
+          {t('Présentez ce code lors du contrôle.', 'Present this code during inspection.')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function TicketInfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white/60 rounded-xl p-2.5">
+      <p className="text-[11px] text-emerald-600 font-medium">{label}</p>
+      <p className="text-sm text-emerald-900 font-semibold truncate">{value}</p>
     </div>
   );
 }
