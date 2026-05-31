@@ -40,6 +40,7 @@ import {
   Instagram,
   Send,
   Clock,
+  Monitor,
 } from 'lucide-react';
 
 /* ============================================================
@@ -67,24 +68,31 @@ const STATS = [
 const SOLUTIONS = [
   {
     title: 'Passagers',
-    description: 'Achetez, recevez sur WhatsApp, montrez le QR code.',
-    image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=400&fit=crop',
+    description: 'Achetez, recevez sur WhatsApp, montrez le QR code',
+    image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=500&fit=crop',
     icon: TicketCheck,
     features: ['Achat 24/7', 'Sans impression', 'Suivi en temps réel'],
   },
   {
     title: 'Expéditeurs',
-    description: 'Suivez vos colis en temps réel, notifications auto.',
-    image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&h=400&fit=crop',
+    description: 'Suivez vos colis en temps réel, notifications auto',
+    image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&h=500&fit=crop',
     icon: Package,
     features: ['QR code unique', 'Traçabilité totale', 'Alertes WhatsApp'],
   },
   {
     title: 'Compagnies',
-    description: 'Gérez votre flotte, vos départs et vos équipes en un seul endroit.',
-    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop',
+    description: 'Gérez votre flotte, vos départs et vos équipes',
+    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=500&fit=crop',
     icon: LayoutDashboard,
     features: ['Rapports automatisés', 'Gestion flotte', 'Statistiques live'],
+  },
+  {
+    title: 'Écrans Affichage',
+    description: 'Horaires bus en temps réel sur écran gare',
+    image: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=600&h=500&fit=crop',
+    icon: Monitor,
+    features: ['Horaires live', 'Départs & Arrivées', 'Alertes embarquement'],
   },
 ];
 
@@ -665,41 +673,53 @@ function SolutionsSection() {
           </p>
         </FadeIn>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+        {/* Cards — minimal image-centric style */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
           {SOLUTIONS.map((solution, i) => (
-            <FadeIn key={solution.title} delay={i * 0.1} direction={i === 0 ? 'right' : i === 2 ? 'left' : 'up'}>
+            <FadeIn key={solution.title} delay={i * 0.08}>
               <motion.div
-                whileHover={{ y: -8 }}
-                className="group bg-white rounded-2xl shadow-lg shadow-slate-900/5 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 overflow-hidden border border-slate-100"
+                whileHover={{ y: -4 }}
+                className="group cursor-pointer"
               >
-                {/* Image */}
-                <div className="relative h-48 overflow-hidden">
+                {/* Image container — tall, no border, no shadow */}
+                <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-slate-100">
                   <Image
                     src={solution.image}
                     alt={solution.title}
                     fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-700"
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-2xl bg-white/90 shadow-lg flex items-center justify-center">
-                      <solution.icon className="w-8 h-8 text-slate-700" />
+                  {/* Subtle bottom gradient for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                  {/* Bottom content overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
+                    {/* Icon badge */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/90 flex items-center justify-center">
+                        <solution.icon className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                    {/* Title */}
+                    <h3 className="text-base lg:text-lg font-bold text-white leading-tight mb-1">
+                      {solution.title}
+                    </h3>
+                    {/* Description */}
+                    <p className="text-xs lg:text-sm text-white/80 leading-relaxed line-clamp-2">
+                      {solution.description}
+                    </p>
+                    {/* Feature tags */}
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {solution.features.map((feat) => (
+                        <span
+                          key={feat}
+                          className="inline-flex items-center px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-md text-[10px] lg:text-xs text-white/90 font-medium"
+                        >
+                          {feat}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">{solution.title}</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed mb-4">{solution.description}</p>
-                  <ul className="space-y-2">
-                    {solution.features.map((feat) => (
-                      <li key={feat} className="flex items-center gap-2 text-sm text-slate-600">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </motion.div>
             </FadeIn>
