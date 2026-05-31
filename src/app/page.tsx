@@ -93,37 +93,43 @@ const FEATURES = [
     title: 'WhatsApp Intégré',
     description: 'Notifications automatiques à chaque étape : activation, départ, transit, arrivée.',
     icon: MessageCircle,
-    color: 'bg-green-500/10 text-green-600',
+    gradient: 'from-[#25D366] to-[#128C7E]',
+    iconBg: 'bg-white/25',
   },
   {
     title: 'QR Code Scan',
     description: 'Activation en 30 secondes, validation billets, scan multi-agences.',
     icon: ScanLine,
-    color: 'bg-blue-500/10 text-blue-600',
+    gradient: 'from-[#3B82F6] to-[#1D4ED8]',
+    iconBg: 'bg-white/25',
   },
   {
     title: 'Progressive Web App',
     description: 'Installation instantanée, pas besoin de Play Store ou App Store.',
     icon: Smartphone,
-    color: 'bg-purple-500/10 text-purple-600',
+    gradient: 'from-[#8B5CF6] to-[#6D28D9]',
+    iconBg: 'bg-white/25',
   },
   {
     title: 'Dashboard Intelligent',
     description: 'KPIs en temps réel, graphiques, gestion complète de votre activité.',
     icon: LayoutDashboard,
-    color: 'bg-orange-500/10 text-orange-600',
+    gradient: 'from-[#F59E0B] to-[#D97706]',
+    iconBg: 'bg-white/25',
   },
   {
     title: 'Mode Hors-Ligne',
     description: 'Continuez à travailler même dans les zones sans connexion internet.',
     icon: WifiOff,
-    color: 'bg-cyan-500/10 text-cyan-600',
+    gradient: 'from-[#06B6D4] to-[#0891B2]',
+    iconBg: 'bg-white/25',
   },
   {
     title: 'Sécurité Maximale',
     description: 'Code PIN à 6 chiffres, RGPD conforme, journal d\'audit complet.',
     icon: ShieldCheck,
-    color: 'bg-red-500/10 text-red-600',
+    gradient: 'from-[#EF4444] to-[#DC2626]',
+    iconBg: 'bg-white/25',
   },
 ];
 
@@ -724,37 +730,39 @@ function ServicesSection() {
 
 function FeaturesSection() {
   return (
-    <section id="fonctionnalites" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
+    <section id="fonctionnalites" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <FadeIn className="text-center mb-14 sm:mb-16">
-          <span className="inline-block px-4 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold tracking-widest uppercase rounded-full mb-4">
+          <span className="inline-block px-4 py-1.5 bg-[#00A887]/10 text-[#00A887] text-xs font-bold tracking-widest uppercase rounded-full mb-4">
             Fonctionnalités
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1A1A1A] mb-4 tracking-tight">
             Tout ce dont vous avez{' '}
-            <span className="bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent">
-              besoin
-            </span>
+            <span className="text-[#00A887]">besoin</span>
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
             Des fonctionnalités puissantes conçues pour le transport inter-villes africain.
           </p>
         </FadeIn>
 
-        {/* Feature grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Feature cards — multicolor gradient style */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
           {FEATURES.map((feature, i) => (
             <FadeIn key={feature.title} delay={i * 0.08}>
               <motion.div
-                whileHover={{ y: -4, scale: 1.01 }}
-                className="group bg-white rounded-2xl p-6 shadow-md shadow-slate-900/5 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 border border-slate-100"
+                whileHover={{ y: -4 }}
+                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
               >
-                <div className={`w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon className="w-6 h-6" />
+                {/* Card content — gradient background */}
+                <div className={`bg-gradient-to-br ${feature.gradient} p-6 rounded-xl`}>
+                  {/* Icon circle */}
+                  <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <feature.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
+                  <p className="text-sm text-white/80 leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{feature.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{feature.description}</p>
               </motion.div>
             </FadeIn>
           ))}
