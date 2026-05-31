@@ -22,7 +22,7 @@ export default function ReceiverSection({
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
   return (
-    <div className="bg-[#8b5cf6] rounded-2xl p-4 sm:p-6 shadow-lg shadow-violet-500/20 border-2 border-dashed border-white/60">
+    <div className="bg-[#215ae2] rounded-2xl p-4 sm:p-6 shadow-lg shadow-[#215ae2]/20 border-2 border-dashed border-white/50">
       <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
         📥 {t('DESTINATAIRE', 'RECEIVER')}
       </h2>

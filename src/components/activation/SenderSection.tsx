@@ -67,14 +67,14 @@ export default function SenderSection({
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
   return (
-    <div className="bg-[#f97316] rounded-2xl p-4 sm:p-6 shadow-lg shadow-orange-500/20 border-2 border-dashed border-white/60">
+    <div className="bg-[#215ae2] rounded-2xl p-4 sm:p-6 shadow-lg shadow-[#215ae2]/20 border-2 border-dashed border-white/50">
       <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
         📤 {t('EXPÉDITEUR & COLIS', 'SENDER & PACKAGE')}
       </h2>
 
       <div className="space-y-4 sm:space-y-6">
         {/* ─── Section A: Coordonnées Expéditeur ─── */}
-        <div className="border-2 border-dashed border-white/60 rounded-xl p-3 sm:p-4">
+        <div className="border-2 border-dashed border-white/50 rounded-xl p-3 sm:p-4">
           <p className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-2 sm:mb-3">
             👤 {t('Coordonnées Expéditeur', 'Sender Details')}
           </p>
@@ -107,7 +107,7 @@ export default function SenderSection({
         </div>
 
         {/* ─── Section B: Type & Physique du Bagage ─── */}
-        <div className="border-2 border-dashed border-white/60 rounded-xl p-3 sm:p-4">
+        <div className="border-2 border-dashed border-white/50 rounded-xl p-3 sm:p-4">
           <p className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-2 sm:mb-3">
             📦 {t('Type & Physique du Bagage', 'Baggage Type & Physical')}
           </p>
@@ -195,7 +195,7 @@ export default function SenderSection({
         </div>
 
         {/* ─── Section C: Contenu & Valeur ─── */}
-        <div className="border-2 border-dashed border-white/60 rounded-xl p-3 sm:p-4">
+        <div className="border-2 border-dashed border-white/50 rounded-xl p-3 sm:p-4">
           <p className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-2 sm:mb-3">
             📋 {t('Contenu & Valeur', 'Content & Value')}
           </p>

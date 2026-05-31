@@ -51,7 +51,7 @@ export default function VoyageSection({
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
   return (
-    <div className="bg-[#10b981] rounded-2xl p-4 sm:p-6 shadow-lg shadow-emerald-500/20 border-2 border-dashed border-white/60">
+    <div className="bg-[#215ae2] rounded-2xl p-4 sm:p-6 shadow-lg shadow-[#215ae2]/20 border-2 border-dashed border-white/50">
       <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
         🚌 {t('ITINÉRAIRE & RETRAIT', 'ITINERARY & PICKUP')}
       </h2>
@@ -145,7 +145,7 @@ export default function VoyageSection({
         </div>
 
         {/* ─── Récupération & Paiement ─── */}
-        <div className="border-2 border-dashed border-white/60 rounded-xl p-3 sm:p-4">
+        <div className="border-2 border-dashed border-white/50 rounded-xl p-3 sm:p-4">
           <p className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2">
             <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             {t('Récupération & Paiement', 'Pickup & Payment')}
@@ -183,7 +183,7 @@ export default function VoyageSection({
         </div>
 
         {/* ─── Chauffeur / Transporteur ─── */}
-        <div className="border-2 border-dashed border-white/60 rounded-xl p-3 sm:p-4">
+        <div className="border-2 border-dashed border-white/50 rounded-xl p-3 sm:p-4">
           <p className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2">
             <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             {t('Chauffeur / Transporteur', 'Driver / Transporter')}
@@ -204,7 +204,7 @@ export default function VoyageSection({
           </div>
 
           {/* Share Toggle — stacked on mobile */}
-          <div className="p-3 sm:p-3.5 bg-white/10 rounded-xl border-2 border-dashed border-white/60 mt-3">
+          <div className="p-3 sm:p-3.5 bg-white/10 rounded-xl border-2 border-dashed border-white/50 mt-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1 min-w-0">
               <Label className="text-sm sm:text-base font-semibold text-white cursor-pointer leading-snug">
@@ -235,7 +235,7 @@ export default function VoyageSection({
         </div>
 
         {/* ─── Statut & Paiement ─── */}
-        <div className="border-2 border-dashed border-white/60 rounded-xl p-3 sm:p-4">
+        <div className="border-2 border-dashed border-white/50 rounded-xl p-3 sm:p-4">
           <Label className="text-sm sm:text-base font-semibold text-white">
             <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 inline mr-1" />
             {t('Statut Paiement', 'Payment Status')} <span className="text-yellow-300">*</span>

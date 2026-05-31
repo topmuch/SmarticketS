@@ -167,17 +167,17 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
     }
   };
 
-  const inputClass = "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition text-sm";
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+  // ── Styles bleu pointillé blanc ──
+  const cardClass = "p-5 bg-[#215ae2] rounded-xl border-2 border-dashed border-white/50 shadow-sm";
+  const inputClass = "w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-white/60 transition text-sm";
+  const labelClass = "block text-sm font-medium text-white mb-1";
   const selectedDep = departures.find(d => d.id === form.departureId);
-
-  // Si un départ est sélectionné, les champs trajet sont pré-remplis (read-only pour certains)
   const isAutoFilled = !!form.departureId;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
+        <div className="p-4 bg-red-500/20 border-2 border-dashed border-red-300/50 text-red-200 rounded-lg text-sm flex items-center gap-2">
           <span className="text-lg">⚠️</span>
           {error}
         </div>
@@ -185,8 +185,8 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
 
       {/* ── SECTION DÉPART INTELLIGENTE ── */}
       {hasDepartures && (
-        <div className="p-5 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 text-emerald-800 flex items-center gap-2">
+        <div className={cardClass}>
+          <h3 className="font-bold text-lg mb-4 text-white flex items-center gap-2">
             <Clock className="w-5 h-5" />
             🚌 Sélection du Départ
           </h3>
@@ -205,7 +205,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
                   const hours = time.getHours().toString().padStart(2, '0');
                   const minutes = time.getMinutes().toString().padStart(2, '0');
                   return (
-                    <option key={dep.id} value={dep.id}>
+                    <option key={dep.id} value={dep.id} className="text-gray-900">
                       {hours}:{minutes} — {dep.lineNumber} → {dep.destination} ({dep.availableSeats} places)
                     </option>
                   );
@@ -215,43 +215,43 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
 
             {/* Carte résumé du départ sélectionné */}
             {selectedDep && (
-              <div className="p-4 bg-white rounded-lg border-2 border-emerald-300 shadow-sm">
+              <div className="p-4 bg-white/10 rounded-lg border border-dashed border-white/40">
                 <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle className="w-5 h-5 text-emerald-600" />
-                  <span className="font-bold text-emerald-800 text-sm">Départ sélectionné</span>
+                  <CheckCircle className="w-5 h-5 text-white" />
+                  <span className="font-bold text-white text-sm">Départ sélectionné</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-2 gap-3 text-sm text-white">
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-medium">🕐</span>
+                    <span className="font-medium">🕐</span>
                     <span className="font-medium">
                       {new Date(selectedDep.scheduledTime).getHours().toString().padStart(2, '0')}:
                       {new Date(selectedDep.scheduledTime).getMinutes().toString().padStart(2, '0')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <MapPin className="w-4 h-4" />
                     <span className="font-medium">{selectedDep.destination}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-emerald-600" />
+                    <Users className="w-4 h-4" />
                     <span>{selectedDep.availableSeats} places disponibles</span>
                   </div>
                   {selectedDep.platform && (
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-600">🏷️</span>
+                      <span>🏷️</span>
                       <span>Quai {selectedDep.platform}</span>
                     </div>
                   )}
                   {selectedDep.originStationName && (
                     <div className="flex items-center gap-2 col-span-2">
-                      <span className="text-emerald-600">📍</span>
+                      <span>📍</span>
                       <span>Départ : {selectedDep.originStationName}</span>
                     </div>
                   )}
                   {selectedDep.routeName && (
                     <div className="flex items-center gap-2 col-span-2">
-                      <span className="text-emerald-600">🛤️</span>
-                      <span className="text-xs text-gray-500">{selectedDep.routeName}</span>
+                      <span>🛤️</span>
+                      <span className="text-xs text-white/70">{selectedDep.routeName}</span>
                     </div>
                   )}
                 </div>
@@ -262,8 +262,8 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
       )}
 
       {/* ── SECTION PASSAGER ── */}
-      <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="font-bold text-lg mb-4 text-gray-800">👤 Informations Passager</h3>
+      <div className={cardClass}>
+        <h3 className="font-bold text-lg mb-4 text-white">👤 Informations Passager</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Nom complet *</label>
@@ -300,7 +300,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
               value={form.passengerPhone}
               onChange={(e) => handleChange('passengerPhone', e.target.value)}
             />
-            <p className="text-xs text-gray-400 mt-1">Format: 9 chiffres (ex: 771234567)</p>
+            <p className="text-xs text-white/50 mt-1">Format: 9 chiffres (ex: 771234567)</p>
           </div>
           <div>
             <label className={labelClass}>Pièce d&apos;identité *</label>
@@ -309,9 +309,9 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
               value={form.documentType}
               onChange={(e) => handleChange('documentType', e.target.value)}
             >
-              <option value="CNI">CNI</option>
-              <option value="PASSPORT">Passeport</option>
-              <option value="BIRTH_CERTIFICATE">Extrait de naissance</option>
+              <option value="CNI" className="text-gray-900">CNI</option>
+              <option value="PASSPORT" className="text-gray-900">Passeport</option>
+              <option value="BIRTH_CERTIFICATE" className="text-gray-900">Extrait de naissance</option>
             </select>
           </div>
           <div className="md:col-span-2">
@@ -328,26 +328,26 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         </div>
 
         {passengerAge > 0 && passengerAge < 18 && (
-          <label className="flex items-center gap-3 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer">
+          <label className="flex items-center gap-3 mt-4 p-3 bg-white/10 border border-dashed border-white/30 rounded-lg cursor-pointer">
             <input
               type="checkbox"
               checked={form.hasParentalAuth}
               onChange={(e) => handleChange('hasParentalAuth', e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded"
+              className="w-4 h-4 rounded"
             />
-            <span className="text-sm text-amber-800">
+            <span className="text-sm text-white">
               ✅ Autorisation parentale signée (si accompagné d&apos;un tiers)
             </span>
           </label>
         )}
       </div>
 
-      {/* ── SECTION TRAJET (pré-rempli si départ sélectionné, sinon manuel) ── */}
-      <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="font-bold text-lg mb-4 text-gray-800">
+      {/* ── SECTION TRAJET ── */}
+      <div className={cardClass}>
+        <h3 className="font-bold text-lg mb-4 text-white">
           🚌 Informations Trajet
           {isAutoFilled && (
-            <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+            <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 text-white text-xs font-medium rounded-full">
               <CheckCircle className="w-3 h-3" /> Auto-rempli
             </span>
           )}
@@ -369,7 +369,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="text"
               required
-              className={isAutoFilled ? 'w-full p-3 border border-emerald-300 rounded-lg bg-emerald-50 text-sm font-medium text-gray-800' : inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/20 text-white text-sm font-medium focus:ring-2 focus:ring-white/30' : inputClass}
               placeholder="Ex: Saint-Louis"
               value={form.destination}
               onChange={(e) => handleChange('destination', e.target.value)}
@@ -391,7 +391,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="date"
               required
-              className={isAutoFilled ? 'w-full p-3 border border-emerald-300 rounded-lg bg-emerald-50 text-sm font-medium text-gray-800' : inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/20 text-white text-sm font-medium focus:ring-2 focus:ring-white/30' : inputClass}
               value={form.departureDate}
               onChange={(e) => handleChange('departureDate', e.target.value)}
             />
@@ -401,7 +401,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="time"
               required
-              className={isAutoFilled ? 'w-full p-3 border border-emerald-300 rounded-lg bg-emerald-50 text-sm font-medium text-gray-800' : inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/20 text-white text-sm font-medium focus:ring-2 focus:ring-white/30' : inputClass}
               value={form.departureTime}
               onChange={(e) => handleChange('departureTime', e.target.value)}
             />
@@ -421,8 +421,8 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
       </div>
 
       {/* ── SECTION BAGAGES ── */}
-      <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="font-bold text-lg mb-4 text-gray-800">🧳 Bagages</h3>
+      <div className={cardClass}>
+        <h3 className="font-bold text-lg mb-4 text-white">🧳 Bagages</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Nombre de valises</label>
@@ -449,19 +449,19 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         </div>
 
         {/* Calcul frais en temps réel */}
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+        <div className="mt-4 p-4 bg-white/10 rounded-lg border border-dashed border-white/30">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-white/80">
               ✅ Franchise : 1 valise ≤15kg incluse
             </p>
             {luggageFee > 0 && (
-              <p className="text-orange-600 font-bold text-lg">
+              <p className="text-yellow-300 font-bold text-lg">
                 💰 +{luggageFee.toLocaleString('fr-FR')} FCFA
               </p>
             )}
           </div>
           {form.luggageWeightKg > 15 && (
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-white/50">
               Excédent : {(form.luggageWeightKg - 15).toFixed(1)} kg × 200 FCFA/kg
             </div>
           )}
@@ -472,7 +472,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg shadow-lg"
+        className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-4 px-6 rounded-xl border-2 border-dashed border-white/50 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
       >
         {loading ? (
           <>
@@ -486,13 +486,13 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
 
       {/* Mentions légales */}
       <div className="text-center space-y-1">
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-white/50">
           En activant ce ticket, vous acceptez les conditions :
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-white/50">
           Billet non remboursable · Report possible 1x (≥24h avant) · Pièce d&apos;identité obligatoire
         </p>
-        <p className="text-xs text-gray-300 mt-2">
+        <p className="text-xs text-white/30 mt-2">
           Réf: {reference}
         </p>
       </div>
