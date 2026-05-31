@@ -450,7 +450,7 @@ function TrajetCard({
         {/* Departure - Blue city code style */}
         <div className="text-center flex-1">
           <p className="text-3xl font-black text-[#2563eb] uppercase tracking-tight">
-            {colis.departureCity || '—'}
+            {colis.departureCity || colis.departureCity || '—'}
           </p>
         </div>
 
@@ -485,11 +485,10 @@ function TrajetCard({
             Siège {ticket.seatNumber || '—'}
           </span>
         </div>
-        {ticket.platform && (
+        {(colis.company) && (
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-[#475569]" />
             <span className="text-xs text-[#475569] font-medium">
-              Quai {ticket.platform}
+              🏢 {colis.company}
             </span>
           </div>
         )}

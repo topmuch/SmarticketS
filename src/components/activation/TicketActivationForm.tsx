@@ -36,10 +36,12 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
     documentNumber: '',
     hasParentalAuth: false,
     destination: '',
+    departureStation: '',
     seatNumber: '',
-    platform: '',
+    busCompany: '',
     luggageCount: 1,
     luggageWeightKg: 0,
+    departureDate: '',
     departureTime: '',
     departureId: '',
   });
@@ -72,7 +74,9 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         departureId: '',
         destination: '',
         departureTime: '',
-        platform: '',
+        departureStation: '',
+        departureDate: '',
+        busCompany: '',
       }));
       return;
     }
@@ -88,7 +92,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
         departureId: dep.id,
         destination: dep.destination,
         departureTime: `${hours}:${minutes}`,
-        platform: dep.platform || '',
+        busCompany: dep.routeName || prev.busCompany,
       }));
     }
   };
@@ -326,6 +330,17 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
           <p className="text-xs text-gray-500 mb-4">Saisie manuelle (aucun départ automatique sélectionné)</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <label className={labelClass}>Lieu de départ *</label>
+              <input
+                type="text"
+                required={!form.departureId}
+                className={inputClass}
+                placeholder="Ex: Gare Peters, Dakar"
+                value={form.departureStation}
+                onChange={(e) => handleChange('departureStation', e.target.value)}
+              />
+            </div>
+            <div>
               <label className={labelClass}>Destination *</label>
               <input
                 type="text"
@@ -334,6 +349,27 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
                 placeholder="Ex: Saint-Louis"
                 value={form.destination}
                 onChange={(e) => handleChange('destination', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Compagnie de transport *</label>
+              <input
+                type="text"
+                required={!form.departureId}
+                className={inputClass}
+                placeholder="Ex: DTW, SOTRAMAC"
+                value={form.busCompany}
+                onChange={(e) => handleChange('busCompany', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Date de départ *</label>
+              <input
+                type="date"
+                required={!form.departureId}
+                className={inputClass}
+                value={form.departureDate}
+                onChange={(e) => handleChange('departureDate', e.target.value)}
               />
             </div>
             <div>
@@ -357,34 +393,55 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
                 onChange={(e) => handleChange('seatNumber', e.target.value)}
               />
             </div>
-            <div>
-              <label className={labelClass}>Quai</label>
-              <input
-                type="text"
-                className={inputClass}
-                placeholder="Ex: Quai 3"
-                value={form.platform}
-                onChange={(e) => handleChange('platform', e.target.value)}
-              />
-            </div>
           </div>
         </div>
       )}
 
-      {/* Si départ sélectionné: juste le siège */}
+      {/* Si départ sélectionné: siège + compagnie + lieu/date */}
       {form.departureId && (
         <div className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 text-gray-800">💺 Assignation Siège</h3>
-          <div>
-            <label className={labelClass}>N° Siège *</label>
-            <input
-              type="text"
-              required
-              className={inputClass}
-              placeholder="Ex: 12A"
-              value={form.seatNumber}
-              onChange={(e) => handleChange('seatNumber', e.target.value)}
-            />
+          <h3 className="font-bold text-lg mb-4 text-gray-800">💺 Assignation Siège & Détails</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>N° Siège *</label>
+              <input
+                type="text"
+                required
+                className={inputClass}
+                placeholder="Ex: 12A"
+                value={form.seatNumber}
+                onChange={(e) => handleChange('seatNumber', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Lieu de départ</label>
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="Ex: Gare Peters, Dakar"
+                value={form.departureStation}
+                onChange={(e) => handleChange('departureStation', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Compagnie de transport</label>
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="Ex: DTW, SOTRAMAC"
+                value={form.busCompany}
+                onChange={(e) => handleChange('busCompany', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Date de départ</label>
+              <input
+                type="date"
+                className={inputClass}
+                value={form.departureDate}
+                onChange={(e) => handleChange('departureDate', e.target.value)}
+              />
+            </div>
           </div>
         </div>
       )}

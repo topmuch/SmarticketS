@@ -41,7 +41,7 @@ export async function GET(
     // Generate QR code as data URL
     const qrUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://smartickets.com'}/retrieve/${reference}`;
     const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-      width: 200,
+      width: 180,
       margin: 1,
       color: { dark: '#0f172a', light: '#ffffff' },
       errorCorrectionLevel: 'H',
@@ -63,7 +63,9 @@ export async function GET(
         })
       : colis.departureTime || '—';
 
-    const companyName = colis.busCompany || colis.airlineName || colis.trainCompany || colis.shipName || '—';
+    const companyName = colis.busCompany || colis.airlineName || colis.trainCompany || colis.shipName || colis.company || '—';
+    const departureStation = colis.departureCity || '—';
+
     const status = ticket.ticketStatus?.toUpperCase() || '';
     const statusLabel = status.includes('ACTIVE') || status.includes('VALID')
       ? 'VALIDÉ'
@@ -81,7 +83,7 @@ export async function GET(
   <style>
     @page {
       size: A4;
-      margin: 0;
+      margin: 8mm;
     }
     @media print {
       html, body {
@@ -102,16 +104,16 @@ export async function GET(
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: 24px;
+      padding: 12px;
       min-height: 100vh;
     }
 
     /* ── TICKET CARD ── */
     .ticket-wrapper {
       width: 100%;
-      max-width: 440px;
+      max-width: 420px;
       background: #ffffff;
-      border-radius: 24px;
+      border-radius: 20px;
       overflow: hidden;
       box-shadow: 0 4px 24px rgba(0,0,0,0.08);
     }
@@ -120,29 +122,18 @@ export async function GET(
     .header {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       color: #ffffff;
-      padding: 28px 24px 32px;
+      padding: 18px 20px;
       position: relative;
       overflow: hidden;
-      border-radius: 24px 24px 0 0;
     }
     .header::before {
       content: '';
       position: absolute;
       top: -30px;
       right: -30px;
-      width: 120px;
-      height: 120px;
+      width: 100px;
+      height: 100px;
       background: rgba(255,255,255,0.06);
-      border-radius: 50%;
-    }
-    .header::after {
-      content: '';
-      position: absolute;
-      bottom: -20px;
-      left: -20px;
-      width: 80px;
-      height: 80px;
-      background: rgba(255,255,255,0.04);
       border-radius: 50%;
     }
     .header-row {
@@ -155,46 +146,35 @@ export async function GET(
     .header-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .logo-icon {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       background: rgba(255,255,255,0.2);
-      border-radius: 14px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 17px;
       font-weight: 900;
-      backdrop-filter: blur(4px);
     }
-    .logo-title {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      line-height: 1.2;
-    }
-    .logo-sub {
-      font-size: 11px;
-      opacity: 0.5;
-      margin-top: 2px;
-    }
+    .logo-title { font-size: 16px; font-weight: 800; letter-spacing: 0.5px; }
+    .logo-sub { font-size: 10px; opacity: 0.5; margin-top: 1px; }
     .status-badge {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
+      gap: 5px;
+      padding: 5px 12px;
       border-radius: 9999px;
       background: ${statusBg};
       color: ${statusColor};
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.5px;
     }
     .status-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: ${statusColor};
     }
@@ -204,60 +184,42 @@ export async function GET(
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
-      padding: 20px 24px;
+      gap: 12px;
+      padding: 14px 20px;
     }
-    .seat-box {
+    .seat-box, .company-box {
       display: flex;
       flex-direction: column;
       align-items: center;
       background: #f1f5f9;
-      border-radius: 16px;
-      padding: 14px 24px;
-      min-width: 90px;
+      border-radius: 14px;
+      padding: 10px 20px;
+      min-width: 80px;
+      border: 1px dashed rgba(37, 99, 235, 0.2);
     }
-    .seat-icon { font-size: 22px; margin-bottom: 4px; }
-    .seat-number { font-size: 32px; font-weight: 900; color: #0f172a; line-height: 1; }
-    .seat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; color: #475569; }
-
-    .route-icon-separator {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .separator-line { width: 28px; height: 2px; background: #cbd5e1; border-radius: 1px; }
+    .seat-icon, .company-icon { font-size: 18px; margin-bottom: 2px; }
+    .seat-number { font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1; }
+    .company-value { font-size: 13px; font-weight: 800; color: #0f172a; line-height: 1; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .seat-label, .company-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; color: #475569; }
     .separator-bus {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: rgba(37, 99, 235, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 18px;
     }
-
-    .company-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background: #f1f5f9;
-      border-radius: 16px;
-      padding: 14px 24px;
-      min-width: 90px;
-    }
-    .company-icon { font-size: 22px; margin-bottom: 4px; }
-    .company-value { font-size: 18px; font-weight: 900; color: #0f172a; line-height: 1; }
-    .company-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; color: #475569; }
 
     /* ── BLACK BAND ── */
     .black-band {
       background: #0f172a;
       color: #ffffff;
-      padding: 16px 24px;
+      padding: 12px 20px;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
+      gap: 6px;
     }
     .black-band-item { text-align: center; }
     .black-band-center {
@@ -265,27 +227,27 @@ export async function GET(
       border-right: 1px solid rgba(255,255,255,0.1);
     }
     .black-band-label {
-      font-size: 10px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 1px;
       font-weight: 600;
       opacity: 0.7;
     }
     .black-band-value {
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 700;
-      margin-top: 3px;
+      margin-top: 2px;
     }
 
     /* ── TRAJET ── */
-    .trajet-section { padding: 24px; }
+    .trajet-section { padding: 16px 20px; }
     .trajet-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
     .trajet-city {
-      font-size: 28px;
+      font-size: 22px;
       font-weight: 900;
       text-transform: uppercase;
       color: #2563eb;
@@ -294,63 +256,108 @@ export async function GET(
     .trajet-mid {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-    .trajet-line { width: 32px; height: 2px; background: #93c5fd; border-radius: 1px; }
+    .trajet-line { width: 24px; height: 2px; background: #93c5fd; border-radius: 1px; }
     .trajet-bus-icon {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: rgba(37, 99, 235, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 18px;
     }
     .trajet-details {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      margin-top: 16px;
-      padding-top: 16px;
+      gap: 16px;
+      margin-top: 10px;
+      padding-top: 10px;
       border-top: 1px solid #e2e8f0;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
       color: #475569;
     }
-    .trajet-detail-item { display: flex; align-items: center; gap: 4px; }
+
+    /* ── PASSENGER + BAGAGES COMPACT ── */
+    .compact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-top: 1px solid #f1f5f9;
+    }
+    .compact-section {
+      padding: 14px 16px;
+    }
+    .compact-section:first-child {
+      border-right: 1px solid #f1f5f9;
+    }
+    .compact-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .compact-header-icon { font-size: 13px; }
+    .compact-header-text {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #475569;
+    }
+    .compact-name { font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+    .compact-sub-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .compact-box {
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px dashed rgba(37, 99, 235, 0.15);
+      padding: 6px 8px;
+      text-align: center;
+    }
+    .compact-box-label { font-size: 8px; font-weight: 600; text-transform: uppercase; color: #475569; }
+    .compact-box-value { font-size: 11px; font-weight: 700; color: #0f172a; margin-top: 1px; }
+    .bagages-value { font-size: 18px; font-weight: 900; color: #0f172a; }
+    .bagages-unit { font-size: 10px; font-weight: 600; margin-left: 1px; color: #475569; }
+    .bagages-label { font-size: 8px; font-weight: 600; text-transform: uppercase; color: #475569; margin-top: 2px; }
 
     /* ── BOTTOM SECTION (Blue bg + QR) ── */
     .bottom-section {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      padding: 24px;
+      padding: 16px 20px;
       display: flex;
-      gap: 20px;
+      gap: 16px;
       align-items: center;
     }
     .bottom-info { flex: 1; color: #ffffff; }
     .bottom-info-label {
-      font-size: 10px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 1px;
       font-weight: 600;
-      opacity: 0.6;
-      margin-bottom: 4px;
+      opacity: 0.5;
+      margin-bottom: 2px;
     }
     .bottom-info-value {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
     }
-    .bottom-info-row { margin-bottom: 10px; }
+    .bottom-info-row { margin-bottom: 6px; }
     .bottom-info-row:last-child { margin-bottom: 0; }
 
     .qr-wrapper {
-      width: 130px;
-      height: 130px;
+      width: 100px;
+      height: 100px;
       background: #ffffff;
-      border-radius: 16px;
-      padding: 8px;
+      border-radius: 14px;
+      padding: 6px;
       flex-shrink: 0;
     }
     .qr-wrapper img {
@@ -360,126 +367,49 @@ export async function GET(
       border-radius: 8px;
     }
 
-    /* ── PASSENGER ── */
-    .passenger-section { padding: 20px 24px; }
-    .passenger-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .passenger-header-icon { font-size: 16px; }
-    .passenger-header-text {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #475569;
-    }
-    .passenger-name { font-size: 20px; font-weight: 800; color: #0f172a; }
-    .passenger-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .passenger-box {
-      background: #f8fafc;
-      border-radius: 12px;
-      border: 1px dashed rgba(37, 99, 235, 0.2);
-      padding: 12px;
-      text-align: center;
-    }
-    .passenger-box-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: #475569;
-    }
-    .passenger-box-value {
-      font-size: 14px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-top: 3px;
-    }
-
-    /* ── BAGAGES ── */
-    .bagages-section { padding: 20px 24px; border-top: 1px solid #f1f5f9; }
-    .bagages-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .bagages-header-icon { font-size: 16px; }
-    .bagages-header-text {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #475569;
-    }
-    .bagages-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .bagages-box {
-      background: #f8fafc;
-      border-radius: 12px;
-      border: 1px dashed rgba(37, 99, 235, 0.2);
-      padding: 14px;
-      text-align: center;
-    }
-    .bagages-value { font-size: 24px; font-weight: 900; color: #0f172a; }
-    .bagages-unit { font-size: 13px; font-weight: 600; margin-left: 2px; color: #475569; }
-    .bagages-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: #475569;
-      margin-top: 4px;
-    }
-
     /* ── CONTROL CODE ── */
     .control-section {
-      margin: 0 24px 24px;
+      margin: 0 20px 16px;
       background: #d1fae5;
-      border-radius: 16px;
+      border-radius: 12px;
       border: 2px dashed rgba(16, 185, 129, 0.3);
-      padding: 16px;
+      padding: 10px;
       text-align: center;
     }
     .control-header {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      font-size: 11px;
+      gap: 6px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
       color: #065f46;
       letter-spacing: 0.5px;
     }
     .control-code {
-      font-size: 28px;
+      font-size: 22px;
       font-weight: 900;
       color: #064e3b;
-      letter-spacing: 6px;
+      letter-spacing: 5px;
       font-family: 'Courier New', Courier, monospace;
-      margin: 6px 0;
+      margin: 4px 0;
     }
-    .control-hint { font-size: 11px; color: #059669; }
+    .control-hint { font-size: 10px; color: #059669; }
 
     /* ── PRINT BUTTON ── */
     .print-area {
       text-align: center;
-      margin-top: 24px;
+      margin-top: 16px;
     }
     .print-btn {
       display: inline-block;
-      padding: 14px 40px;
+      padding: 12px 36px;
       background: #2563eb;
       color: #ffffff;
       border: none;
-      border-radius: 14px;
-      font-size: 15px;
+      border-radius: 12px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s;
@@ -513,14 +443,10 @@ export async function GET(
         <div class="seat-number">${ticket.seatNumber || '—'}</div>
         <div class="seat-label">Siège</div>
       </div>
-      <div class="route-icon-separator">
-        <div class="separator-line"></div>
-        <div class="separator-bus">🚌</div>
-        <div class="separator-line"></div>
-      </div>
+      <div class="separator-bus">🚌</div>
       <div class="company-box">
         <div class="company-icon">🏢</div>
-        <div class="company-value" style="font-size:14px;">${companyName}</div>
+        <div class="company-value">${companyName}</div>
         <div class="company-label">Compagnie</div>
       </div>
     </div>
@@ -537,14 +463,14 @@ export async function GET(
       </div>
       <div class="black-band-item">
         <div class="black-band-label">Code réservation</div>
-        <div class="black-band-value" style="font-family: 'Courier New', monospace;">${reference}</div>
+        <div class="black-band-value" style="font-family: 'Courier New', monospace; font-size:11px;">${reference}</div>
       </div>
     </div>
 
     <!-- ═══ TRAJET ═══ -->
     <div class="trajet-section">
       <div class="trajet-row">
-        <div class="trajet-city">${colis.departureCity || '—'}</div>
+        <div class="trajet-city">${departureStation}</div>
         <div class="trajet-mid">
           <div class="trajet-line"></div>
           <div class="trajet-bus-icon">🚌</div>
@@ -553,9 +479,56 @@ export async function GET(
         <div class="trajet-city">${ticket.destination || colis.arrivalCity || '—'}</div>
       </div>
       <div class="trajet-details">
-        <span class="trajet-detail-item">🕐 ${timeStr}</span>
-        <span class="trajet-detail-item">💺 Siège ${ticket.seatNumber || '—'}</span>
-        ${ticket.platform ? `<span class="trajet-detail-item">📍 Quai ${ticket.platform}</span>` : ''}
+        <span>🕐 ${timeStr}</span>
+        <span>💺 Siège ${ticket.seatNumber || '—'}</span>
+        <span>🏢 ${companyName}</span>
+      </div>
+    </div>
+
+    <!-- ═══ PASSENGER + BAGAGES COMPACT (side by side) ═══ -->
+    <div class="compact-grid">
+      <!-- Passager -->
+      <div class="compact-section">
+        <div class="compact-header">
+          <span class="compact-header-icon">👤</span>
+          <span class="compact-header-text">Passager</span>
+        </div>
+        <div class="compact-name">${ticket.passengerName || '—'}</div>
+        <div class="compact-sub-grid">
+          <div class="compact-box">
+            <div class="compact-box-label">Âge</div>
+            <div class="compact-box-value">${ticket.passengerAge || '—'}</div>
+          </div>
+          <div class="compact-box">
+            <div class="compact-box-label">Document</div>
+            <div class="compact-box-value">${ticket.documentType || '—'}</div>
+          </div>
+          <div class="compact-box" style="grid-column: span 2;">
+            <div class="compact-box-label">N° Document</div>
+            <div class="compact-box-value" style="font-family: 'Courier New', monospace; font-size:10px;">${ticket.documentNumber || '—'}</div>
+          </div>
+        </div>
+      </div>
+      <!-- Bagages -->
+      <div class="compact-section">
+        <div class="compact-header">
+          <span class="compact-header-icon">📦</span>
+          <span class="compact-header-text">Bagages</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+          <div class="compact-box">
+            <div class="bagages-value">${ticket.luggageCount || 0}</div>
+            <div class="bagages-label">Qté</div>
+          </div>
+          <div class="compact-box">
+            <div class="bagages-value">${ticket.luggageWeightKg || 0}<span class="bagages-unit">kg</span></div>
+            <div class="bagages-label">Poids</div>
+          </div>
+          <div class="compact-box">
+            <div class="bagages-value">${ticket.luggageFee || 0}<span class="bagages-unit">F</span></div>
+            <div class="bagages-label">Frais</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -571,10 +544,6 @@ export async function GET(
           <div class="bottom-info-value">${companyName}</div>
         </div>
         <div class="bottom-info-row">
-          <div class="bottom-info-label">Siège / Train</div>
-          <div class="bottom-info-value">${ticket.seatNumber || '—'} / ${companyName}</div>
-        </div>
-        <div class="bottom-info-row">
           <div class="bottom-info-label">Code réservation</div>
           <div class="bottom-info-value" style="font-family: 'Courier New', monospace;">${reference}</div>
         </div>
@@ -584,53 +553,8 @@ export async function GET(
       </div>
     </div>
 
-    <!-- ═══ PASSENGER ═══ -->
-    <div class="passenger-section">
-      <div class="passenger-header">
-        <span class="passenger-header-icon">👤</span>
-        <span class="passenger-header-text">Passager</span>
-      </div>
-      <div class="passenger-name">${ticket.passengerName || '—'}</div>
-      <div class="passenger-grid">
-        <div class="passenger-box">
-          <div class="passenger-box-label">Âge</div>
-          <div class="passenger-box-value">${ticket.passengerAge || '—'} ans</div>
-        </div>
-        <div class="passenger-box">
-          <div class="passenger-box-label">Document</div>
-          <div class="passenger-box-value">${ticket.documentType || '—'}</div>
-        </div>
-        <div class="passenger-box">
-          <div class="passenger-box-label">N° Document</div>
-          <div class="passenger-box-value" style="font-family: 'Courier New', monospace; font-size:12px;">${ticket.documentNumber || '—'}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ BAGAGES ═══ -->
-    <div class="bagages-section">
-      <div class="bagages-header">
-        <span class="bagages-header-icon">📦</span>
-        <span class="bagages-header-text">Bagages</span>
-      </div>
-      <div class="bagages-grid">
-        <div class="bagages-box">
-          <div class="bagages-value">${ticket.luggageCount || 0}</div>
-          <div class="bagages-label">Quantité</div>
-        </div>
-        <div class="bagages-box">
-          <div class="bagages-value">${ticket.luggageWeightKg || 0}<span class="bagages-unit">kg</span></div>
-          <div class="bagages-label">Poids</div>
-        </div>
-        <div class="bagages-box">
-          <div class="bagages-value">${ticket.luggageFee || 0}<span class="bagages-unit">F</span></div>
-          <div class="bagages-label">Frais</div>
-        </div>
-      </div>
-    </div>
-
     <!-- ═══ CODE DE CONTRÔLE ═══ -->
-    <div class="control-section">
+    <div class="control-section" style="margin-bottom: 20px;">
       <div class="control-header">🛡️ Code de contrôle</div>
       <div class="control-code">${(ticket.controlCode || '').split('').join('  ')}</div>
       <div class="control-hint">Présentez ce code lors du contrôle</div>

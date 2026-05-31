@@ -19,7 +19,9 @@ const activateTicketSchema = z.object({
   luggageWeightKg: z.coerce.number().min(0).default(0),
   luggageFee: z.coerce.number().int().min(0).default(0),
   departureTime: z.string().optional(),
-  platform: z.string().optional(),
+  departureStation: z.string().optional(),
+  busCompany: z.string().optional(),
+  departureDate: z.string().optional(),
   departureId: z.string().optional(),
 });
 
@@ -39,7 +41,8 @@ export async function POST(req: NextRequest) {
     const data = parsed.data;
     const { baggageId, agencyId, passengerName, passengerPhone, passengerAge,
       documentType, documentNumber, hasParentalAuth, destination, seatNumber,
-      luggageCount, luggageWeightKg, luggageFee, departureTime, platform, departureId } = data;
+      luggageCount, luggageWeightKg, luggageFee, departureTime, departureStation,
+      busCompany, departureDate, departureId } = data;
 
     // 1. Vérifier le Baggage existe + appartient à l'agence (multi-tenant)
     const baggage = await db.baggage.findUnique({
@@ -98,16 +101,23 @@ export async function POST(req: NextRequest) {
 
     // 6. Préparer departureTime (priorité au départ lié)
     let depTime: Date | null = null;
-    let depPlatform: string | null = platform;
+    let depPlatform: string | null = departure?.platform || null;
     let depDestination: string = destination;
+    let depDate: Date | null = null;
+    let depStation: string | null = departureStation || null;
+    let depBusCompany: string | null = busCompany || null;
     if (departure) {
       depTime = new Date(departure.scheduledTime);
-      if (!platform && departure.platform) depPlatform = departure.platform;
+      depDate = new Date(departure.scheduledTime);
       if (!destination || destination === depDestination) depDestination = departure.destination;
     } else if (departureTime) {
       const [hours, minutes] = departureTime.split(':').map(Number);
       depTime = new Date();
       depTime.setHours(hours, minutes, 0, 0);
+      if (departureDate) {
+        depDate = new Date(departureDate + 'T00:00:00');
+        depTime.setFullYear(depDate.getFullYear(), depDate.getMonth(), depDate.getDate());
+      }
     }
 
     // 7. Transaction Prisma atomique : créer PassengerTicket + mettre à jour Baggage + décrémenter sièges
@@ -142,6 +152,10 @@ export async function POST(req: NextRequest) {
           status: 'in_transit',
           transportMode: 'bus',
           destination: depDestination,
+          departureCity: depStation,
+          busCompany: depBusCompany,
+          departureDate: depDate,
+          departureTime: depTime ? depTime.toTimeString().slice(0, 5) : null,
           receiverName: passengerName,
           receiverWhatsapp: normalizedPhone,
         },
