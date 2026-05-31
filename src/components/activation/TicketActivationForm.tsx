@@ -169,7 +169,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
 
   // ── Styles bleu pointillé blanc ──
   const cardClass = "p-5 bg-[#215ae2] rounded-xl border-2 border-dashed border-white/50 shadow-sm";
-  const inputClass = "w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-white/60 transition text-sm";
+  const inputClass = "w-full p-3 border border-dashed border-white/40 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-white/50 focus:border-white/60 transition text-sm";
   const labelClass = "block text-sm font-medium text-white mb-1";
   const selectedDep = departures.find(d => d.id === form.departureId);
   const isAutoFilled = !!form.departureId;
@@ -369,7 +369,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="text"
               required
-              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/20 text-white text-sm font-medium focus:ring-2 focus:ring-white/30' : inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-gray-100 text-gray-900 text-sm font-medium focus:ring-2 focus:ring-white/50' : inputClass}
               placeholder="Ex: Saint-Louis"
               value={form.destination}
               onChange={(e) => handleChange('destination', e.target.value)}
@@ -391,7 +391,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="date"
               required
-              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/20 text-white text-sm font-medium focus:ring-2 focus:ring-white/30' : inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-gray-100 text-gray-900 text-sm font-medium focus:ring-2 focus:ring-white/50' : inputClass}
               value={form.departureDate}
               onChange={(e) => handleChange('departureDate', e.target.value)}
             />
@@ -401,7 +401,7 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
             <input
               type="time"
               required
-              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-white/20 text-white text-sm font-medium focus:ring-2 focus:ring-white/30' : inputClass}
+              className={isAutoFilled ? 'w-full p-3 border border-dashed border-white/40 rounded-lg bg-gray-100 text-gray-900 text-sm font-medium focus:ring-2 focus:ring-white/50' : inputClass}
               value={form.departureTime}
               onChange={(e) => handleChange('departureTime', e.target.value)}
             />
