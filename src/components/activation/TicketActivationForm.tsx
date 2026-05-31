@@ -149,7 +149,8 @@ export default function TicketActivationForm({ baggageId, agencyId, reference }:
       if (!res.ok) throw new Error(data.message || data.error || 'Échec activation');
 
       // Rediriger vers la page de visualisation du ticket
-      router.push(`/retrieve/${data.reference}`);
+      // Ajouter ?type=ticket pour forcer l'affichage du bon template
+      router.push(`/retrieve/${data.reference}?type=ticket`);
     } catch (err: any) {
       console.error('[TicketActivationForm] Erreur:', err);
       setError(err.message);

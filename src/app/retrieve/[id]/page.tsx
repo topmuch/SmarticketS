@@ -1162,8 +1162,11 @@ function ErrorView({ message }: { message: string }) {
 
 function RetrieveContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const reference = ((params?.id as string) || '').trim();
+  const forceType = searchParams.get('type');
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [colis, setColis] = useState<ColisData | null>(null);
   const [ticket, setTicket] = useState<TicketData | null>(null);
@@ -1180,7 +1183,7 @@ function RetrieveContent() {
       try {
         setLoading(true);
         const res = await fetch(
-          `/api/arrivee/${encodeURIComponent(reference)}`
+          `/api/arrivee/${encodeURIComponent(reference)}?t=${Date.now()}`
         );
         const data: ApiResponse = await res.json();
 
@@ -1188,6 +1191,16 @@ function RetrieveContent() {
           setColis(data.colis);
           setTicket(data.ticket || null);
           setTimeline(data.timeline || []);
+
+          // Race condition fix: si on attend un ticket (type=ticket) mais
+          // category n'est pas encore 'ticket' ou ticket=null, refetch après 1s
+          if (forceType === 'ticket' && (!data.ticket || data.colis?.category !== 'ticket') && retryCount < 3) {
+            setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+              fetchData();
+            }, 1000);
+            return;
+          }
         } else {
           setError(data.message || 'Colis introuvable.');
         }
@@ -1205,8 +1218,8 @@ function RetrieveContent() {
   if (error && !colis) return <ErrorView message={error} />;
   if (!colis) return <ErrorView message="Données indisponibles." />;
 
-  // Ticket view
-  if (colis.category === 'ticket' && ticket) {
+  // Ticket view: via category OU via paramètre URL type=ticket
+  if ((colis.category === 'ticket' || forceType === 'ticket') && ticket) {
     return <TicketView colis={colis} ticket={ticket} timeline={timeline} />;
   }
 
