@@ -28,6 +28,7 @@ import {
   X,
   ArrowLeft,
   Ticket,
+  Download,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
@@ -43,6 +44,12 @@ import {
 import { validatePwaToken } from '@/lib/pwa-guard';
 
 // ─── Types ────────────────────────────────────────────────────────────────
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+  prompt(): Promise<void>;
+}
 
 interface Agency {
   id: string;
@@ -184,6 +191,8 @@ function DashboardScreen({
   totalControls,
   selectedAgency,
   onLogout,
+  showInstallPrompt,
+  onInstallApp,
 }: {
   controllerName: string;
   onGoToScanner: () => void;
@@ -194,6 +203,8 @@ function DashboardScreen({
   totalControls: number;
   selectedAgency?: Agency;
   onLogout: () => void;
+  showInstallPrompt: boolean;
+  onInstallApp: () => void;
 }) {
   const [showProfile, setShowProfile] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -395,6 +406,24 @@ function DashboardScreen({
             </div>
             <ChevronRight className="w-5 h-5 text-white/30" />
           </button>
+
+          {/* Install App Button */}
+          {showInstallPrompt && (
+            <button
+              type="button"
+              onClick={onInstallApp}
+              className="w-full flex items-center gap-4 bg-gradient-to-r from-[#00d9a3]/20 to-[#00b894]/10 border border-[#00d9a3]/30 rounded-2xl px-6 py-4 active:scale-[0.97] transition-all"
+            >
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-[#00d9a3]/15 backdrop-blur-sm">
+                <Download className="w-7 h-7 text-[#00d9a3]" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-lg font-bold text-white">Installer l&apos;app</p>
+                <p className="text-sm text-[#00d9a3]/70">Accès rapide depuis l&apos;écran d&apos;accueil</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#00d9a3]/40" />
+            </button>
+          )}
         </div>
       </main>
 
@@ -436,6 +465,8 @@ function ScannerScreen({
   isOnline,
   onStartFlashlight,
   onStopFlashlight,
+  scannerError,
+  onRetryScanner,
 }: {
   scannerRef: React.RefObject<HTMLDivElement | null>;
   onBack: () => void;
@@ -445,6 +476,8 @@ function ScannerScreen({
   isOnline: boolean;
   onStartFlashlight: () => void;
   onStopFlashlight: () => void;
+  scannerError: string | null;
+  onRetryScanner: () => void;
 }) {
   const [torchOn, setTorchOn] = useState(false);
 
@@ -488,45 +521,81 @@ function ScannerScreen({
 
       {/* ─── Camera viewport ──────────────────────────────── */}
       <div className="flex-1 relative">
-        <div
-          id="scanner-container"
-          ref={scannerRef}
-          className="w-full h-full"
-        />
+        {!scannerError ? (
+          <>
+            <div
+              id="scanner-container"
+              ref={scannerRef}
+              className="w-full h-full"
+            />
 
-        {/* ─── Scan overlay with animated corners ──────────── */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {/* Semi-transparent backdrop */}
-          <div className="absolute inset-0 bg-black/40" />
+            {/* ─── Scan overlay with animated corners ──────────── */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {/* Semi-transparent backdrop */}
+              <div className="absolute inset-0 bg-black/40" />
 
-          {/* Cutout area (transparent) */}
-          <div className="relative w-[300px] h-[300px] bg-transparent">
-            {/* Top-left corner */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-[#00d9a3] rounded-tl-2xl corner-pulse" />
-            {/* Top-right corner */}
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-[#00d9a3] rounded-tr-2xl corner-pulse" />
-            {/* Bottom-left corner */}
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-[#00d9a3] rounded-bl-2xl corner-pulse" />
-            {/* Bottom-right corner */}
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-[#00d9a3] rounded-br-2xl corner-pulse" />
+              {/* Cutout area (transparent) */}
+              <div className="relative w-[300px] h-[300px] bg-transparent">
+                {/* Top-left corner */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-[#00d9a3] rounded-tl-2xl corner-pulse" />
+                {/* Top-right corner */}
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-[#00d9a3] rounded-tr-2xl corner-pulse" />
+                {/* Bottom-left corner */}
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-[#00d9a3] rounded-bl-2xl corner-pulse" />
+                {/* Bottom-right corner */}
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-[#00d9a3] rounded-br-2xl corner-pulse" />
 
-            {/* Scan line */}
-            <div className="absolute left-2 right-2 h-[2px] bg-gradient-to-r from-transparent via-[#00d9a3] to-transparent scan-line" />
+                {/* Scan line */}
+                <div className="absolute left-2 right-2 h-[2px] bg-gradient-to-r from-transparent via-[#00d9a3] to-transparent scan-line" />
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ─── Scanner Error State ───────────────────────── */
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1a1a2e] to-[#16213e] flex flex-col items-center justify-center px-8">
+            <div className="w-20 h-20 rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center mb-6">
+              <AlertTriangle className="w-10 h-10 text-red-400" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Caméra non disponible</h3>
+            <p className="text-sm text-gray-400 text-center mb-2">{scannerError}</p>
+            <p className="text-xs text-gray-500 text-center mb-8 max-w-xs">
+              Vérifiez que l&apos;appareil photo est autorisé dans les paramètres de votre navigateur, puis réessayez.
+            </p>
+            <div className="w-full max-w-xs space-y-3">
+              <button
+                type="button"
+                onClick={onRetryScanner}
+                className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#00d9a3] to-[#00b894] rounded-2xl px-5 py-4 text-white font-bold active:scale-[0.97] transition-all shadow-lg shadow-[#00d9a3]/20"
+              >
+                <Camera className="w-5 h-5" />
+                Réessayer
+              </button>
+              <button
+                type="button"
+                onClick={onGoToKeypad}
+                className="w-full flex items-center justify-center gap-2.5 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white/80 font-medium active:scale-[0.97] transition-all"
+              >
+                <Keyboard className="w-5 h-5" />
+                Saisie manuelle
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ─── Instruction text ──────────────────────────────── */}
-      <div className="absolute top-[22%] left-0 right-0 z-20 pointer-events-none">
-        <div className="flex flex-col items-center gap-3">
-          <div className="bg-black/60 backdrop-blur-md rounded-2xl px-6 py-3 flex items-center gap-2.5">
-            <ScanLine className="w-5 h-5 text-[#00d9a3] animate-pulse" />
-            <span className="text-sm text-white font-medium">
-              Cadrez le QR code du ticket
-            </span>
+      {!scannerError && (
+        <div className="absolute top-[22%] left-0 right-0 z-20 pointer-events-none">
+          <div className="flex flex-col items-center gap-3">
+            <div className="bg-black/60 backdrop-blur-md rounded-2xl px-6 py-3 flex items-center gap-2.5">
+              <ScanLine className="w-5 h-5 text-[#00d9a3] animate-pulse" />
+              <span className="text-sm text-white font-medium">
+                Cadrez le QR code du ticket
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ─── Loading overlay ─────────────────────────────── */}
       {isLoading && (
@@ -539,16 +608,18 @@ function ScannerScreen({
       )}
 
       {/* ─── Bottom bar ────────────────────────────────────── */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent px-5 pb-8 pt-14 safe-bottom">
-        <button
-          type="button"
-          onClick={onGoToKeypad}
-          className="w-full flex items-center justify-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl px-5 py-4 active:scale-[0.97] transition-all"
-        >
-          <Keyboard className="w-5 h-5 text-white/70" />
-          <span className="text-white/80 font-medium">Code non détecté ? Saisie manuelle</span>
-        </button>
-      </div>
+      {!scannerError && (
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent px-5 pb-8 pt-14 safe-bottom">
+          <button
+            type="button"
+            onClick={onGoToKeypad}
+            className="w-full flex items-center justify-center gap-2.5 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl px-5 py-4 active:scale-[0.97] transition-all"
+          >
+            <Keyboard className="w-5 h-5 text-white/70" />
+            <span className="text-white/80 font-medium">Code non détecté ? Saisie manuelle</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1034,6 +1105,13 @@ export default function ControllerValidatePage() {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const scannerStartingRef = useRef(false);
 
+  // ─── Scanner error state ────────────────────────────────────
+  const [scannerError, setScannerError] = useState<string | null>(null);
+
+  // ─── PWA install prompt ─────────────────────────────────────
+  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
   // ─── Stable ref for selected agency ──────────────────────────
   const selectedAgencyIdRef = useRef(selectedAgencyId);
   selectedAgencyIdRef.current = selectedAgencyId;
@@ -1110,6 +1188,45 @@ export default function ControllerValidatePage() {
     };
   }, []);
 
+  // ─── PWA install prompt listener ─────────────────────────────
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      deferredPromptRef.current = e as BeforeInstallPromptEvent;
+      setShowInstallPrompt(true);
+    };
+
+    const handleAppInstalled = () => {
+      deferredPromptRef.current = null;
+      setShowInstallPrompt(false);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  // ─── PWA install handler ─────────────────────────────────────
+  const handleInstallApp = useCallback(async () => {
+    const prompt = deferredPromptRef.current;
+    if (!prompt) return;
+
+    try {
+      await prompt.prompt();
+      const choiceResult = await prompt.userChoice;
+      if (choiceResult.outcome === 'accepted') {
+        deferredPromptRef.current = null;
+        setShowInstallPrompt(false);
+      }
+    } catch {
+      // Install prompt dismissed or failed
+    }
+  }, []);
+
   // ─── Start sync engine on mount, stop on unmount ──────────────
   useEffect(() => {
     startSyncEngine();
@@ -1133,11 +1250,6 @@ export default function ControllerValidatePage() {
     return () => {
       if (autoClearTimerRef.current) clearTimeout(autoClearTimerRef.current);
     };
-  }, []);
-
-  // ─── Stop scanner on unmount ────────────────────────────────
-  useEffect(() => {
-    return () => { stopScannerInternal(); };
   }, []);
 
   // ─── Web Audio: ding ────────────────────────────────────────
@@ -1224,19 +1336,97 @@ export default function ControllerValidatePage() {
     setCode('');
   }, []);
 
+  // ─── QR Scanner: stop (internal, no deps) ──────────────────
+  const stopScannerInternal = useCallback(async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        const state = html5QrCodeRef.current.getState();
+        if (state === 2 || state === 1) {
+          await html5QrCodeRef.current.stop();
+        }
+      } catch { /* Ignore */ }
+      try { html5QrCodeRef.current.clear(); } catch { /* Ignore */ }
+      html5QrCodeRef.current = null;
+    }
+  }, []);
+
+  // ─── QR Scanner: start ──────────────────────────────────────
+  const startScanner = useCallback(async () => {
+    if (!scannerRef.current || scannerStartingRef.current) return;
+    scannerStartingRef.current = true;
+    setScannerError(null);
+    await stopScannerInternal();
+
+    try {
+      const html5QrCode = new Html5Qrcode('scanner-container');
+      html5QrCodeRef.current = html5QrCode;
+
+      const cameraConfig: MediaTrackConstraints = {
+        facingMode: 'environment',
+      };
+
+      const scannerConfig = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        disableFlip: true,
+      };
+
+      await html5QrCode.start(
+        cameraConfig,
+        scannerConfig,
+        (decodedText) => {
+          const extracted = extractControlCode(decodedText);
+          if (extracted) {
+            setCode(extracted);
+            validateWithCode(extracted);
+            stopScannerInternal();
+ }
+        },
+        () => { /* Ignore scan errors — normal during continuous scanning */ },
+      );
+    } catch (err) {
+      console.error('[Scanner] Failed to start:', err);
+      html5QrCodeRef.current = null;
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('NotAllowedError') || message.includes('Permission')) {
+        setScannerError('Autorisation caméra refusée. Veuillez autoriser l\'accès à la caméra.');
+      } else if (message.includes('NotFoundError') || message.includes('Requested device not found')) {
+        setScannerError('Aucune caméra trouvée sur cet appareil.');
+      } else if (message.includes('NotReadableError') || message.includes('Could not start video')) {
+        setScannerError('La caméra est déjà utilisée par une autre application.');
+      } else {
+        setScannerError('Impossible de démarrer la caméra. Veuillez réessayer.');
+      }
+    } finally {
+      scannerStartingRef.current = false;
+    }
+  }, [extractControlCode, validateWithCode, stopScannerInternal]);
+
   // ─── Navigate to scanner ─────────────────────────────────────
   const goToScanner = useCallback(() => {
     setCode('');
     setResult(null);
     setValidationStatus('idle');
+    setScannerError(null);
     setScreen('scanner');
   }, []);
+
+  // ─── Retry scanner ───────────────────────────────────────────
+  const handleRetryScanner = useCallback(() => {
+    setScannerError(null);
+    startScanner();
+  }, [startScanner]);
 
   // ─── Navigate to keypad ──────────────────────────────────────
   const goToKeypad = useCallback(() => {
     stopScannerInternal();
     setScreen('keypad');
   }, []);
+
+  // ─── Stop scanner on unmount ────────────────────────────────
+  useEffect(() => {
+    return () => { stopScannerInternal(); };
+  }, [stopScannerInternal]);
 
   // ─── Validate ticket with a given code ─────────────────────
   const validateWithCode = useCallback(
@@ -1354,31 +1544,21 @@ export default function ControllerValidatePage() {
   const startScanner = useCallback(async () => {
     if (!scannerRef.current || scannerStartingRef.current) return;
     scannerStartingRef.current = true;
+    setScannerError(null);
     await stopScannerInternal();
 
     try {
       const html5QrCode = new Html5Qrcode('scanner-container');
       html5QrCodeRef.current = html5QrCode;
 
-      // Optimized config: fast scanning, high-res camera, continuous autofocus
       const cameraConfig: MediaTrackConstraints = {
         facingMode: 'environment',
-        width: { min: 1280, ideal: 1920, max: 2560 },
-        height: { min: 720, ideal: 1080, max: 1440 },
-        // @ts-expect-error advanced constraints for torch/autofocus
-        advanced: [
-          { torch: false },
-          { focusMode: 'continuous' },
-          { exposureMode: 'continuous' },
-          { whiteBalanceMode: 'continuous' },
-        ],
       };
 
       const scannerConfig = {
-        fps: 30,
-        qrbox: { width: 300, height: 300 },
-        aspectRatio: 1.0,
-        disableFlip: false,
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        disableFlip: true,
       };
 
       await html5QrCode.start(
@@ -1397,6 +1577,16 @@ export default function ControllerValidatePage() {
     } catch (err) {
       console.error('[Scanner] Failed to start:', err);
       html5QrCodeRef.current = null;
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('NotAllowedError') || message.includes('Permission')) {
+        setScannerError('Autorisation caméra refusée. Veuillez autoriser l\'accès à la caméra.');
+      } else if (message.includes('NotFoundError') || message.includes('Requested device not found')) {
+        setScannerError('Aucune caméra trouvée sur cet appareil.');
+      } else if (message.includes('NotReadableError') || message.includes('Could not start video')) {
+        setScannerError('La caméra est déjà utilisée par une autre application.');
+      } else {
+        setScannerError('Impossible de démarrer la caméra. Veuillez réessayer.');
+      }
     } finally {
       scannerStartingRef.current = false;
     }
@@ -1539,6 +1729,8 @@ export default function ControllerValidatePage() {
             totalControls={totalControls}
             selectedAgency={selectedAgency}
             onLogout={handleLogout}
+            showInstallPrompt={showInstallPrompt}
+            onInstallApp={handleInstallApp}
           />
         </div>
       )}
@@ -1554,6 +1746,8 @@ export default function ControllerValidatePage() {
           isOnline={isOnline}
           onStartFlashlight={handleStartFlashlight}
           onStopFlashlight={handleStopFlashlight}
+          scannerError={scannerError}
+          onRetryScanner={handleRetryScanner}
         />
       )}
 
