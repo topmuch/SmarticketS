@@ -842,6 +842,11 @@ function ActionButtons({ reference, colis, ticket }: {
     window.open(`/api/ticket-pdf/${encodeURIComponent(reference)}`, '_blank');
   };
 
+  // Thermal print: open 80mm thermal receipt in new tab
+  const handleThermalPrint = () => {
+    window.open(`/api/ticket-thermal/${encodeURIComponent(reference)}`, '_blank');
+  };
+
   // Share: always use WhatsApp text share via wa.me link
   const handleShare = () => {
     const shareText =
@@ -856,24 +861,35 @@ function ActionButtons({ reference, colis, ticket }: {
   };
 
   return (
-    <div className="flex gap-3 animate-fade-in-up" style={{ animationDelay: '640ms' }}>
-      <button
-        type="button"
-        onClick={handleShare}
-        className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md"
-      >
-        <MessageCircle className="w-4 h-4" />
-        Partager
-      </button>
-      <button
-        type="button"
-        onClick={handleDownload}
-        className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#2563eb] hover:bg-[#1d4ed8] active:bg-[#1e40af] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md"
-      >
-        <Download className="w-4 h-4" />
-        Télécharger
-      </button>
-    </div>
+    <>
+      <div className="flex gap-3 animate-fade-in-up" style={{ animationDelay: '640ms' }}>
+        <button
+          type="button"
+          onClick={handleShare}
+          className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#25D366] hover:bg-[#1fb855] active:bg-[#1a9e49] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Partager
+        </button>
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="flex-1 flex items-center justify-center gap-2 h-12 bg-[#2563eb] hover:bg-[#1d4ed8] active:bg-[#1e40af] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md"
+        >
+          <Download className="w-4 h-4" />
+          Télécharger
+        </button>
+      </div>
+      <div className="mt-3 animate-fade-in-up" style={{ animationDelay: '680ms' }}>
+        <button
+          type="button"
+          onClick={handleThermalPrint}
+          className="w-full flex items-center justify-center gap-2 h-11 bg-[#0f172a] hover:bg-[#1e293b] active:bg-[#0f172a] text-white rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md"
+        >
+          🧾 Imprimer thermique (80mm)
+        </button>
+      </div>
+    </>
   );
 }
 
