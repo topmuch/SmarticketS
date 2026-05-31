@@ -52,7 +52,7 @@ const WA_URL =
 
 const NAV_LINKS = [
   { label: 'Accueil', href: '#accueil' },
-  { label: 'Solutions', href: '#solutions' },
+  { label: 'Services', href: '#services' },
   { label: 'Fonctionnalités', href: '#fonctionnalites' },
   { label: 'Comment ça marche', href: '#comment-ca-marche' },
   { label: 'Contact', href: '#footer' },
@@ -65,34 +65,26 @@ const STATS = [
   { value: '100%', label: 'Couverture Sénégal', icon: Globe },
 ];
 
-const SOLUTIONS = [
+const SERVICES = [
   {
     title: 'Passagers',
-    description: 'Achetez, recevez sur WhatsApp, montrez le QR code',
-    image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=500&fit=crop',
-    icon: TicketCheck,
-    features: ['Achat 24/7', 'Sans impression', 'Suivi en temps réel'],
+    subtitle: 'Personne avec téléphone, achat 24/7, sans impression, suivi temps réel',
+    image: '/images/services/passagers.png',
   },
   {
     title: 'Expéditeurs',
-    description: 'Suivez vos colis en temps réel, notifications auto',
-    image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=600&h=500&fit=crop',
-    icon: Package,
-    features: ['QR code unique', 'Traçabilité totale', 'Alertes WhatsApp'],
+    subtitle: 'Envoi colis, QR code unique, traçabilité totale, alertes WhatsApp',
+    image: '/images/services/expediteurs.png',
   },
   {
     title: 'Compagnies',
-    description: 'Gérez votre flotte, vos départs et vos équipes',
-    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=500&fit=crop',
-    icon: LayoutDashboard,
-    features: ['Rapports automatisés', 'Gestion flotte', 'Statistiques live'],
+    subtitle: 'Rapports automatisés, gestion flotte, statistiques live',
+    image: '/images/services/compagnies.png',
   },
   {
     title: 'Écrans Affichage',
-    description: 'Horaires bus en temps réel sur écran gare',
-    image: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=600&h=500&fit=crop',
-    icon: Monitor,
-    features: ['Horaires live', 'Départs & Arrivées', 'Alertes embarquement'],
+    subtitle: 'Horaires live, départs & arrivées, alertes voyageurs',
+    image: '/images/services/affichage.png',
   },
 ];
 
@@ -650,81 +642,77 @@ function StatsSection() {
 }
 
 /* ============================================================
-   4. SOLUTIONS SECTION
+   4. SERVICES SECTION — Identique au design de référence Tranx
    ============================================================ */
 
-function SolutionsSection() {
+function ServicesSection() {
   return (
-    <section id="solutions" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+    <section id="services" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <FadeIn className="text-center mb-14 sm:mb-16">
-          <span className="inline-block px-4 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold tracking-widest uppercase rounded-full mb-4">
-            Solutions
+          <span className="inline-block px-4 py-1.5 bg-[#00A887]/10 text-[#00A887] text-xs font-bold tracking-widest uppercase rounded-full mb-4">
+            Services
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
-            Une solution pour chaque{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
-              acteur
-            </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1A1A1A] mb-4 tracking-tight">
+            Nos{' '}
+            <span className="text-[#00A887]">Services</span>
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            Que vous soyez passager, expéditeur ou compagnie de transport, SmarticketS s&apos;adapte à vos besoins.
+            Des solutions complètes pour chaque acteur du transport inter-villes.
           </p>
         </FadeIn>
 
-        {/* Cards — minimal image-centric style */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
-          {SOLUTIONS.map((solution, i) => (
-            <FadeIn key={solution.title} delay={i * 0.08}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="group cursor-pointer"
+        {/* Cards Grid — 4 cards, no gap, 680px height on desktop */}
+        <FadeIn>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-0">
+            {SERVICES.map((service) => (
+              <div
+                key={service.title}
+                className="group relative overflow-hidden rounded-[4px] shadow-[0_2px_12px_rgba(0,0,0,0.08)] h-[400px] sm:h-[520px] lg:h-[680px] cursor-pointer"
               >
-                {/* Image container — tall, no border, no shadow */}
-                <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-slate-100">
-                  <Image
-                    src={solution.image}
-                    alt={solution.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  {/* Subtle bottom gradient for text readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                {/* Image — full height */}
+                <Image
+                  src={service.image}
+                  alt={service.title}
+                  fill
+                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05]"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                />
 
-                  {/* Bottom content overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
-                    {/* Icon badge */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/90 flex items-center justify-center">
-                        <solution.icon className="w-4 h-4 text-white" />
-                      </div>
+                {/* Hover overlay — 20% dark */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+
+                {/* Bottom info bar — 15% height */}
+                <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm p-3 sm:p-4 lg:p-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-base lg:text-lg font-bold text-[#1A1A1A] truncate">
+                        {service.title}
+                      </h3>
+                      <p className="text-[11px] sm:text-xs lg:text-sm text-slate-500 leading-snug mt-0.5 line-clamp-2">
+                        {service.subtitle}
+                      </p>
                     </div>
-                    {/* Title */}
-                    <h3 className="text-base lg:text-lg font-bold text-white leading-tight mb-1">
-                      {solution.title}
-                    </h3>
-                    {/* Description */}
-                    <p className="text-xs lg:text-sm text-white/80 leading-relaxed line-clamp-2">
-                      {solution.description}
-                    </p>
-                    {/* Feature tags */}
-                    <div className="flex flex-wrap gap-1.5 mt-2.5">
-                      {solution.features.map((feat) => (
-                        <span
-                          key={feat}
-                          className="inline-flex items-center px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-md text-[10px] lg:text-xs text-white/90 font-medium"
-                        >
-                          {feat}
-                        </span>
-                      ))}
+
+                    {/* Green "+" button — rotates 45° on hover */}
+                    <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full bg-[#00A887] flex items-center justify-center transition-transform duration-300 group-hover:rotate-45 hover:bg-[#008f72]">
+                      <svg
+                        className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                      </svg>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            </FadeIn>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        </FadeIn>
       </div>
     </section>
   );
@@ -1170,7 +1158,7 @@ export default function HomePage() {
       <main id="main-content">
         <HeroSection />
         <StatsSection />
-        <SolutionsSection />
+        <ServicesSection />
         <FeaturesSection />
         <HowItWorksSection />
         <WhyChooseUsSection />
