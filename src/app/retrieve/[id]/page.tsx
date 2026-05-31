@@ -351,7 +351,7 @@ function MainInfoCard({
 }) {
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-in-up"
+      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm overflow-hidden animate-fade-in-up"
       style={{ animationDelay: '80ms' }}
     >
       {/* Top: Seat + Company */}
@@ -427,7 +427,7 @@ function TrajetCard({
 }) {
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-fade-in-up"
+      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
       style={{ animationDelay: '160ms' }}
     >
       <div className="flex items-center justify-between items-center">
@@ -497,7 +497,7 @@ function PassengerCard({
 }) {
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-fade-in-up"
+      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
       style={{ animationDelay: '240ms' }}
     >
       <div className="flex items-center gap-2 mb-3">
@@ -510,7 +510,7 @@ function PassengerCard({
       <p className="text-xl font-bold text-[#0f172a]">{ticket.passengerName}</p>
 
       <div className="grid grid-cols-3 gap-3 mt-3">
-        <div className="bg-[#f8fafc] rounded-xl p-3 text-center">
+        <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-3 text-center">
           <p className="text-[10px] text-gray-400 font-semibold uppercase">
             Âge
           </p>
@@ -518,7 +518,7 @@ function PassengerCard({
             {ticket.passengerAge} ans
           </p>
         </div>
-        <div className="bg-[#f8fafc] rounded-xl p-3 text-center">
+        <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-3 text-center">
           <p className="text-[10px] text-gray-400 font-semibold uppercase">
             Document
           </p>
@@ -526,7 +526,7 @@ function PassengerCard({
             {ticket.documentType}
           </p>
         </div>
-        <div className="bg-[#f8fafc] rounded-xl p-3 text-center">
+        <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-3 text-center">
           <p className="text-[10px] text-gray-400 font-semibold uppercase">
             N° Document
           </p>
@@ -558,7 +558,7 @@ function PassengerCard({
 function LuggageCard({ ticket }: { ticket: TicketData }) {
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-fade-in-up"
+      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
       style={{ animationDelay: '320ms' }}
     >
       <div className="flex items-center gap-2 mb-4">
@@ -569,7 +569,7 @@ function LuggageCard({ ticket }: { ticket: TicketData }) {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[#f8fafc] rounded-xl p-4 text-center">
+        <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-4 text-center">
           <p className="text-2xl font-black text-[#0f172a]">
             {ticket.luggageCount}
           </p>
@@ -577,7 +577,7 @@ function LuggageCard({ ticket }: { ticket: TicketData }) {
             Quantité
           </p>
         </div>
-        <div className="bg-[#f8fafc] rounded-xl p-4 text-center">
+        <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-4 text-center">
           <p className="text-2xl font-black text-[#0f172a]">
             {ticket.luggageWeightKg}
             <span className="text-sm font-semibold text-gray-400 ml-0.5">kg</span>
@@ -586,7 +586,7 @@ function LuggageCard({ ticket }: { ticket: TicketData }) {
             Poids
           </p>
         </div>
-        <div className="bg-[#f8fafc] rounded-xl p-4 text-center">
+        <div className="bg-[#f8fafc] rounded-xl border border-dashed border-[#2563eb]/20 p-4 text-center">
           <p className="text-2xl font-black text-[#0f172a]">
             {ticket.luggageFee}
             <span className="text-sm font-semibold text-gray-400 ml-0.5">F</span>
@@ -617,7 +617,7 @@ function ControlCodeCard({
 
   return (
     <div
-      className="bg-[#d1fae5] rounded-2xl p-5 text-center space-y-2 animate-fade-in-up"
+      className="bg-[#d1fae5] rounded-2xl border-2 border-dashed border-[#10b981]/30 p-5 text-center space-y-2 animate-fade-in-up"
       style={{ animationDelay: '400ms' }}
     >
       <div className="flex items-center justify-center gap-2">
@@ -663,7 +663,7 @@ function QRCodeSection({ reference }: { reference: string }) {
 
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center animate-fade-in-up"
+      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-6 flex flex-col items-center animate-fade-in-up"
       style={{ animationDelay: '480ms' }}
     >
       <div className="w-[250px] h-[250px] rounded-2xl border-2 border-[#2563eb]/20 p-3 bg-white animate-pulse-qr shadow-lg shadow-[#2563eb]/5">
@@ -703,7 +703,7 @@ function TimelineSection({
 
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-fade-in-up"
+      className="bg-white rounded-2xl border-2 border-dashed border-[#2563eb]/30 shadow-sm p-5 animate-fade-in-up"
       style={{ animationDelay: '560ms' }}
     >
       <div className="flex items-center gap-2 mb-4">
