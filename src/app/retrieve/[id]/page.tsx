@@ -1155,17 +1155,32 @@ function ParcelView({
 
         {/* Delivery Validation Button */}
         {(colis.status === 'in_transit') && !deliverySuccess && (
-          <div className="animate-fade-in-up" style={{ animationDelay: '240ms' }}>
-            <button
-              onClick={() => setShowPinKeypad(true)}
-              className="w-full flex items-center justify-center gap-3 h-14 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all"
+          <div className="animate-fade-in-up space-y-2" style={{ animationDelay: '240ms' }}>
+            <div className="bg-[#215ae2] rounded-2xl border-2 border-dashed border-emerald-400/60 shadow-sm p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <p className="text-sm font-bold text-white">
+                  Validation de livraison
+                </p>
+              </div>
+              <p className="text-xs text-white/60 mb-3">
+                Le destinataire a reçu un code PIN à 6 chiffres par WhatsApp. Demandez-lui de vous communiquer ce code pour valider la remise du colis.
+              </p>
+              <button
+                onClick={() => setShowPinKeypad(true)}
+                className="w-full flex items-center justify-center gap-3 h-14 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all"
+              >
+                <Lock className="w-5 h-5" />
+                🔐 Saisir le code de retrait
+              </button>
+            </div>
+            <Link
+              href={`/suivi/${colis.reference}`}
+              className="flex items-center justify-center gap-2 w-full h-11 bg-white/10 hover:bg-white/15 border border-white/20 rounded-xl text-sm font-medium text-white/80 transition-all no-underline"
             >
-              <Lock className="w-5 h-5" />
-              Valider la livraison avec le code
-            </button>
-            <p className="text-xs text-white/50 text-center mt-2">
-              Entrez le code de retrait à 6 chiffres du destinataire
-            </p>
+              <ChevronRight className="w-4 h-4" />
+              Voir le suivi complet
+            </Link>
           </div>
         )}
 

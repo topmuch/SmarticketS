@@ -289,8 +289,8 @@ export default function SuccessScreen({
         </div>
         <p className="text-sm text-white/70">
           {t(
-            "À l'arrivée, rescannez ce QR code ou cliquez ci-dessous pour la récupération avec PIN.",
-            'On arrival, rescan this QR code or click below for PIN-based retrieval.'
+            "À l'arrivée, le destinataire devra fournir son code de retrait à 6 chiffres pour valider la livraison.",
+            'On arrival, the recipient must provide their 6-digit withdrawal code to validate delivery.'
           )}
         </p>
         <Link
@@ -299,6 +299,53 @@ export default function SuccessScreen({
         >
           <Truck className="w-5 h-5" />
           {t('Accéder à la Page de Récupération', 'Go to Retrieval Page')}
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* Delivery validation info */}
+      <div className="bg-gradient-to-r from-emerald-900/30 to-green-900/30 border border-emerald-500/30 rounded-xl p-4 sm:p-5 space-y-2.5 sm:space-y-3">
+        <div className="flex items-center gap-2 text-white">
+          <Lock className="w-5 h-5" />
+          <p className="text-base font-bold">
+            {t('Validation de livraison par code PIN', 'PIN code delivery validation')}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="text-emerald-400 flex-shrink-0 mt-0.5">①</span>
+            <p className="text-sm text-white/70">
+              {t(
+                "Le code PIN à 6 chiffres a été envoyé au destinataire par WhatsApp.",
+                'The 6-digit PIN code was sent to the recipient via WhatsApp.'
+              )}
+            </p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-emerald-400 flex-shrink-0 mt-0.5">②</span>
+            <p className="text-sm text-white/70">
+              {t(
+                'À l\'arrivée, le destinataire communique son code à l\'agent de livraison.',
+                'On arrival, the recipient gives their code to the delivery agent.'
+              )}
+            </p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-emerald-400 flex-shrink-0 mt-0.5">③</span>
+            <p className="text-sm text-white/70">
+              {t(
+                "L'agent saisit le code sur la page de récupération pour valider la livraison.",
+                'The agent enters the code on the retrieval page to validate delivery.'
+              )}
+            </p>
+          </div>
+        </div>
+        <Link
+          href={`/suivi/${reference}`}
+          className="flex items-center justify-center gap-2 w-full h-12 sm:h-14 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 active:from-emerald-700 active:to-green-700 text-white rounded-xl font-bold text-sm sm:text-lg shadow-lg shadow-emerald-500/25 transition-all no-underline"
+        >
+          <Truck className="w-5 h-5" />
+          {t('Voir le suivi et valider la livraison', 'View tracking and validate delivery')}
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>

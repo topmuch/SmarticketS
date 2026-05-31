@@ -435,17 +435,28 @@ export default function SuiviPage() {
 
         {/* ─── DELIVERY VALIDATION BUTTON (for in_transit parcels) ─── */}
         {colis && colis.status === 'in_transit' && !ticket && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <button
-              onClick={() => setShowPinKeypad(true)}
-              className="w-full flex items-center justify-center gap-3 h-14 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all"
-            >
-              <Lock className="w-5 h-5" />
-              {t('Valider la livraison avec le code', 'Validate delivery with code')}
-            </button>
-            <p className="text-xs text-gray-400 text-center mt-2">
-              {t('Entrez le code de retrait à 6 chiffres du destinataire', 'Enter the recipient\'s 6-digit withdrawal code')}
-            </p>
+          <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-dashed border-emerald-300 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <p className="text-sm font-bold text-emerald-800">
+                  {t('Validation de livraison', 'Delivery Validation')}
+                </p>
+              </div>
+              <p className="text-xs text-emerald-600 mb-3">
+                {t(
+                  'Le destinataire a reçu un code PIN à 6 chiffres par WhatsApp. Demandez-lui de vous communiquer ce code pour valider la remise du colis.',
+                  'The recipient received a 6-digit PIN code via WhatsApp. Ask them to share it with you to validate the package delivery.'
+                )}
+              </p>
+              <button
+                onClick={() => setShowPinKeypad(true)}
+                className="w-full flex items-center justify-center gap-3 h-14 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all"
+              >
+                <Lock className="w-5 h-5" />
+                {t('🔐 Saisir le code de retrait', 'Enter withdrawal code')}
+              </button>
+            </div>
           </div>
         )}
 

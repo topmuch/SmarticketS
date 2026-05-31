@@ -1646,3 +1646,22 @@ Stage Summary:
 - Auto-submits when 6 digits entered, shows error with attempts remaining on wrong PIN
 - Success shows green banner, refreshes data, status updates to LIVRÉ
 - API sends WhatsApp notifications to sender and receiver on successful delivery
+
+---
+Task ID: delivery-validation-ux
+Agent: Main Agent
+Task: Améliorer l'UX de validation de livraison par code de retrait sur les pages suivi/retrieve/success
+
+Work Log:
+- Analysé le flux complet de validation livraison: activation → in_transit → PIN keypad → delivered
+- Confirmé que la fonctionnalité existe déjà: /api/validate-pin, PinKeypad component, bouton sur /suivi/[ref] et /retrieve/[ref]
+- Amélioré la SuccessScreen: ajouté une section explicative "Validation de livraison par code PIN" avec 3 étapes (①②③) + bouton vert "Voir le suivi et valider la livraison" → /suivi/[ref]
+- Amélioré /suivi/[ref]: bouton de validation encapsulé dans une carte explicative avec bordure dashed emerald, texte descriptif, icône ShieldCheck
+- Amélioré /retrieve/[ref]: même carte explicative + ajouté un lien "Voir le suivi complet" → /suivi/[ref]
+- Vérifié compilation: dev server ✓, home page 200 OK
+
+Stage Summary:
+- 3 fichiers modifiés: SuccessScreen.tsx, /suivi/[id]/page.tsx, /retrieve/[id]/page.tsx
+- Le flux de validation livraison est maintenant clairement expliqué après l'activation
+- L'utilisateur peut directement accéder au suivi depuis la page de succès
+- Les boutons de saisie du code PIN sont plus visibles et accompagnés de texte explicatif
