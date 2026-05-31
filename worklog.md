@@ -1609,3 +1609,40 @@ Stage Summary:
 - Dark navy background (#0d1b3e) for ParcelView page
 - TicketView and its boarding pass design completely preserved
 - Shared components use conditional rendering — no cross-contamination between views
+---
+Task ID: parcel-delivery-validation
+Agent: Main Agent
+Task: Add parcel delivery validation (code de retrait) to tracking and retrieve pages
+
+Work Log:
+- Investigated parcel delivery flow: activation → in_transit → PIN validation → delivered
+- Found the tracking page (/suivi/[id]) and retrieve page (/retrieve/[id] ParcelView) both lacked a delivery validation button
+- PinKeypad component already existed at /src/components/retrieve/PinKeypad.tsx
+- /api/validate-pin API already existed (POST with reference + 6-digit PIN, max 3 attempts, sends WhatsApp notifications)
+- Modified /src/app/suivi/[id]/page.tsx:
+  - Added Lock, PartyPopper icons import + PinKeypad component import
+  - Added useCallback import
+  - Added showPinKeypad, deliverySuccess, pinValidating state
+  - Added handlePinSubmit callback: POST to /api/validate-pin, refresh tracking data on success
+  - Added handleResendPin callback: opens retrieve page in new tab
+  - Added "Valider la livraison avec le code" button (green gradient) for in_transit parcels without ticket
+  - Added delivery success banner (green gradient with PartyPopper icons)
+  - Added PinKeypad modal integration
+- Modified /src/app/retrieve/[id]/page.tsx:
+  - Added Lock, PartyPopper icons import + PinKeypad component import
+  - Added useCallback import
+  - Modified ParcelView: added showPinKeypad, deliverySuccess state
+  - Modified statusLabel/statusColor to reflect deliverySuccess
+  - Added handlePinSubmit callback: POST to /api/validate-pin
+  - Added "Valider la livraison avec le code" button (green gradient, dark theme compatible)
+  - Added delivery success banner
+  - Added PinKeypad modal integration
+- Lint: 0 new errors (only pre-existing scripts/migrate-db.js)
+
+Stage Summary:
+- 2 files modified (suivi/[id]/page.tsx + retrieve/[id]/page.tsx)
+- Users can now validate parcel delivery with withdrawal code from both tracking and retrieve pages
+- PinKeypad opens as bottom-sheet modal with 6-digit numeric keypad
+- Auto-submits when 6 digits entered, shows error with attempts remaining on wrong PIN
+- Success shows green banner, refreshes data, status updates to LIVRÉ
+- API sends WhatsApp notifications to sender and receiver on successful delivery

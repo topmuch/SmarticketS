@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import {
   QrCode,
@@ -25,8 +25,11 @@ import {
   Ticket,
   Luggage,
   ShieldCheck,
+  Lock,
+  PartyPopper,
 } from 'lucide-react';
 import Link from 'next/link';
+import PinKeypad from '@/components/retrieve/PinKeypad';
 
 // ═══════════════════════════════════════════════════
 //  TYPES
@@ -255,6 +258,9 @@ export default function SuiviPage() {
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [ticket, setTicket] = useState<TicketData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPinKeypad, setShowPinKeypad] = useState(false);
+  const [deliverySuccess, setDeliverySuccess] = useState(false);
+  const [pinValidating, setPinValidating] = useState(false);
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en;
 
@@ -286,6 +292,49 @@ export default function SuiviPage() {
     };
 
     fetchTracking();
+  }, [reference]);
+
+  // ─── PIN Validation Handler ───
+  const handlePinSubmit = useCallback(async (pin: string) => {
+    try {
+      const res = await fetch('/api/validate-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference, pin }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setShowPinKeypad(false);
+        setDeliverySuccess(true);
+        // Refresh tracking data
+        const trackRes = await fetch(`/api/tracking/${encodeURIComponent(reference)}`);
+        const trackData = await trackRes.json();
+        if (trackRes.ok && trackData.success) {
+          setColis(trackData.colis);
+          setTimeline(trackData.timeline || []);
+        }
+        return { success: true };
+      }
+
+      if (data.blocked) {
+        return { success: false, blocked: true, error: data.message };
+      }
+
+      return {
+        success: false,
+        error: data.message || 'Code incorrect.',
+        attemptsLeft: data.attemptsLeft,
+      };
+    } catch {
+      return { success: false, error: 'Erreur de connexion.' };
+    }
+  }, [reference]);
+
+  // ─── Resend PIN handler ───
+  const handleResendPin = useCallback(async () => {
+    // Navigate to retrieve page where resend logic may exist
+    window.open(`/retrieve/${reference}`, '_blank');
   }, [reference]);
 
   // ─── Loading ───
@@ -381,6 +430,36 @@ export default function SuiviPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ─── DELIVERY VALIDATION BUTTON (for in_transit parcels) ─── */}
+        {colis && colis.status === 'in_transit' && !ticket && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <button
+              onClick={() => setShowPinKeypad(true)}
+              className="w-full flex items-center justify-center gap-3 h-14 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all"
+            >
+              <Lock className="w-5 h-5" />
+              {t('Valider la livraison avec le code', 'Validate delivery with code')}
+            </button>
+            <p className="text-xs text-gray-400 text-center mt-2">
+              {t('Entrez le code de retrait à 6 chiffres du destinataire', 'Enter the recipient\'s 6-digit withdrawal code')}
+            </p>
+          </div>
+        )}
+
+        {/* ─── DELIVERY SUCCESS BANNER ─── */}
+        {deliverySuccess && (
+          <div className="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-5 text-white text-center space-y-2 shadow-lg shadow-emerald-500/30 animate-in fade-in zoom-in-95 duration-500">
+            <div className="flex items-center justify-center gap-2">
+              <PartyPopper className="w-6 h-6" />
+              <h3 className="text-lg font-bold">{t('Livraison validée !', 'Delivery validated!')}</h3>
+              <PartyPopper className="w-6 h-6" />
+            </div>
+            <p className="text-sm text-white/90">
+              {t('Le colis a été remis au destinataire avec succès.', 'The package was successfully delivered to the recipient.')}
+            </p>
           </div>
         )}
 
@@ -484,6 +563,16 @@ export default function SuiviPage() {
             </div>
           )}
         </div>
+
+        {/* ─── PIN KEYPAD MODAL ─── */}
+        {showPinKeypad && colis && (
+          <PinKeypad
+            onSubmit={handlePinSubmit}
+            onCancel={() => setShowPinKeypad(false)}
+            onResendPin={handleResendPin}
+            receiverName={colis.receiverName}
+          />
+        )}
 
         {/* ─── Back home ─── */}
         <div className="text-center pt-4">

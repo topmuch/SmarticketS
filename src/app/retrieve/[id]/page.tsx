@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   Bus,
@@ -18,9 +18,12 @@ import {
   Eye,
   EyeOff,
   Download,
+  Lock,
+  PartyPopper,
 } from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
+import PinKeypad from '@/components/retrieve/PinKeypad';
 
 // ═══════════════════════════════════════════════════════════
 //  TYPES
@@ -1030,19 +1033,52 @@ function ParcelView({
   colis: ColisData;
   timeline: TimelineEntry[];
 }) {
+  const [showPinKeypad, setShowPinKeypad] = useState(false);
+  const [deliverySuccess, setDeliverySuccess] = useState(false);
+
   const statusLabel =
-    colis.status === 'delivered'
+    deliverySuccess || colis.status === 'delivered'
       ? 'LIVRÉ'
       : colis.status === 'in_transit'
         ? 'EN TRANSIT'
         : 'EN ATTENTE';
 
   const statusColor =
-    colis.status === 'delivered'
+    deliverySuccess || colis.status === 'delivered'
       ? 'bg-emerald-100 text-emerald-700'
       : colis.status === 'in_transit'
         ? 'bg-blue-100 text-blue-700'
         : 'bg-amber-100 text-amber-700';
+
+  // ─── PIN Validation Handler ───
+  const handlePinSubmit = useCallback(async (pin: string) => {
+    try {
+      const res = await fetch('/api/validate-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: colis.reference, pin }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setShowPinKeypad(false);
+        setDeliverySuccess(true);
+        return { success: true };
+      }
+
+      if (data.blocked) {
+        return { success: false, blocked: true, error: data.message };
+      }
+
+      return {
+        success: false,
+        error: data.message || 'Code incorrect.',
+        attemptsLeft: data.attemptsLeft,
+      };
+    } catch {
+      return { success: false, error: 'Erreur de connexion.' };
+    }
+  }, [colis.reference]);
 
   return (
     <div className="min-h-screen bg-[#0d1b3e] flex flex-col">
@@ -1116,6 +1152,45 @@ function ParcelView({
             </div>
           </div>
         </div>
+
+        {/* Delivery Validation Button */}
+        {(colis.status === 'in_transit') && !deliverySuccess && (
+          <div className="animate-fade-in-up" style={{ animationDelay: '240ms' }}>
+            <button
+              onClick={() => setShowPinKeypad(true)}
+              className="w-full flex items-center justify-center gap-3 h-14 bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all"
+            >
+              <Lock className="w-5 h-5" />
+              Valider la livraison avec le code
+            </button>
+            <p className="text-xs text-white/50 text-center mt-2">
+              Entrez le code de retrait à 6 chiffres du destinataire
+            </p>
+          </div>
+        )}
+
+        {/* Delivery Success Banner */}
+        {deliverySuccess && (
+          <div className="bg-gradient-to-r from-emerald-400 to-green-400 rounded-2xl p-5 text-white text-center space-y-2 shadow-lg shadow-emerald-500/30 animate-in fade-in zoom-in-95 duration-500">
+            <div className="flex items-center justify-center gap-2">
+              <PartyPopper className="w-6 h-6" />
+              <h3 className="text-lg font-bold">Livraison validée !</h3>
+              <PartyPopper className="w-6 h-6" />
+            </div>
+            <p className="text-sm text-white/90">
+              Le colis a été remis au destinataire avec succès.
+            </p>
+          </div>
+        )}
+
+        {/* PIN Keypad Modal */}
+        {showPinKeypad && (
+          <PinKeypad
+            onSubmit={handlePinSubmit}
+            onCancel={() => setShowPinKeypad(false)}
+            receiverName={colis.receiverName}
+          />
+        )}
 
         {/* Timeline */}
         <TimelineSection timeline={timeline} dark />
