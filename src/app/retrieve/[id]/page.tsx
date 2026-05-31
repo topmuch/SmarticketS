@@ -849,15 +849,21 @@ function ActionButtons({ reference, colis, ticket }: {
     window.open(`/api/ticket-thermal/${encodeURIComponent(reference)}`, '_blank');
   };
 
-  // Share: always use WhatsApp text share via wa.me link
+  // Share: WhatsApp message with full formatted template
   const handleShare = () => {
     const shareText =
-      `🎫 Ticket de transport\n` +
-      `Réf: ${reference}\n` +
-      `${colis.departureCity} → ${ticket.destination || colis.arrivalCity}\n` +
-      `Départ: ${ticket.departureTime || colis.departureTime || ''} | Siège: ${ticket.seatNumber}\n` +
-      `Passager: ${ticket.passengerName}\n` +
-      `Code: ${ticket.controlCode}`;
+      `🚌 *SMARTICKETS — BILLET CONFIRMÉ*\n\n` +
+      `👤 ${ticket.passengerName}\n` +
+      `🚌 Destination : ${ticket.destination || colis.arrivalCity}\n` +
+      `💺 Siège : ${ticket.seatNumber}\n` +
+      `🧳 Bagages : ${ticket.luggageCount} valise(s) (${ticket.luggageWeightKg}kg)\n\n` +
+      `🔢 *CODE DE CONTRÔLE : ${ticket.controlCode}*\n\n` +
+      `⚠️ CONDITIONS :\n` +
+      `* Arrivez 1h avant le départ\n` +
+      `* Pièce d'identité obligatoire\n` +
+      `* Billet non remboursable\n` +
+      `* Report possible 1x ≥24h avant\n\n` +
+      `Merci de votre confiance ! Bon voyage 🚌`;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
     window.open(waUrl, '_blank');
   };

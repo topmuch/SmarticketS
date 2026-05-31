@@ -191,20 +191,20 @@ export async function POST(req: NextRequest) {
     });
 
     // 8. Générer lien WhatsApp
-    const message = `🎫 *SMARTICKETS — BILLET CONFIRMÉ*
+    const message = `🚌 *SMARTICKETS — BILLET CONFIRMÉ*
 
 👤 ${passengerName}
 🚌 Destination : ${destination}
 💺 Siège : ${seatNumber}
 🧳 Bagages : ${luggageCount} valise(s) (${luggageWeightKg}kg)
-${luggageFee > 0 ? `💰 Supplément : ${luggageFee} FCFA\n` : ''}
+
 🔢 *CODE DE CONTRÔLE : ${controlCode}*
 
 ⚠️ CONDITIONS :
-• Arrivez 1h avant le départ
-• Pièce d'identité obligatoire
-• Billet non remboursable
-• Report possible 1x ≥24h avant
+* Arrivez 1h avant le départ
+* Pièce d'identité obligatoire
+* Billet non remboursable
+* Report possible 1x ≥24h avant
 
 Merci de votre confiance ! Bon voyage 🚌`;
 
