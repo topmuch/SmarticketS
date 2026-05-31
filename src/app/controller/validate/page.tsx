@@ -500,7 +500,7 @@ function ScannerScreen({
           <div className="absolute inset-0 bg-black/40" />
 
           {/* Cutout area (transparent) */}
-          <div className="relative w-[260px] h-[260px] bg-transparent">
+          <div className="relative w-[300px] h-[300px] bg-transparent">
             {/* Top-left corner */}
             <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-[#00d9a3] rounded-tl-2xl corner-pulse" />
             {/* Top-right corner */}
@@ -517,7 +517,7 @@ function ScannerScreen({
       </div>
 
       {/* ─── Instruction text ──────────────────────────────── */}
-      <div className="absolute top-1/3 left-0 right-0 -translate-y-1/2 z-20 pointer-events-none">
+      <div className="absolute top-[22%] left-0 right-0 z-20 pointer-events-none">
         <div className="flex flex-col items-center gap-3">
           <div className="bg-black/60 backdrop-blur-md rounded-2xl px-6 py-3 flex items-center gap-2.5">
             <ScanLine className="w-5 h-5 text-[#00d9a3] animate-pulse" />
@@ -1360,9 +1360,30 @@ export default function ControllerValidatePage() {
       const html5QrCode = new Html5Qrcode('scanner-container');
       html5QrCodeRef.current = html5QrCode;
 
+      // Optimized config: fast scanning, high-res camera, continuous autofocus
+      const cameraConfig: MediaTrackConstraints = {
+        facingMode: 'environment',
+        width: { min: 1280, ideal: 1920, max: 2560 },
+        height: { min: 720, ideal: 1080, max: 1440 },
+        // @ts-expect-error advanced constraints for torch/autofocus
+        advanced: [
+          { torch: false },
+          { focusMode: 'continuous' },
+          { exposureMode: 'continuous' },
+          { whiteBalanceMode: 'continuous' },
+        ],
+      };
+
+      const scannerConfig = {
+        fps: 30,
+        qrbox: { width: 300, height: 300 },
+        aspectRatio: 1.0,
+        disableFlip: false,
+      };
+
       await html5QrCode.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 260, height: 260 } },
+        cameraConfig,
+        scannerConfig,
         (decodedText) => {
           const extracted = extractControlCode(decodedText);
           if (extracted) {
@@ -1371,9 +1392,10 @@ export default function ControllerValidatePage() {
             stopScannerInternal();
           }
         },
-        () => { /* Ignore */ },
+        () => { /* Ignore scan errors — normal during continuous scanning */ },
       );
-    } catch {
+    } catch (err) {
+      console.error('[Scanner] Failed to start:', err);
       html5QrCodeRef.current = null;
     } finally {
       scannerStartingRef.current = false;
