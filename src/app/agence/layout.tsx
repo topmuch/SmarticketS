@@ -197,16 +197,16 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
                 <React.Fragment key={index}>
                   {/* Section Header */}
                   {item.section && index > 0 && (
-                    <li className="mt-4 mb-1">
-                      <span className="px-4 text-[10px] font-bold text-white uppercase tracking-widest">
+                    <li className="mt-5 mb-2">
+                      <span className="px-4 text-sm font-bold text-white uppercase tracking-widest">
                         {item.section}
                       </span>
                     </li>
                   )}
                   {/* First section without top margin */}
                   {item.section && index === 0 && (
-                    <li className="mb-1">
-                      <span className="px-4 text-[10px] font-bold text-white uppercase tracking-widest">
+                    <li className="mb-2">
+                      <span className="px-4 text-sm font-bold text-white uppercase tracking-widest">
                         {item.section}
                       </span>
                     </li>
