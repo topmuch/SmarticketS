@@ -69,22 +69,22 @@ const SERVICES = [
   {
     title: 'Passagers',
     subtitle: 'Personne avec téléphone, achat 24/7, sans impression, suivi temps réel',
-    image: '/images/services/passagers.png?v=2',
+    image: '/images/services/passagers.jpg?v=2',
   },
   {
     title: 'Expéditeurs',
     subtitle: 'Envoi colis, QR code unique, traçabilité totale, alertes WhatsApp',
-    image: '/images/services/expediteurs.png?v=2',
+    image: '/images/services/expediteurs.jpg?v=2',
   },
   {
     title: 'Compagnies',
     subtitle: 'Rapports automatisés, gestion flotte, statistiques live',
-    image: '/images/services/compagnies.png?v=2',
+    image: '/images/services/compagnies.jpg?v=2',
   },
   {
     title: 'Écrans Affichage',
     subtitle: 'Horaires live, départs & arrivées, alertes voyageurs',
-    image: '/images/services/affichage.png?v=2',
+    image: '/images/services/affichage.jpg?v=2',
   },
 ];
 
