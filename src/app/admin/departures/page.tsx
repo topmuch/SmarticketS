@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { io, Socket } from 'socket.io-client';
 import {
   Plus,
   Pencil,
@@ -56,6 +57,8 @@ import {
   XCircle,
   AlertTriangle,
   PlaneTakeoff,
+  Timer,
+  Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -175,6 +178,15 @@ export default function DeparturesPage() {
   const [csvResult, setCsvResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  // Retard modal
+  const [delayDialogOpen, setDelayDialogOpen] = useState(false);
+  const [delayDeparture, setDelayDeparture] = useState<Departure | null>(null);
+  const [delayMinutes, setDelayMinutes] = useState('');
+  const [delaySaving, setDelaySaving] = useState(false);
+
+  // WebSocket for real-time kiosk broadcast
+  const socketRef = useRef<Socket | null>(null);
 
   // ── Fetch session ───────────────────────────────────────
   useEffect(() => {
@@ -365,10 +377,26 @@ export default function DeparturesPage() {
     }
   };
 
+  // ── WebSocket connection to kiosk-service (port 3004) ──
+  useEffect(() => {
+    const socket = io('/?XTransformPort=3004');
+    socketRef.current = socket;
+    socket.on('connect', () => {
+      console.log('[AdminDepartures] Socket connected to kiosk-service');
+    });
+    socket.on('disconnect', () => {
+      console.log('[AdminDepartures] Socket disconnected');
+    });
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []);
+
   // ── Mark as DEPARTED ───────────────────────────────────
-  const handleMarkDeparted = async (id: string) => {
+  const handleMarkDeparted = async (dep: Departure) => {
     try {
-      const res = await fetch(`/api/admin/departures?id=${id}`, {
+      const res = await fetch(`/api/admin/departures?id=${dep.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'DEPARTED' }),
@@ -376,8 +404,63 @@ export default function DeparturesPage() {
       if (!res.ok) throw new Error('Erreur serveur');
       toast.success('Départ marqué comme parti');
       fetchDepartures();
+
+      // Broadcast to kiosk via WebSocket
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('kiosk:departed', {
+          stationSlug: '', // Broadcast to all stations
+          departureId: dep.id,
+          destination: dep.destination,
+        });
+        console.log('[AdminDepartures] Broadcast departed:', dep.destination);
+      }
     } catch {
       toast.error("Erreur lors du changement de statut");
+    }
+  };
+
+  // ── Open Retard modal ────────────────────────────────
+  const openDelayModal = (dep: Departure) => {
+    setDelayDeparture(dep);
+    setDelayMinutes(dep.delayMinutes?.toString() || '15');
+    setDelayDialogOpen(true);
+  };
+
+  // ── Handle Retard (Delay) submit ─────────────────────
+  const handleDelaySubmit = async () => {
+    if (!delayDeparture) return;
+    const minutes = parseInt(delayMinutes, 10);
+    if (isNaN(minutes) || minutes < 1) {
+      toast.error('Veuillez entrer un nombre de minutes valide (min 1)');
+      return;
+    }
+
+    setDelaySaving(true);
+    try {
+      const res = await fetch(`/api/admin/departures?id=${delayDeparture.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delayMinutes: minutes, status: 'DELAYED' }),
+      });
+      if (!res.ok) throw new Error('Erreur serveur');
+      toast.success(`Retard de ${minutes} min appliqué pour ${delayDeparture.destination}`);
+      setDelayDialogOpen(false);
+      fetchDepartures();
+
+      // Broadcast to kiosk via WebSocket
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('kiosk:delay', {
+          stationSlug: '', // Broadcast to all
+          departureId: delayDeparture.id,
+          minutes,
+          destination: delayDeparture.destination,
+        });
+        console.log('[AdminDepartures] Broadcast delay:', delayDeparture.destination, minutes, 'min');
+      }
+    } catch {
+      toast.error('Erreur lors de l\'application du retard');
+    } finally {
+      setDelaySaving(false);
     }
   };
 
@@ -627,16 +710,28 @@ export default function DeparturesPage() {
                                   <Pencil className="w-4 h-4" />
                                 </Button>
                                 {dep.status !== 'DEPARTED' && dep.status !== 'CANCELLED' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleMarkDeparted(dep.id)}
-                                    className="h-8 px-2 text-xs text-sky-600 hover:text-sky-800 hover:bg-sky-50 rounded-lg"
-                                    title="Marquer comme parti"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                                    Parti
-                                  </Button>
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openDelayModal(dep)}
+                                      className="h-8 px-2 text-xs text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg"
+                                      title="Appliquer un retard"
+                                    >
+                                      <Timer className="w-3.5 h-3.5 mr-1" />
+                                      Retard
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleMarkDeparted(dep)}
+                                      className="h-8 px-2 text-xs text-sky-600 hover:text-sky-800 hover:bg-sky-50 rounded-lg"
+                                      title="Marquer comme parti"
+                                    >
+                                      <Send className="w-3.5 h-3.5 mr-1" />
+                                      Parti
+                                    </Button>
+                                  </>
                                 )}
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
@@ -791,6 +886,77 @@ clj123abc,RETURN,Ligne 1,Dakar,2025-01-15,16:00,Quai B,45,45`}
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Retard (Delay) Dialog */}
+        <Dialog open={delayDialogOpen} onOpenChange={setDelayDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Timer className="w-5 h-5 text-amber-500" />
+                Appliquer un retard
+              </DialogTitle>
+              <DialogDescription>
+                Définir le nombre de minutes de retard pour le départ vers{' '}
+                <strong className="text-slate-900">{delayDeparture?.destination}</strong>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="text-sm">
+                  <span className="text-slate-500">Ligne :</span>{' '}
+                  <span className="font-medium text-slate-800">{delayDeparture?.lineNumber}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-slate-500">Heure prévue :</span>{' '}
+                  <span className="font-medium text-slate-800">
+                    {delayDeparture ? new Date(delayDeparture.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </span>
+                </div>
+              </div>
+              {delayDeparture && delayDeparture.delayMinutes > 0 && (
+                <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
+                  ⚠️ Un retard de {delayDeparture.delayMinutes} min est déjà appliqué.
+                </p>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="delay-minutes">Minutes de retard *</Label>
+                <Input
+                  id="delay-minutes"
+                  type="number"
+                  min="1"
+                  max="480"
+                  placeholder="15"
+                  value={delayMinutes}
+                  onChange={(e) => setDelayMinutes(e.target.value)}
+                  className="text-lg text-center"
+                />
+                <p className="text-xs text-slate-400">Entrez un nombre entre 1 et 480 minutes (8h max)</p>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setDelayDialogOpen(false)} className="rounded-xl">
+                Annuler
+              </Button>
+              <Button
+                onClick={handleDelaySubmit}
+                disabled={delaySaving || !delayMinutes}
+                className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl"
+              >
+                {delaySaving ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" />
+                    Application...
+                  </>
+                ) : (
+                  <>
+                    <Timer className="w-4 h-4 mr-1.5" />
+                    Appliquer {delayMinutes ? `${delayMinutes} min` : ''}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Create / Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
