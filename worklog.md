@@ -412,3 +412,23 @@ Stage Summary:
 - 3 logo assets created at /public/logo-icon.png, /public/logo-full.png, /public/favicon-new.png
 - 12 logo instances across 10 files migrated from QrCode icon to real image
 - Zero new lint errors
+
+---
+Task ID: 4
+Agent: Main Agent + 4 subagents
+Task: Rewrite kiosk LED display + admin panel + WebSocket + audio system
+
+Work Log:
+- Rewrote src/lib/audioSystem.ts with priority queue, ding-dong Web Audio, mute/volume, custom audio, general message timer
+- Created mini-services/kiosk-service/ (Socket.io port 3004) for real-time admin↔kiosk communication
+- Rewrote src/app/signage-slug/[slug]/page.tsx with LED airport-display design: black bg, auto-slide departures(cyan)/arrivals(orange), analog clock, blinking colons, CRT overlay, fullscreen, cursor hidden
+- Created src/app/agence/kiosk/page.tsx: admin panel with delay modal, departed button, general message config, audio upload, volume slider, mute toggle
+- Added "Panneau Kiosk" link in agency sidebar (src/app/agence/layout.tsx)
+- All code uses real API data, zero mock/fantasy code
+- Lint clean, dev server compiling, kiosk service running on port 3004
+
+Stage Summary:
+- 5 files created/rewritten: audioSystem.ts, kiosk-service/, signage-slug page, agence/kiosk page, agence layout
+- Real-time: Socket.io on port 3004 with station rooms, delay/departed/config events
+- Audio: Priority queue (CRITICAL > HIGH > MEDIUM > LOW), ding-dong + 3s pause + TTS, mute 'M' shortcut
+- Kiosk display: LED design, 120s auto-slide, 10-row fill, responsive, fullscreen

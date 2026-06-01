@@ -1,15 +1,40 @@
 /**
- * SmarticketS — Audio System Module
+ * SmarticketS — Audio System Module (v2)
  *
  * Complete audio system for the Signage Display kiosk, providing:
- * - Ding-Dong chime via Web Audio API oscillators
- * - Text-to-Speech (TTS) with French female voice selection
- * - Boarding announcement sequence (ding-dong → TTS → repeat)
+ * - Web Audio API ding-dong chime (880 Hz ding → 660 Hz dong)
+ * - Priority-based announcement queue (CRITICAL / HIGH / MEDIUM / LOW)
+ * - Text-to-Speech (TTS) with French voice selection (fr-FR, rate 0.9)
+ * - Custom audio playback (MP3 / WAV via URL)
+ * - Mute / volume controls persisted to localStorage
+ * - Keyboard shortcut (M) for mute toggle
+ * - General message interval timer
  * - Voice preloading for mobile/TV browsers
+ * - Full cancel capability
  *
- * This is a pure library module — no React hooks, no JSX.
+ * This is a pure library module — no React hooks, no JSX, no 'use client'.
  * All browser APIs are guarded with `typeof window !== 'undefined'`.
  */
+
+// ═══════════════════════════════════════════════════════════════════
+//  Types
+// ═══════════════════════════════════════════════════════════════════
+
+/** Priority levels for the announcement queue. Higher number = higher priority. */
+export enum AnnouncementPriority {
+  LOW = 1,
+  MEDIUM = 3,
+  HIGH = 4,
+  CRITICAL = 5,
+}
+
+/** A single queued announcement item. */
+export interface QueuedAnnouncement {
+  id: string;
+  text: string;
+  priority: AnnouncementPriority;
+  customAudioUrl?: string;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  Internal State
@@ -21,11 +46,32 @@ let audioCtx: AudioContext | null = null;
 /** Whether voices have been loaded at least once. */
 let voicesLoaded = false;
 
-/** Whether a boarding announcement sequence is currently running. */
-let isAnnouncing = false;
+/** Whether the queue processor is currently running. */
+let isProcessing = false;
 
-/** Pending timer IDs for scheduled announcement rounds / TTS delays. */
+/** Pending timer IDs for scheduled operations. */
 const pendingTimers: ReturnType<typeof setTimeout>[] = [];
+
+/** Pending interval IDs for general message timers. */
+const pendingIntervals: ReturnType<typeof setInterval>[] = [];
+
+/** The priority-sorted announcement queue. */
+const announcementQueue: QueuedAnnouncement[] = [];
+
+/** Counter for generating unique announcement IDs. */
+let announcementCounter = 0;
+
+/** Whether the audio system is muted. */
+let _isMuted = false;
+
+/** Current volume level (0.0 – 1.0). */
+let _currentVolume = 1.0;
+
+/** Whether mute/volume has been loaded from localStorage. */
+let persistentStateLoaded = false;
+
+/** Keyboard event handler reference (for cleanup). */
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
 // ═══════════════════════════════════════════════════════════════════
 //  Browser Guard
@@ -38,6 +84,10 @@ const isBrowser =
 const hasSpeechSynthesis =
   typeof window !== 'undefined' &&
   typeof window.speechSynthesis !== 'undefined';
+
+const hasLocalStorage =
+  typeof window !== 'undefined' &&
+  typeof window.localStorage !== 'undefined';
 
 // ═══════════════════════════════════════════════════════════════════
 //  AudioContext helpers
@@ -69,11 +119,12 @@ function ensureAudioContext(): AudioContext | null {
 /**
  * Play a single oscillator tone with attack-decay envelope.
  *
- * @param ctx     - Active AudioContext
- * @param freq    - Frequency in Hz
+ * @param ctx      - Active AudioContext
+ * @param freq     - Frequency in Hz
  * @param duration - Total duration in seconds
- * @param type    - Oscillator waveform type (sine, square, triangle, sawtooth)
- * @param startAt - Absolute start time (ctx.currentTime offset)
+ * @param type     - Oscillator waveform type (sine, square, triangle, sawtooth)
+ * @param startAt  - Absolute start time (ctx.currentTime offset)
+ * @param volume   - Peak gain (0.0 – 1.0)
  */
 function playTone(
   ctx: AudioContext,
@@ -81,6 +132,7 @@ function playTone(
   duration: number,
   type: OscillatorType,
   startAt: number,
+  volume: number = 0.6,
 ): void {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -90,7 +142,7 @@ function playTone(
 
   // Attack envelope: 50 ms fade-in to peak
   gain.gain.setValueAtTime(0, startAt);
-  gain.gain.linearRampToValueAtTime(0.6, startAt + 0.05);
+  gain.gain.linearRampToValueAtTime(volume, startAt + 0.05);
 
   // Decay envelope: exponential fade-out for natural sustain
   gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
@@ -175,37 +227,552 @@ function selectFrenchVoice(): SpeechSynthesisVoice | null {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  Public API — Ding-Dong
+//  1. Web Audio API Ding-Dong
 // ═══════════════════════════════════════════════════════════════════
 
 /**
  * Play a pleasant ding-dong chime using Web Audio API oscillators.
  *
  * The chime mimics a classic airport / train-station announcement chime:
- * - First tone: high-pitched "ding" at ~880 Hz (A5)
- * - Second tone: lower "dong" at ~660 Hz (E5)
+ * - First tone: high-pitched "ding" at 880 Hz (A5) with 1.5s decay
+ * - Second tone: lower "dong" at 660 Hz (E5) with 2s decay, starts after 600ms
  * - Each tone has a short attack and exponential decay envelope
- * - Total duration ~1.5 seconds
  *
- * On browsers where `AudioContext` is unavailable this is a no-op.
+ * Checks `isMuted` before playing — silent if muted.
+ * Respects the current `currentVolume` level.
  */
 export function playDingDong(): void {
+  if (_isMuted) {
+    console.log('[AudioSystem] Ding-Dong skipped (muted)');
+    return;
+  }
+
   const ctx = ensureAudioContext();
   if (!ctx) return;
 
   try {
     const now = ctx.currentTime;
+    const vol = _currentVolume * 0.6;
 
-    // Ding — high A5 tone (0.6 s)
-    playTone(ctx, 880, 0.6, 'sine', now);
+    // Ding — high A5 tone (1.5 s decay)
+    playTone(ctx, 880, 1.5, 'sine', now, vol);
 
-    // Dong — lower E5 tone (1.2 s), starts after 0.5 s
-    playTone(ctx, 660, 1.2, 'sine', now + 0.5);
+    // Dong — lower E5 tone (2.0 s decay), starts after 600ms
+    playTone(ctx, 660, 2.0, 'sine', now + 0.6, vol);
 
     console.log('[AudioSystem] Ding-Dong played');
   } catch (err) {
     console.warn('[AudioSystem] Failed to play ding-dong:', err);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  2. Priority Queue System
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Get a snapshot of the current queue (sorted by priority, highest first).
+ * Returns a copy to prevent external mutation.
+ */
+export function getQueue(): QueuedAnnouncement[] {
+  return [...announcementQueue];
+}
+
+/**
+ * Get the number of items currently in the queue.
+ */
+export function getQueueLength(): number {
+  return announcementQueue.length;
+}
+
+/**
+ * Check whether the queue processor is currently active.
+ */
+export function isProcessingQueue(): boolean {
+  return isProcessing;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  3. speakAnnouncement(text, customAudioUrl?)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Speak an announcement: plays ding-dong, waits 3 seconds, then speaks text via TTS
+ * or plays a custom audio URL.
+ *
+ * If `customAudioUrl` is provided, plays that audio instead of TTS.
+ * Respects mute state and volume level.
+ *
+ * @param text           - The text to speak (used as TTS fallback or for logging).
+ * @param customAudioUrl - Optional URL to an MP3/WAV file to play instead of TTS.
+ * @returns A promise that resolves when the announcement completes.
+ */
+export async function speakAnnouncement(
+  text: string,
+  customAudioUrl?: string,
+): Promise<void> {
+  console.log('[AudioSystem] speakAnnouncement() called:', text.substring(0, 60));
+
+  // 1. Play ding-dong chime
+  playDingDong();
+
+  // 2. Wait 3 seconds for chime to ring out
+  await delay(3000);
+
+  // 3. Speak TTS or play custom audio
+  if (customAudioUrl) {
+    await playCustomAudio(customAudioUrl);
+  } else {
+    if (_isMuted) {
+      console.log('[AudioSystem] TTS skipped (muted)');
+      return;
+    }
+    await speakWithRetry(text);
+  }
+
+  console.log('[AudioSystem] Announcement complete');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  4. processQueue()
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Process the announcement queue: takes the highest-priority item,
+ * calls speakAnnouncement, then processes the next item.
+ *
+ * Runs in a loop until the queue is empty. Re-entrant-safe:
+ * if already processing, subsequent calls are ignored.
+ */
+export async function processQueue(): Promise<void> {
+  if (isProcessing) {
+    console.log('[AudioSystem] Queue processor already running — skipping');
+    return;
+  }
+
+  isProcessing = true;
+  console.log('[AudioSystem] Queue processor started');
+
+  while (announcementQueue.length > 0) {
+    // Sort by priority descending (CRITICAL first), then by insertion order (FIFO)
+    announcementQueue.sort((a, b) => {
+      if (b.priority !== a.priority) {
+        return b.priority - a.priority;
+      }
+      // Same priority: maintain FIFO — lower ID came first
+      return a.id.localeCompare(b.id);
+    });
+
+    // Take the highest-priority item
+    const item = announcementQueue.shift()!;
+
+    console.log(
+      `[AudioSystem] Processing announcement [${AnnouncementPriority[item.priority]}] (id=${item.id}):`,
+      item.text.substring(0, 60),
+    );
+
+    try {
+      await speakAnnouncement(item.text, item.customAudioUrl);
+    } catch (err) {
+      console.error('[AudioSystem] Error processing announcement:', err);
+    }
+
+    // Brief pause between announcements to avoid overlap
+    if (announcementQueue.length > 0) {
+      await delay(500);
+    }
+  }
+
+  isProcessing = false;
+  console.log('[AudioSystem] Queue processor stopped (queue empty)');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  5. addToQueue(text, priority, customAudioUrl?)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Add an announcement to the priority queue.
+ *
+ * The queue is automatically sorted by priority (CRITICAL first).
+ * If the queue processor is not already running, it is triggered.
+ *
+ * @param text            - The announcement text.
+ * @param priority        - Priority level (default: MEDIUM).
+ * @param customAudioUrl  - Optional URL to play instead of TTS.
+ * @returns The ID of the queued announcement.
+ */
+export function addToQueue(
+  text: string,
+  priority: AnnouncementPriority = AnnouncementPriority.MEDIUM,
+  customAudioUrl?: string,
+): string {
+  announcementCounter++;
+  const id = `ann-${Date.now()}-${announcementCounter}`;
+
+  const item: QueuedAnnouncement = {
+    id,
+    text,
+    priority,
+    customAudioUrl,
+  };
+
+  announcementQueue.push(item);
+
+  console.log(
+    `[AudioSystem] Added to queue [${AnnouncementPriority[priority]}] (id=${id}):`,
+    text.substring(0, 60),
+    `(${announcementQueue.length} items in queue)`,
+  );
+
+  // Sort by priority
+  announcementQueue.sort((a, b) => {
+    if (b.priority !== a.priority) {
+      return b.priority - a.priority;
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  // Trigger processing if not already running
+  if (!isProcessing) {
+    // Use microtask to avoid synchronous recursion
+    void processQueue();
+  }
+
+  return id;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  6. Mute / Volume Controls
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Load mute and volume state from localStorage.
+ * Called lazily on first access.
+ */
+function loadPersistentState(): void {
+  if (!hasLocalStorage || persistentStateLoaded) return;
+  persistentStateLoaded = true;
+
+  try {
+    const muteStr = window.localStorage.getItem('smartickets_mute');
+    if (muteStr !== null) {
+      _isMuted = muteStr === 'true';
+    }
+  } catch {
+    // localStorage may be restricted in some environments
+  }
+
+  try {
+    const volStr = window.localStorage.getItem('smartickets_volume');
+    if (volStr !== null) {
+      const parsed = parseFloat(volStr);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        _currentVolume = parsed;
+      }
+    }
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Save mute state to localStorage.
+ */
+function saveMuteState(): void {
+  if (!hasLocalStorage) return;
+  try {
+    window.localStorage.setItem('smartickets_mute', String(_isMuted));
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Save volume state to localStorage.
+ */
+function saveVolumeState(): void {
+  if (!hasLocalStorage) return;
+  try {
+    window.localStorage.setItem('smartickets_volume', String(_currentVolume));
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Get the current mute state.
+ * Loads from localStorage on first access.
+ */
+export function getIsMuted(): boolean {
+  loadPersistentState();
+  return _isMuted;
+}
+
+/**
+ * Get the current volume level (0.0 – 1.0).
+ * Loads from localStorage on first access.
+ */
+export function getCurrentVolume(): number {
+  loadPersistentState();
+  return _currentVolume;
+}
+
+/**
+ * Toggle the mute state.
+ * Persists the new state to localStorage.
+ */
+export function toggleMute(): boolean {
+  loadPersistentState();
+  _isMuted = !_isMuted;
+  saveMuteState();
+  console.log('[AudioSystem] Mute toggled:', _isMuted);
+
+  // If un-muted while speech is ongoing, nothing special needed
+  // If muted, cancel any in-progress speech
+  if (_isMuted && hasSpeechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+
+  return _isMuted;
+}
+
+/**
+ * Set the volume level.
+ *
+ * @param v - Volume level between 0.0 (silent) and 1.0 (maximum).
+ * @throws Error if the value is out of range.
+ */
+export function setVolume(v: number): void {
+  loadPersistentState();
+
+  if (v < 0 || v > 1) {
+    throw new Error(`[AudioSystem] Volume must be between 0.0 and 1.0, got ${v}`);
+  }
+
+  _currentVolume = v;
+  saveVolumeState();
+  console.log('[AudioSystem] Volume set:', _currentVolume);
+}
+
+/**
+ * Install the keyboard shortcut handler for 'M' key to toggle mute.
+ * Call once during app initialisation. Only installs once.
+ */
+export function installKeyboardShortcut(): void {
+  if (!isBrowser || keydownHandler !== null) return;
+
+  keydownHandler = (e: KeyboardEvent) => {
+    // Only trigger on 'M' key, not when typing in an input
+    if (
+      e.key === 'm' ||
+      e.key === 'M'
+    ) {
+      // Ignore if user is typing in an input, textarea, or contentEditable
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      e.preventDefault();
+      toggleMute();
+    }
+  };
+
+  window.addEventListener('keydown', keydownHandler);
+  console.log('[AudioSystem] Keyboard shortcut installed: M = toggle mute');
+}
+
+/**
+ * Remove the keyboard shortcut handler.
+ */
+export function removeKeyboardShortcut(): void {
+  if (!isBrowser || keydownHandler === null) return;
+
+  window.removeEventListener('keydown', keydownHandler);
+  keydownHandler = null;
+  console.log('[AudioSystem] Keyboard shortcut removed');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  7. Voice Preloading
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Preload speech-synthesis voices with a timeout fallback.
+ *
+ * On mobile / TV browsers voices may load asynchronously after page load.
+ * This function:
+ *  1. Attempts an immediate voice load
+ *  2. Registers the `onvoiceschanged` event as a fallback
+ *  3. Retries after 100 ms, 500 ms, and 1000 ms
+ *  4. Logs the number of voices discovered
+ *
+ * Should be called early (e.g. on first user interaction or page mount).
+ */
+export function preloadVoices(): void {
+  if (!hasSpeechSynthesis) return;
+
+  function onLoad() {
+    const voices = window!.speechSynthesis.getVoices();
+    if (voices.length > 0 && !voicesLoaded) {
+      voicesLoaded = true;
+      console.log(`[AudioSystem] ${voices.length} voice(s) loaded`);
+    }
+  }
+
+  // Immediate attempt
+  onLoad();
+
+  // Register async change listener
+  window!.speechSynthesis.onvoiceschanged = onLoad;
+
+  // Retry schedule for slow browsers
+  const t1 = setTimeout(onLoad, 100);
+  const t2 = setTimeout(onLoad, 500);
+  const t3 = setTimeout(onLoad, 1000);
+
+  // Keep references so they can be cancelled if needed
+  pendingTimers.push(t1, t2, t3);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  8. cancelAll()
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Cancel everything: all timers, all intervals, all speech, clear the queue.
+ *
+ * This is the "emergency stop" for the audio system.
+ */
+export function cancelAll(): void {
+  console.log('[AudioSystem] Cancelling all audio operations');
+
+  // Clear all pending timeouts
+  for (const id of pendingTimers) {
+    clearTimeout(id);
+  }
+  pendingTimers.length = 0;
+
+  // Clear all pending intervals
+  for (const id of pendingIntervals) {
+    clearInterval(id);
+  }
+  pendingIntervals.length = 0;
+
+  // Cancel ongoing speech
+  if (hasSpeechSynthesis) {
+    window!.speechSynthesis.cancel();
+  }
+
+  // Clear the announcement queue
+  announcementQueue.length = 0;
+
+  // Reset processing state
+  isProcessing = false;
+
+  console.log('[AudioSystem] All audio operations cancelled');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  9. Custom Audio Support
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Play a custom audio file from a URL (MP3, WAV, etc.).
+ *
+ * Respects the mute state and volume level.
+ * Returns a promise that resolves when playback finishes or rejects on error.
+ *
+ * @param url - The URL of the audio file to play.
+ * @returns A promise that resolves when playback completes.
+ */
+export function playCustomAudio(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!isBrowser) {
+      console.warn('[AudioSystem] Cannot play custom audio (not a browser)');
+      resolve();
+      return;
+    }
+
+    if (_isMuted) {
+      console.log('[AudioSystem] Custom audio skipped (muted)');
+      resolve();
+      return;
+    }
+
+    const audio = new Audio();
+    audio.src = url;
+    audio.volume = _currentVolume;
+    audio.preload = 'auto';
+
+    audio.onended = () => {
+      console.log('[AudioSystem] Custom audio finished:', url);
+      resolve();
+    };
+
+    audio.onerror = (e) => {
+      console.error('[AudioSystem] Custom audio error:', e);
+      reject(new Error(`Failed to play custom audio: ${url}`));
+    };
+
+    audio.play().catch((err) => {
+      console.error('[AudioSystem] Custom audio play() rejected:', err);
+      reject(err);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  10. General Message Timer
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Start a recurring general message broadcast at a specified interval.
+ *
+ * The message is added to the queue with `LOW` priority at the given frequency.
+ * Returns a cleanup function that stops the interval.
+ *
+ * @param text              - The general message text to broadcast.
+ * @param frequencyMinutes  - Interval between broadcasts in minutes.
+ * @param customAudioUrl    - Optional custom audio URL to play instead of TTS.
+ * @returns A cleanup function that stops the interval timer.
+ */
+export function startGeneralMessageInterval(
+  text: string,
+  frequencyMinutes: number,
+  customAudioUrl?: string,
+): () => void {
+  const frequencyMs = frequencyMinutes * 60 * 1000;
+
+  console.log(
+    `[AudioSystem] General message timer started: every ${frequencyMinutes}min — "${text.substring(0, 50)}"`,
+  );
+
+  // Broadcast immediately on start
+  addToQueue(text, AnnouncementPriority.LOW, customAudioUrl);
+
+  // Then broadcast at interval
+  const intervalId = setInterval(() => {
+    addToQueue(text, AnnouncementPriority.LOW, customAudioUrl);
+  }, frequencyMs);
+
+  pendingIntervals.push(intervalId);
+
+  // Return cleanup function
+  return () => {
+    clearInterval(intervalId);
+    const idx = pendingIntervals.indexOf(intervalId);
+    if (idx >= 0) {
+      pendingIntervals.splice(idx, 1);
+    }
+    console.log('[AudioSystem] General message timer stopped');
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -219,6 +786,8 @@ export function playDingDong(): void {
  * configures optimal rate/pitch/volume for public announcement readability,
  * and resolves `true` when the utterance finishes or `false` on error.
  *
+ * Respects the current volume level.
+ *
  * @param text - The text to speak (expected in French).
  * @returns A promise that resolves to `true` on success, `false` on failure.
  */
@@ -226,6 +795,12 @@ export function speakFrench(text: string): Promise<boolean> {
   return new Promise((resolve) => {
     if (!hasSpeechSynthesis) {
       console.error('[AudioSystem] speechSynthesis not supported');
+      resolve(false);
+      return;
+    }
+
+    if (_isMuted) {
+      console.log('[AudioSystem] TTS skipped (muted)');
       resolve(false);
       return;
     }
@@ -243,7 +818,7 @@ export function speakFrench(text: string): Promise<boolean> {
     utterance.lang = 'fr-FR';
     utterance.rate = 0.9;   // Slightly slow for clarity
     utterance.pitch = 1.0;  // Neutral
-    utterance.volume = 1.0;  // Maximum
+    utterance.volume = _currentVolume;
 
     // Voice selection
     const voice = selectFrenchVoice();
@@ -321,7 +896,7 @@ export async function speakWithRetry(
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  Public API — Boarding Announcement
+//  Backward-Compatible Aliases (legacy API)
 // ═══════════════════════════════════════════════════════════════════
 
 /**
@@ -335,149 +910,36 @@ function buildAnnouncementText(destination: string, time: string): string {
 }
 
 /**
- * Execute a full boarding announcement sequence.
+ * @deprecated Use `addToQueue()` with `AnnouncementPriority.MEDIUM` instead.
  *
- * The sequence is:
- *  1. Play ding-dong chime
- *  2. Wait 1 s
- *  3. Speak the boarding announcement (with retry)
- *  4. Repeat the above 2 times, with a 2-minute interval between repeats
- *
- * While an announcement is active, calling this function again is a no-op.
- * Use {@link cancelAnnouncements} to abort an in-progress sequence.
- *
- * @param destination - Destination city / location name.
- * @param time        - Departure time string (e.g. "14h30").
- * @returns A promise that resolves when all rounds are complete or cancelled.
+ * Legacy boarding announcement function for backward compatibility.
+ * Builds the announcement text and adds it to the queue.
  */
 export async function playBoardingAnnouncement(
   destination: string,
   time: string,
 ): Promise<void> {
-  if (isAnnouncing) {
-    console.log('[AudioSystem] Announcement already in progress — ignoring');
-    return;
-  }
-
-  isAnnouncing = true;
-  const maxRounds = 2;
-  const intervalMs = 120_000; // 2 minutes between rounds
-
   const text = buildAnnouncementText(destination, time);
-
-  for (let round = 1; round <= maxRounds; round++) {
-    // Guard: cancelled between rounds
-    if (!isAnnouncing) break;
-
-    console.log(`[AudioSystem] Announcement round ${round}/${maxRounds}`);
-
-    // 1. Ding-dong
-    playDingDong();
-
-    // 2. Wait 1 s, then TTS
-    await delayWithCancel(1000);
-
-    if (!isAnnouncing) break;
-
-    await speakWithRetry(text);
-
-    // 3. Schedule next round (skip after last round)
-    if (round < maxRounds) {
-      console.log(`[AudioSystem] Next announcement in ${intervalMs / 1000}s`);
-      await delayWithCancel(intervalMs);
-    }
-  }
-
-  isAnnouncing = false;
-  console.log('[AudioSystem] Boarding announcement sequence complete');
+  addToQueue(text, AnnouncementPriority.MEDIUM);
 }
-
-// ═══════════════════════════════════════════════════════════════════
-//  Public API — Cancel
-// ═══════════════════════════════════════════════════════════════════
 
 /**
- * Cancel any pending or in-progress boarding announcement sequence.
+ * @deprecated Use `cancelAll()` instead.
  *
- * This clears all scheduled timeouts and cancels any ongoing speech.
+ * Legacy alias for `cancelAll()`.
  */
-export function cancelAnnouncements(): void {
-  console.log('[AudioSystem] Cancelling all announcements');
-
-  // Clear all pending timers
-  for (const id of pendingTimers) {
-    clearTimeout(id);
-  }
-  pendingTimers.length = 0;
-
-  // Cancel ongoing speech
-  if (hasSpeechSynthesis) {
-    window!.speechSynthesis.cancel();
-  }
-
-  isAnnouncing = false;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  Public API — Preload Voices
-// ═══════════════════════════════════════════════════════════════════
-
-/**
- * Preload speech-synthesis voices with a timeout fallback.
- *
- * On mobile / TV browsers voices may load asynchronously after page load.
- * This function:
- *  1. Attempts an immediate voice load
- *  2. Registers the `onvoiceschanged` event as a fallback
- *  3. Retries after 100 ms, 500 ms, and 1000 ms
- *  4. Logs the number of voices discovered
- *
- * Should be called early (e.g. on first user interaction or page mount).
- */
-export function preloadVoices(): void {
-  if (!hasSpeechSynthesis) return;
-
-  function onLoad() {
-    const voices = window!.speechSynthesis.getVoices();
-    if (voices.length > 0 && !voicesLoaded) {
-      voicesLoaded = true;
-      console.log(`[AudioSystem] ${voices.length} voice(s) loaded`);
-    }
-  }
-
-  // Immediate attempt
-  onLoad();
-
-  // Register async change listener
-  window!.speechSynthesis.onvoiceschanged = onLoad;
-
-  // Retry schedule for slow browsers
-  const t1 = setTimeout(onLoad, 100);
-  const t2 = setTimeout(onLoad, 500);
-  const t3 = setTimeout(onLoad, 1000);
-
-  // Keep references so they can be cancelled if needed
-  pendingTimers.push(t1, t2, t3);
-}
+export const cancelAnnouncements = cancelAll;
 
 // ═══════════════════════════════════════════════════════════════════
 //  Internal Utilities
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Promise-based delay that also checks `isAnnouncing`.
- * Resolves early (with `false`) if announcements are cancelled.
- */
-function delayWithCancel(ms: number): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    const id = setTimeout(() => resolve(true), ms);
-    pendingTimers.push(id);
-  });
-}
-
-/**
  * Simple promise-based delay.
  */
 function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    const id = setTimeout(resolve, ms);
+    pendingTimers.push(id);
+  });
 }

@@ -27,6 +27,7 @@ import {
   ShoppingCart,
   Bus,
   Monitor,
+  Radio,
   Building2,
   Package,
   Ticket,
@@ -110,6 +111,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
     // ─── TRANSPORT ───
     { label: "Départs", icon: <Bus className="w-5 h-5" />, href: "/agence/departs", section: "TRANSPORT" },
     { label: "Affichage Gare", icon: <Monitor className="w-5 h-5" />, href: "/agence/affichage-gare" },
+    { label: "Panneau Kiosk", icon: <Radio className="w-5 h-5" />, href: "/agence/kiosk" },
     
     // ─── QR & COLIS ───
     { label: "QR Non Activés", icon: <QrCode className="w-5 h-5" />, href: "/agence/qr-non-actifs", badge: stats?.pending || 0, section: "QR & COLIS" },
