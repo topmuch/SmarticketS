@@ -805,7 +805,24 @@ function FeaturesSection() {
    6. HOW IT WORKS SECTION
    ============================================================ */
 
+const STEP_RINGS: Record<string, string> = {
+  'from-blue-500 to-cyan-400': 'ring-blue-200/50',
+  'from-[#FF6B35] to-[#FF1D8D]': 'ring-orange-200/50',
+  'from-emerald-500 to-teal-400': 'ring-emerald-200/50',
+};
+
+const STEP_GLOWS: Record<string, string> = {
+  'from-blue-500 to-cyan-400': 'shadow-blue-500/25',
+  'from-[#FF6B35] to-[#FF1D8D]': 'shadow-orange-500/25',
+  'from-emerald-500 to-teal-400': 'shadow-emerald-500/25',
+};
+
+const STEP_ICONS: string[] = ['📱', '⚡', '📍'];
+
 function HowItWorksSection() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+
   return (
     <section id="comment-ca-marche" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -825,48 +842,44 @@ function HowItWorksSection() {
           </p>
         </FadeIn>
 
-        {/* Steps */}
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 mb-16">
+        {/* Steps — same design as StatsSection KPI cards */}
+        <div ref={ref} className="grid md:grid-cols-3 gap-5 lg:gap-6 mb-16">
           {STEPS.map((step, i) => (
-            <FadeIn key={step.step} delay={i * 0.15}>
-              <div className="relative group">
-                {/* Connector arrow */}
-                {i < STEPS.length - 1 && (
-                  <div className="hidden md:flex absolute top-1/2 -right-4 lg:-right-5 z-20 w-8 lg:w-10 h-8 lg:h-10 items-center justify-center">
-                    <div className={`w-full h-full rounded-full bg-gradient-to-br ${step.gradient} flex items-center justify-center shadow-lg`}>
-                      <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
-                    </div>
-                  </div>
-                )}
+            <motion.div
+              key={step.step}
+              className={`relative group overflow-hidden rounded-2xl bg-gradient-to-br ${step.gradient} shadow-xl ${STEP_GLOWS[step.gradient]} hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 ring-1 ${STEP_RINGS[step.gradient]}`}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={inView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.95 }}
+              transition={{ duration: 0.6, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {/* Light overlay for depth */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/15 to-transparent pointer-events-none" />
 
-                {/* Card */}
-                <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
-                  {/* Image */}
-                  <div className="relative h-48 lg:h-56 overflow-hidden">
-                    <Image
-                      src={step.image}
-                      alt={step.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                    {/* Gradient overlay */}
-                    <div className={`absolute inset-0 bg-gradient-to-t ${step.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300`} />
-
-                    {/* Step badge */}
-                    <span className={`absolute top-3 left-3 w-10 h-10 rounded-xl bg-gradient-to-br ${step.gradient} text-white text-sm font-extrabold flex items-center justify-center shadow-lg`}>
-                      {step.step}
-                    </span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-5 lg:p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">{step.description}</p>
-                  </div>
+              <div className="relative z-10 p-6 lg:p-8">
+                {/* Image */}
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-5 shadow-lg ring-1 ring-white/20">
+                  <Image
+                    src={step.image}
+                    alt={step.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
                 </div>
+
+                {/* Step number + icon */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl drop-shadow-sm">{STEP_ICONS[i]}</span>
+                  <span className="text-white/70 text-sm font-bold tracking-wider">ÉTAPE {step.step}</span>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-xl lg:text-2xl font-extrabold text-white mb-2 tracking-tight">{step.title}</h3>
+
+                {/* Description */}
+                <p className="text-sm lg:text-base text-white/80 leading-relaxed">{step.description}</p>
               </div>
-            </FadeIn>
+            </motion.div>
           ))}
         </div>
 

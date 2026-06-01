@@ -375,3 +375,22 @@ Stage Summary:
 - PWA lifecycle: SW registration, update detection, install prompt, offline indicator
 - Thermal receipt hardened: auth + agency isolation + HMAC-SHA256 QR codes
 - All code is production-ready: no mocks, no TODOs, no placeholder code
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Redesign HowItWorksSection with gradient cards matching StatsSection KPI design + generate 3 real images
+
+Work Log:
+- Generated 3 AI images for steps: step1-scan.png (QR scan), step2-activate.png (activation), step3-track.png (real-time tracking) — 1024x1024 each
+- Redesigned HowItWorksSection in src/app/page.tsx to use same gradient card design as StatsSection KPI cards
+- Each step card now has: full gradient bg, rounded-2xl, shadow-xl with glow, ring, white overlay, animated entrance (motion.div with useInView)
+- Cards include: real image in aspect-square container with ring, emoji icon, step number, title, description — all white text
+- Removed old white card design with connector arrows
+- Added STEP_RINGS, STEP_GLOWS, STEP_ICONS constants for gradient styling
+- Lint clean (only pre-existing migrate-db.js error)
+
+Stage Summary:
+- 3 step cards now visually match the 4 KPI cards (same gradient style, shadow, ring, hover effects, animation)
+- Images generated at /home/z/my-project/public/images/steps/
+- Zero new lint errors introduced
