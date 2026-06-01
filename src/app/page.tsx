@@ -517,6 +517,20 @@ function HeroSection() {
         className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-28 pb-20 text-center"
         style={{ opacity: heroOpacity, y: heroY }}
       >
+        {/* Logo en grand */}
+        <FadeIn>
+          <div className="mb-6">
+            <Image
+              src="/logo-full.png"
+              alt="SmarticketS"
+              width={374}
+              height={135}
+              priority
+              className="mx-auto w-48 sm:w-64 md:w-72 lg:w-80 h-auto drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+            />
+          </div>
+        </FadeIn>
+
         {/* Badge */}
         <FadeIn>
           <div className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full">
