@@ -229,14 +229,102 @@ export async function ensureSeeded(): Promise<boolean> {
       }
     }
 
-    // 9. Mark as seeded
+    // 9. Create demo PassengerTickets + Baggage for "Passager Manquant" feature
+    //    Create a departure scheduled ~10 min from now to trigger the alert
+    const nearFuture = new Date(now.getTime() + 10 * 60_000); // 10 min from now
+    const demoRouteId = routes['Dakar ↔ Mbour'];
+    const demoDepartureId = demoRouteId ? `dep-${demoRouteId}-demo-missing` : `dep-demo-missing-alert`;
+
+    // Create the demo departure
+    await db.departure.upsert({
+      where: { id: demoDepartureId },
+      update: { scheduledTime: nearFuture },
+      create: {
+        id: demoDepartureId,
+        routeId: demoRouteId || undefined,
+        originStationId: stationPeters.id,
+        destinationStationId: stationMap['Mbour'] || null,
+        lineNumber: 'Ligne 1',
+        destination: 'Mbour',
+        scheduledTime: nearFuture,
+        platform: 'A1',
+        availableSeats: 38,
+        totalSeats: 45,
+        status: 'SCHEDULED',
+        departureType: 'OUTBOUND',
+        agencyId: agency.id,
+      },
+    });
+
+    // Passenger names for demo data
+    const demoPassengers = [
+      { name: 'Amadou Diallo', phone: '+221771234501', age: 35, doc: 'CNI', docNum: 'SN001234', seat: 'A1', validated: true },
+      { name: 'Fatou Sow', phone: '+221771234502', age: 28, doc: 'Passeport', docNum: 'PS002345', seat: 'A2', validated: true },
+      { name: 'Ibrahima Ndiaye', phone: '+221771234503', age: 42, doc: 'CNI', docNum: 'SN003456', seat: 'A3', validated: true },
+      { name: 'Aissatou Ba', phone: '+221771234504', age: 25, doc: 'CNI', docNum: 'SN004567', seat: 'B1', validated: false },
+      { name: 'Moussa Faye', phone: '+221771234505', age: 30, doc: 'Passeport', docNum: 'PS005678', seat: 'B2', validated: false },
+      { name: 'Mariama Sy', phone: '+221771234506', age: 22, doc: 'CNI', docNum: 'SN006789', seat: 'B3', validated: false },
+      { name: 'Ousmane Diop', phone: '+221771234507', age: 55, doc: 'CNI', docNum: 'SN007890', seat: 'C1', validated: false },
+    ];
+
+    for (let i = 0; i < demoPassengers.length; i++) {
+      const p = demoPassengers[i];
+      const ref = `VOL26-DEMO${String(i + 1).padStart(3, '0')}`;
+
+      // Create Baggage first (required for PassengerTicket.baggageId)
+      const baggage = await db.baggage.upsert({
+        where: { reference: ref },
+        update: {},
+        create: {
+          reference: ref,
+          type: 'voyageur',
+          category: 'ticket',
+          transportMode: 'bus',
+          busCompany: 'Ashraf Voyages',
+          destination: 'Mbour',
+          departureCity: 'Dakar',
+          departureTime: `${String(nearFuture.getHours()).padStart(2, '0')}:${String(nearFuture.getMinutes()).padStart(2, '0')}`,
+          status: p.validated ? 'scanned' : 'active',
+          travelerFirstName: p.name.split(' ')[0],
+          travelerLastName: p.name.split(' ').slice(1).join(' '),
+          stationId: stationPeters.id,
+          agencyId: agency.id,
+        },
+      });
+
+      // Create PassengerTicket
+      await db.passengerTicket.upsert({
+        where: { baggageId: baggage.id },
+        update: {},
+        create: {
+          baggageId: baggage.id,
+          agencyId: agency.id,
+          departureId: demoDepartureId,
+          passengerName: p.name,
+          passengerPhone: p.phone,
+          passengerAge: p.age,
+          documentType: p.doc,
+          documentNumber: p.docNum,
+          destination: 'Mbour',
+          seatNumber: p.seat,
+          platform: 'A1',
+          ticketStatus: p.validated ? 'USED' : 'ACTIVE',
+          validatedAt: p.validated ? new Date(now.getTime() - 30 * 60_000) : null,
+          validatedBy: p.validated ? 'Contrôle Gare' : null,
+          controlCode: `CTRL-${ref}`,
+          activatedAt: new Date(now.getTime() - 2 * 60 * 60_000),
+        },
+      });
+    }
+
+    // 10. Mark as seeded
     await db.setting.upsert({
       where: { key: SEED_LOCK_KEY },
       update: { value: 'true' },
       create: { key: SEED_LOCK_KEY, value: 'true' },
     });
 
-    console.log('[auto-seed] ✅ Demo data seeded successfully');
+    console.log('[auto-seed] ✅ Demo data seeded successfully (with missing passenger test data)');
     return true;
   } catch (error) {
     console.error('[auto-seed] Error:', error);

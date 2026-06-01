@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ShieldAlert,
   Filter,
+  Info,
 } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -222,8 +223,10 @@ export default function AlertCenter() {
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {totalActive > 0
-                ? `${totalActive} alerte${totalActive > 1 ? 's' : ''} active${totalActive !== newCount ? ` (${newCount} nouvelle${newCount > 1 ? 's' : ''})` : 'Aucune alerte active'}`
-            }
+                ? `${totalActive} alerte${totalActive > 1 ? 's' : ''} active${totalActive !== newCount ? ` (${newCount} nouvelle${newCount > 1 ? 's' : ''})` : ''}`
+                : 'Aucune alerte active'
+              }
+            </p>
           </div>
         </div>
 

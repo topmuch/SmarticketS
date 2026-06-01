@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence, useInView, useScroll, useTransform } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import {
   QrCode,
   Menu,
@@ -41,7 +42,13 @@ import {
   Send,
   Clock,
   Monitor,
+  UserX,
 } from 'lucide-react';
+
+const MissingPassengerAlert = dynamic(
+  () => import('@/components/dashboard/MissingPassengerAlert'),
+  { ssr: false }
+);
 
 /* ============================================================
    CONSTANTS
@@ -1038,7 +1045,39 @@ function CTASection() {
 }
 
 /* ============================================================
-   10. FOOTER
+   10. MISSING PASSENGER LIVE DEMO SECTION
+   ============================================================ */
+
+function MissingPassengerLiveSection() {
+  return (
+    <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-red-50/50">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <FadeIn className="text-center mb-10 sm:mb-12">
+          <span className="inline-block px-4 py-1.5 bg-red-50 text-red-600 text-xs font-bold tracking-widest uppercase rounded-full mb-4">
+            Passager Manquant
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
+            Alertes{' '}
+            <span className="text-red-600">Temps Réel</span>
+          </h2>
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+            Détecte automatiquement les passagers avec billet validé qui ne se sont pas présentés
+            à l&apos;embarquement. Déclenchement 15 minutes avant le départ.
+          </p>
+        </FadeIn>
+
+        {/* Live Alert Component */}
+        <FadeIn delay={0.2}>
+          <MissingPassengerAlert agencyId="demo-agency-1" />
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   FOOTER
    ============================================================ */
 
 function FooterSection() {
@@ -1184,6 +1223,7 @@ export default function HomePage() {
         <HowItWorksSection />
         <WhyChooseUsSection />
         <TestimonialsSection />
+        <MissingPassengerLiveSection />
         <CTASection />
       </main>
       <FooterSection />
