@@ -725,7 +725,7 @@ export default function SignageSlugPage() {
               className="ads-media"
             />
           ) : adImageUrl ? (
-            <div style={{ position: 'relative', width: '80%', maxWidth: '900px', aspectRatio: '16/9' }}>
+            <div style={{ position: 'relative', width: '80%', maxWidth: 'min(900px, 85vw)', aspectRatio: '16/9' }}>
               <Image
                 key={ad.id}
                 src={adImageUrl}
@@ -1013,7 +1013,7 @@ html, body {
   display: inline-block;
   white-space: nowrap;
   animation: ticker-scroll 30s linear infinite;
-  font-size: 2vh;
+  font-size: clamp(12px, 2vh, 28px);
   color: #facc15;
   text-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
   letter-spacing: 0.2vw;
@@ -1063,7 +1063,7 @@ html, body {
 
 .header h1 {
   font-family: 'Orbitron', sans-serif;
-  font-size: 5vw;
+  font-size: clamp(20px, 5vw, 80px);
   font-weight: 900;
   letter-spacing: 0.5vw;
   transition: all 0.6s ease;
@@ -1106,7 +1106,7 @@ html, body {
 
 .brand-sub {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 1.2vw;
+  font-size: clamp(10px, 1.2vw, 18px);
   color: #888;
   letter-spacing: 0.4vw;
   text-transform: uppercase;
@@ -1144,11 +1144,13 @@ html, body {
   border-collapse: separate;
   border-spacing: 0 1vh;
   min-width: 0;
+  table-layout: fixed;
+  width: 100%;
 }
 
 .schedule-table thead th {
   font-family: 'Orbitron', sans-serif;
-  font-size: 2.2vw;
+  font-size: clamp(11px, 2.2vw, 30px);
   text-transform: uppercase;
   font-weight: 700;
   text-align: left;
@@ -1168,12 +1170,12 @@ html, body {
 }
 
 .schedule-table tbody tr {
-  height: 8vh;
+  height: clamp(5.5vh, 7.5vh, 8vh);
 }
 
 .schedule-table td {
   padding: 1vh 2vw;
-  font-size: 3.2vw;
+  font-size: clamp(14px, 3.2vw, 44px);
   font-weight: bold;
   letter-spacing: 0.2vw;
   text-shadow: 0 0 10px currentColor;
@@ -1395,7 +1397,7 @@ html, body {
 /* ─── COLUMN WIDTHS ─────────────────────────────── */
 .col-time { width: 12vw; }
 .col-dest { width: auto; }
-.col-status { width: 25vw; }
+.col-status { width: 25vw; overflow: hidden; text-overflow: ellipsis; }
 
 /* ─── EMPTY ROWS ────────────────────────────────── */
 .empty-row td {
@@ -1559,26 +1561,77 @@ html, body {
 }
 
 /* ─── RESPONSIVE ────────────────────────────────── */
-@media (max-width: 1000px) {
-  .header h1 { font-size: 8vw; }
-  .header-icon { width: 12vw; height: 12vw; }
-  .brand-logo-wrap { width: 20vw; max-width: 120px; }
-  .brand-sub { font-size: 2vw; }
-  .schedule-table td { font-size: 5vw; }
-  .schedule-table thead th { font-size: 3vw; }
-  .schedule-table tbody tr { height: 7vh; }
+
+/* Tablet & mid-screens: hide analog clock, tighter rows, max 7 rows */
+@media (max-width: 1200px) {
   .clock-section { display: none; }
-  .ticker-text { font-size: 2.5vh; }
+  .schedule-table tbody tr { height: 6.5vh; }
+  .schedule-table tbody tr:nth-child(n+8) { display: none; }
+  .header h1 { font-size: clamp(20px, 4.5vw, 72px); }
+  .schedule-table thead th { font-size: clamp(11px, 2vw, 26px); }
+  .schedule-table td { font-size: clamp(14px, 3vw, 40px); }
+  .col-status { width: 22vw; }
 }
 
-@media (max-width: 600px) {
-  .board { padding: 1vh 2vw; }
-  .header { padding: 1.5vh 2vw; gap: 3vw; }
-  .header h1 { font-size: 10vw; }
-  .schedule-table td { font-size: 6vw; }
-  .schedule-table thead th { font-size: 4vw; padding: 1vh 1.5vw; }
-  .schedule-table td { padding: 0.8vh 1.5vw; }
+/* Mobile: compact layout, max 5 visible rows, truncate status */
+@media (max-width: 768px) {
+  .board { padding: 1vh 1.5vw; }
+  .header {
+    padding: 1vh 1.5vw;
+    gap: 1.5vw;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+  }
+  .header h1 { font-size: clamp(18px, 7vw, 56px); letter-spacing: 0.2vw; }
+  .header-icon { width: 8vw; height: 8vw; min-width: 32px; min-height: 32px; }
+  .brand-logo-wrap { width: 15vw; max-width: 80px; height: 3vh; }
+  .brand-sub { font-size: clamp(8px, 2.5vw, 14px); }
+  .schedule-table { border-spacing: 0 0.5vh; }
+  .schedule-table thead th {
+    font-size: clamp(10px, 3vw, 22px);
+    padding: 0.6vh 1.5vw;
+    letter-spacing: 0.1vw;
+  }
+  .schedule-table td {
+    font-size: clamp(11px, 4.5vw, 32px);
+    padding: 0.4vh 1.5vw;
+    letter-spacing: 0.05vw;
+  }
+  .schedule-table tbody tr { height: 5.5vh; }
+  .schedule-table tbody tr:nth-child(n+6) { display: none; }
+  .col-time { width: 16vw; }
+  .col-status { width: 30vw; font-size: clamp(9px, 3.5vw, 24px) !important; }
+  .ticker-text { font-size: clamp(10px, 2.5vh, 22px); }
+  .ticker-wrap { padding: 0.5vh 1.5vw; margin-bottom: 0.5vh; }
+  .arrivals-blocked-banner { padding: 0.5vh 1.5vw; }
+  .arrivals-blocked-text { font-size: clamp(8px, 1.8vh, 18px); }
+  .slide-wrapper { margin-top: 1vh; }
+  .ads-badge { font-size: clamp(9px, 2vw, 16px); padding: 0.4vh 1.5vw; }
+  .ads-caption-text { font-size: clamp(10px, 2.5vw, 20px); }
+  .ads-placeholder { width: 85vw; height: 40vh; }
+  .loading-text { font-size: clamp(16px, 6vw, 48px); }
+  .loading-sub { font-size: clamp(10px, 3vw, 24px); }
+}
+
+/* Small mobile: ultra-compact, hide brand */
+@media (max-width: 480px) {
+  .board { padding: 0.5vh 1vw; }
+  .header { padding: 0.8vh 1vw; border-top-width: 3px; border-bottom-width: 3px; }
+  .header-icon { width: 10vw; height: 10vw; min-width: 28px; min-height: 28px; border-radius: 8px; }
+  .header-brand { display: none; }
+  .schedule-table thead th {
+    font-size: clamp(9px, 3.5vw, 18px);
+    padding: 0.4vh 1vw;
+    border-bottom-width: 2px;
+  }
+  .schedule-table td {
+    font-size: clamp(10px, 5.5vw, 28px);
+    padding: 0.3vh 1vw;
+  }
+  .schedule-table tbody tr { height: 5vh; }
   .col-time { width: 18vw; }
-  .col-status { width: 35vw; }
+  .col-status { width: 35vw; font-size: clamp(8px, 4vw, 20px) !important; }
+  .ticker-wrap { padding: 0.4vh 1vw; }
+  .ticker-text { font-size: clamp(9px, 2vh, 18px); }
 }
 `;
