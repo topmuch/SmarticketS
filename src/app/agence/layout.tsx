@@ -155,9 +155,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
           <Link href="/agence/tableau-de-bord" className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg">
-              <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="40px" />
-            </div>
+            <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-7 w-auto" />
             <div>
               <span className="text-white font-bold text-xl tracking-tight">SmarticketS</span>
               <span className="block text-xs text-white/60 font-medium">Espace Transporteur</span>

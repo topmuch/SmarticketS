@@ -18,13 +18,8 @@ export default function SecondaryPageLayout({ children, title, subtitle }: Secon
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(10,37,64,0.08)] border-b border-[#E2E8F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg">
-                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
-              </div>
-              <span className="text-xl font-bold text-[#0A2540] tracking-tight">
-                SmarticketS
-              </span>
+            <Link href="/" className="flex items-center group">
+              <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-8 w-auto" />
             </Link>
             <Link href="/">
               <Button variant="ghost" className="text-[#475569] hover:text-[#0A2540] text-sm font-medium gap-2">
@@ -61,12 +56,7 @@ export default function SecondaryPageLayout({ children, title, subtitle }: Secon
       <footer className="bg-[#0A2540] text-white py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden">
-                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="32px" />
-              </div>
-              <span className="text-lg font-bold">SmarticketS</span>
-            </div>
+            <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-6 w-auto brightness-0 invert" />
             <p className="text-white/50 text-sm">
               &copy; 2026 SmarticketS. Tous droits réservés. Made with ❤️ au Sénégal
             </p>

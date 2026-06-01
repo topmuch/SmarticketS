@@ -305,17 +305,14 @@ function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-[#00A887]/30 group-hover:shadow-[#00A887]/50 transition-shadow">
-              <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
-            </div>
-            <span
-              className={`text-xl font-bold tracking-tight transition-colors duration-300 ${
-                isOnHero ? 'text-white drop-shadow-lg' : 'text-slate-900'
-              }`}
-            >
-              SmarticketS
-            </span>
+          <Link href="/" className="flex items-center group">
+            <Image
+              src="/logo-full.png"
+              alt="SmarticketS"
+              width={374}
+              height={135}
+              className={`h-8 sm:h-9 w-auto transition-all duration-300 ${isOnHero ? 'brightness-0 invert drop-shadow-lg' : ''}`}
+            />
           </Link>
 
           {/* Desktop nav links */}
@@ -1143,11 +1140,8 @@ function FooterSection() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand column */}
           <div className="col-span-2">
-            <Link href="/" className="inline-flex items-center gap-2.5 mb-4">
-              <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-[#00A887]/30">
-                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
-              </div>
-              <span className="text-xl font-bold">SmarticketS</span>
+            <Link href="/" className="inline-flex items-center mb-4">
+              <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-8 w-auto brightness-0 invert" />
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
               Plateforme de traçabilité et sécurité logistique pour le transport inter-villes au Sénégal.

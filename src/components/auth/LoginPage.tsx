@@ -286,14 +286,12 @@ export default function LoginPage({ variant }: { variant: LoginVariant }) {
           <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
               <motion.div
-                className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-[#00A887]/20"
                 whileHover={{ scale: 1.05, rotate: -3 }}
                 transition={{ type: 'spring', stiffness: 400 }}
               >
-                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="48px" />
+                <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-8 w-auto" />
               </motion.div>
               <div>
-                <span className="text-2xl font-bold text-white tracking-tight">SmarticketS</span>
                 <span className="block text-[11px] text-white/40 font-medium tracking-[0.2em] uppercase mt-0.5">
                   {isAgence ? 'Espace Pro' : 'Administration'}
                 </span>
@@ -395,12 +393,11 @@ export default function LoginPage({ variant }: { variant: LoginVariant }) {
           {/* Mobile Logo */}
           <motion.div variants={fadeUp} custom={0} className="lg:hidden flex flex-col items-center mb-10">
             <motion.div
-              className="relative w-14 h-14 rounded-2xl overflow-hidden shadow-xl shadow-[#00A887]/25 mb-4"
               whileHover={{ scale: 1.05 }}
+              className="mb-4"
             >
-              <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="56px" />
+              <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-10 w-auto" />
             </motion.div>
-            <span className="text-2xl font-bold text-slate-800 tracking-tight">SmarticketS</span>
           </motion.div>
 
           {/* Desktop: Role badge */}

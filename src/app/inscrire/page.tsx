@@ -211,11 +211,8 @@ function InscrireContent() {
           <ArrowLeft className="w-5 h-5" />
           <span className="text-sm md:text-base font-medium">{t('inscrire.back')}</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <div className="relative w-8 h-8 rounded-lg overflow-hidden">
-            <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="32px" />
-          </div>
-          <span className="font-bold text-blue-900 text-sm">SmarticketS</span>
+        <div className="flex items-center">
+          <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-7 w-auto" />
         </div>
         <LanguageSelector lang={lang} setLang={setLang} />
       </header>
