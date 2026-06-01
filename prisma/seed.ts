@@ -235,6 +235,29 @@ async function main() {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // Create destination stations for signage display
+  // ═══════════════════════════════════════════════════════════
+  console.log('Creating destination stations...');
+  const destinationCities = ['Mbour', 'Saint-Louis', 'Thiès', 'Touba', 'Kaolack', 'Ziguinchor'];
+  const stationMap: Record<string, string> = {};
+  for (const city of destinationCities) {
+    const slug = city.toLowerCase();
+    const destStation = await prisma.station.upsert({
+      where: { slug },
+      update: {},
+      create: {
+        id: `station-${slug}`,
+        name: `Gare de ${city}`,
+        slug,
+        city,
+        agencyId: agency.id,
+      },
+    });
+    stationMap[city] = destStation.id;
+    console.log(`  ✓ ${destStation.name}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // Create sample Departures (today's schedule)
   // ═══════════════════════════════════════════════════════════
   console.log('Creating sample departures...');
@@ -267,10 +290,15 @@ async function main() {
 
       await prisma.departure.upsert({
         where: { id: `dep-${routeId}-${dd.hours[i]}` },
-        update: {},
+        update: {
+          originStationId: stationPeters.id,
+          destinationStationId: stationMap[routeData.find((r) => r.name === dd.routeName)?.destination || ''] || null,
+        },
         create: {
           id: `dep-${routeId}-${dd.hours[i]}`,
           routeId,
+          originStationId: stationPeters.id,
+          destinationStationId: stationMap[routeData.find((r) => r.name === dd.routeName)?.destination || ''] || null,
           lineNumber: dd.lineNumber,
           destination: routeData.find((r) => r.name === dd.routeName)?.destination || '',
           scheduledTime,
@@ -292,15 +320,22 @@ async function main() {
           returnTime.setHours(returnHour, 30, 0, 0);
 
           const isReturnPast = returnTime.getTime() < now.getTime() - 30 * 60000;
+          const destCity = routeInfo.origin;
+          const returnOriginStationId = stationMap[routeInfo.destination] || null;
 
           await prisma.departure.upsert({
             where: { id: `dep-${routeId}-ret-${dd.hours[i]}` },
-            update: {},
+            update: {
+              originStationId: returnOriginStationId,
+              destinationStationId: stationMap[destCity] || stationPeters.id,
+            },
             create: {
               id: `dep-${routeId}-ret-${dd.hours[i]}`,
               routeId,
+              originStationId: returnOriginStationId,
+              destinationStationId: stationMap[destCity] || stationPeters.id,
               lineNumber: dd.lineNumber,
-              destination: routeInfo.origin,
+              destination: destCity,
               scheduledTime: returnTime,
               platform: dd.platforms[i] || '-',
               availableSeats: isReturnPast ? 0 : Math.floor(Math.random() * 25) + 10,
