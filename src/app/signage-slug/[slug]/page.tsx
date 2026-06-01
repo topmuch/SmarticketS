@@ -659,8 +659,8 @@ export default function SignageSlugPage() {
   const [offline, setOffline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState('');
 
-  // Tab state: 4 tabs
-  const [activeTab, setActiveTab] = useState<'departures' | 'arrivals' | 'supervision' | 'plan'>('departures');
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'departures' | 'arrivals'>('departures');
 
   // Ad rotation state
   const [ads, setAds] = useState<SignageAd[]>([]);
@@ -984,29 +984,11 @@ export default function SignageSlugPage() {
         >
           ARRIV&Eacute;ES ({data.arrivals.length})
         </button>
-        <button
-          className={['sps-tab', activeTab === 'supervision' ? 'sps-tab--active' : ''].join(' ')}
-          onClick={() => setActiveTab('supervision')}
-        >
-          SUPERVISION ({data.supervisionPlatforms?.length || 0})
-        </button>
-        <button
-          className={['sps-tab', activeTab === 'plan' ? 'sps-tab--active' : ''].join(' ')}
-          onClick={() => setActiveTab('plan')}
-        >
-          PLAN
-        </button>
+
       </div>
 
       {/* ─── CONTENT ──────────────────────────────── */}
-      {activeTab === 'supervision' ? (
-        <SupervisionScreen platforms={data.supervisionPlatforms || []} />
-      ) : activeTab === 'plan' ? (
-        <StationMapScreen
-          stationMap={data.stationMap || null}
-          supervisionPlatforms={data.supervisionPlatforms || []}
-        />
-      ) : data.departures.length === 0 && data.arrivals.length === 0 ? (
+      {data.departures.length === 0 && data.arrivals.length === 0 ? (
         /* ═══ END OF DAY SCREEN ═══ */
         <main className="sps-eod-wrap">
           <div className="sps-eod-moon">{'\uD83C\uDF19'}</div>
@@ -1143,8 +1125,6 @@ export default function SignageSlugPage() {
             Tab: {activeTab}
             <br />
             Timestamp: {apiTimestamp}
-            <br />
-            Supervision: {data.supervisionPlatforms?.length || 0}
             <br />
             Platform Count: {data.platformCount || 0}
           </div>

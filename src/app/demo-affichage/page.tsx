@@ -16,8 +16,6 @@ import {
   CloudSun,
    AlertTriangle,
   Megaphone,
-  LayoutGrid,
-  Map,
 } from 'lucide-react';
 
 const WA_URL =
@@ -71,18 +69,6 @@ const NEW_FEATURE_CARDS = [
     title: 'Annonces d\'Urgence',
     description: 'Bandeau défilant rouge pour messages critiques. Auto-dismiss après 5 minutes.',
     color: 'bg-red-100 text-red-600',
-  },
-  {
-    icon: LayoutGrid,
-    title: 'Écran Supervision',
-    description: 'Vue globale de tous les quais de la gare. État de chaque plateforme en un coup d\'œil.',
-    color: 'bg-violet-100 text-violet-600',
-  },
-  {
-    icon: Map,
-    title: 'Carte Interactive',
-    description: 'Plan de gare tactile avec positions des quais. Cliquez pour voir les départs.',
-    color: 'bg-emerald-100 text-emerald-600',
   },
 ];
 
@@ -230,7 +216,7 @@ export default function DemoAffichagePage() {
             Nouvelles Fonctionnalités
           </h2>
           <p className="text-slate-500 text-center mb-8 max-w-2xl mx-auto">
-            6 fonctionnalités avancées pour une expérience voyageur complète
+            4 fonctionnalités avancées pour une expérience voyageur complète
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {NEW_FEATURE_CARDS.map((card) => (

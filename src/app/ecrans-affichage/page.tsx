@@ -22,8 +22,6 @@ import {
   Timer,
   CloudSun,
   AlertTriangle,
-  LayoutGrid,
-  Map,
 } from 'lucide-react';
 import SecondaryPageLayout from '@/components/landing/SecondaryPageLayout';
 import FadeIn from '@/components/landing/FadeIn';
@@ -115,14 +113,6 @@ const benefits = [
   {
     text: 'Bandeau défilant pour messages urgents',
     icon: Megaphone,
-  },
-  {
-    text: 'Écran supervision (vue globale quais)',
-    icon: LayoutGrid,
-  },
-  {
-    text: 'Carte interactive de la gare',
-    icon: Map,
   },
   {
     text: 'Mode kiosk — plein écran sans navigation',
