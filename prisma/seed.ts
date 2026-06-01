@@ -600,6 +600,85 @@ async function main() {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // Create sample alerts for the Alert Center
+  // ═══════════════════════════════════════════════════════════
+  console.log('Creating sample alerts for Alert Center...');
+
+  const sampleAlerts = [
+    {
+      type: 'BUS_PRESQUE_PLEIN',
+      severity: 'warning',
+      category: 'operations',
+      title: 'Bus Mbour rempli à 91%',
+      message: 'Le bus vers Mbour (Ligne 1, quai A1) est rempli à 91%. Il ne reste que 4 places disponibles. Envisagez l\'ajout d\'un bus supplémentaire.',
+      tripId: 'dep-demo-agency-1-route-Dakar-Mbour-9',
+      payload: JSON.stringify({ destination: 'Mbour', lineNumber: 'Ligne 1', platform: 'A1', fillRate: 91, availableSeats: 4, totalSeats: 45 }),
+    },
+    {
+      type: 'RETARD_DETECTE',
+      severity: 'critical',
+      category: 'operations',
+      title: 'Retard de 20 min — Saint-Louis',
+      message: 'Le départ vers Saint-Louis (Ligne 2) a un retard de 20 minutes. Heure effective estimée : 09:40 au lieu de 09:20. Les passagers sont informés.',
+      tripId: 'dep-demo-agency-1-route-Dakar-Saint-Louis-9',
+      payload: JSON.stringify({ destination: 'Saint-Louis', lineNumber: 'Ligne 2', delayMinutes: 20, platform: 'B1' }),
+    },
+    {
+      type: 'COLIS_EN_SOUFFRANCE',
+      severity: 'warning',
+      category: 'colis',
+      title: 'Colis non retiré depuis 72h',
+      message: 'Le colis COLIS-DKR-MBO-01 arrivé depuis 72h mais n\'a pas été retiré par le destinataire. Contactez le destinataire pour rappeler le retrait.',
+      baggageId: 'sample-baggage-colis-waiting',
+      payload: JSON.stringify({ reference: 'COLIS-DKR-MBO-01', destination: 'Mbour', hoursSince: 72 }),
+    },
+    {
+      type: 'RECETTE_ANORMALE',
+      severity: 'warning',
+      category: 'ventes',
+      title: 'Revenus en baisse — 55% de la moyenne',
+      message: 'Les revenus du jour sont à 55% de la moyenne mobile sur 4 semaines. Cela représente une baisse significative. Analysez les causes possibles.',
+      payload: JSON.stringify({ revenue: 125000, movingAverage: 227000, percentage: 55 }),
+    },
+    {
+      type: 'CLIENT_MECONTENT',
+      severity: 'info',
+      category: 'clients',
+      title: '4 annulations ce mois',
+      message: 'Le nombre d\'annulations a atteint le seuil de 3 sur les 30 derniers jours. Vérifiez les causes récurrentes d\'annulation pour améliorer la satisfaction client.',
+      payload: JSON.stringify({ cancellationsCount: 4, windowDays: 30, threshold: 3 }),
+    },
+  ];
+
+  for (const alertData of sampleAlerts) {
+    // Check if alert already exists (idempotent)
+    const existing = await prisma.alert.findFirst({
+      where: {
+        agencyId: agency.id,
+        type: alertData.type,
+        status: 'new',
+      },
+    });
+    if (!existing) {
+      await prisma.alert.create({
+        data: {
+          agencyId: agency.id,
+          type: alertData.type,
+          severity: alertData.severity,
+          category: alertData.category,
+          title: alertData.title,
+          message: alertData.message,
+          tripId: alertData.tripId || null,
+          baggageId: alertData.baggageId || null,
+          payload: alertData.payload,
+          status: 'new',
+        },
+      });
+    }
+  }
+  console.log(`  → Created ${sampleAlerts.length} sample alerts`);
+
   console.log('✅ Seed completed successfully!');
   console.log('');
   console.log('📋 Demo credentials:');

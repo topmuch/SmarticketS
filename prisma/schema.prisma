@@ -758,3 +758,27 @@ model Departure {
   @@index([originStationId])
   @@index([destinationStationId])
 }
+
+// Alert model - intelligent proactive alerts for agency dashboard
+model Alert {
+  id          String   @id @default(cuid())
+  agencyId    String   // Agency that owns this alert
+  type        String   // "BUS_PRESQUE_PLEIN" | "RECETTE_ANORMALE" | "RETARD_DETECTE" | "CLIENT_MECONTENT" | "COLIS_EN_SOUFFRANCE"
+  severity    String   @default("warning") // "critical" | "warning" | "info"
+  category    String   @default("operations") // "ventes" | "operations" | "clients" | "colis"
+  title       String   // Short title for the alert card
+  message     String   // Detailed description
+  tripId      String?  // Related departure ID (for BUS_PRESQUE_PLEIN, RETARD_DETECTE)
+  baggageId   String?  // Related baggage ID (for COLIS_EN_SOUFFRANCE)
+  payload     String?  // JSON with context data
+  status      String   @default("new") // "new" | "read" | "resolved"
+  resolvedAt  DateTime?
+  resolvedBy  String?  // Name of person who resolved
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([agencyId, status])
+  @@index([agencyId, type])
+  @@index([type, createdAt])
+  @@index([status])
+}
