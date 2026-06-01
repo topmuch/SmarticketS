@@ -305,7 +305,7 @@ function Navigation() {
               alt="SmarticketS"
               width={374}
               height={135}
-              className="h-8 sm:h-9 w-auto"
+              className="h-12 sm:h-14 lg:h-16 w-auto"
             />
           </Link>
 
