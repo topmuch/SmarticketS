@@ -432,3 +432,20 @@ Stage Summary:
 - Real-time: Socket.io on port 3004 with station rooms, delay/departed/config events
 - Audio: Priority queue (CRITICAL > HIGH > MEDIUM > LOW), ding-dong + 3s pause + TTS, mute 'M' shortcut
 - Kiosk display: LED design, 120s auto-slide, 10-row fill, responsive, fullscreen
+---
+Task ID: 1
+Agent: Main Agent
+Task: Complete kiosk integration - Retard button, Voice config, WebSocket broadcast
+
+Work Log:
+- Modified `src/app/admin/departures/page.tsx`: Added Retard button (modal with minutes input) + Parti button with WebSocket broadcast via socket.io-client (port 3004)
+- Created `src/app/agence/kiosk/page.tsx`: Full kiosk control panel with volume slider, mute toggle, general message config (text + frequency), alert sound toggle, quick actions (mute/unmute/open kiosk), WebSocket connection status indicator
+- Created `src/app/api/kiosk/config/route.ts`: GET/PUT API for kiosk config (volume, muted, generalMessage, generalMessageInterval, alertSoundEnabled) persisted to Setting table
+- Started kiosk-service on port 3004 (mini-services/kiosk-service/)
+- Verified existing code: LED kiosk screen, audio system, WebSocket service, API signage all already integrated
+- Pushed commit ec404f1 to GitHub
+
+Stage Summary:
+- All kiosk features now complete: LED display, audio system (ding-dong + TTS + priority queue), WebSocket real-time, admin controls (Retard/Parti/Voice config)
+- Kiosk-service running on port 3004
+- Code pushed to https://github.com/topmuch/SmarticketS (branch main)
