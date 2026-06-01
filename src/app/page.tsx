@@ -43,10 +43,16 @@ import {
   Clock,
   Monitor,
   UserX,
+  FileDown,
 } from 'lucide-react';
 
 const MissingPassengerAlert = dynamic(
   () => import('@/components/dashboard/MissingPassengerAlert'),
+  { ssr: false }
+);
+
+const PWAManager = dynamic(
+  () => import('@/components/pwa/PWAManager').then((m) => ({ default: m.PWAManager })),
   { ssr: false }
 );
 
@@ -1208,12 +1214,133 @@ function WhatsAppFloat() {
 }
 
 /* ============================================================
+   10. MODULE 5 SHOWCASE — PWA, WhatsApp Share, PDF, Driver
+   ============================================================ */
+
+function Module5Showcase() {
+  return (
+    <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-emerald-50 to-white relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl" />
+      </div>
+      <div className="max-w-6xl mx-auto relative z-10">
+        <FadeIn className="text-center mb-14 sm:mb-16">
+          <span className="inline-block px-4 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold tracking-widest uppercase rounded-full mb-4">
+            Outils PWA
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
+            Tout pour le{' '}
+            <span className="text-emerald-600">terrain</span>
+          </h2>
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+            PWA installable, partage WhatsApp, tickets PDF, dashboard chauffeur — tout fonctionne hors ligne.
+          </p>
+        </FadeIn>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Card 1: PWA Install */}
+          <FadeIn delay={0.05}>
+            <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-900/5 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 border border-emerald-100 h-full">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center mb-4">
+                <Smartphone className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">PWA Installable</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Installation instantanée sur Android &amp; iOS. Pas de store, pas de téléchargement. Fonctionne hors ligne.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Service Worker actif</span>
+              </div>
+            </motion.div>
+          </FadeIn>
+
+          {/* Card 2: WhatsApp Share */}
+          <FadeIn delay={0.1}>
+            <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-900/5 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 border border-emerald-100 h-full">
+              <div className="w-14 h-14 rounded-2xl bg-green-100 flex items-center justify-center mb-4">
+                <MessageCircle className="w-7 h-7 text-green-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">WhatsApp Web Share</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Partagez tickets et confirmations via Web Share API ou lien wa.me. Fallback clipboard automatique.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-xs text-green-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>3 stratégies de partage</span>
+              </div>
+            </motion.div>
+          </FadeIn>
+
+          {/* Card 3: PDF Tickets */}
+          <FadeIn delay={0.15}>
+            <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-900/5 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 border border-emerald-100 h-full">
+              <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
+                <FileDown className="w-7 h-7 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Tickets PDF jsPDF</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Génération PDF côté client via jsPDF. Ticket A4 avec QR, données passager, code contrôle. Téléchargement instantané.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-xs text-blue-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Client-side, offline-ready</span>
+              </div>
+            </motion.div>
+          </FadeIn>
+
+          {/* Card 4: Driver Dashboard */}
+          <FadeIn delay={0.2}>
+            <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-900/5 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 border border-emerald-100 h-full">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
+                <Truck className="w-7 h-7 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Dashboard Chauffeur</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Interface chauffeur PWA : livraisons en transit, validation PIN, notifications WhatsApp destinataire, mode hors ligne.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-xs text-amber-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>IndexedDB + sync auto</span>
+              </div>
+            </motion.div>
+          </FadeIn>
+        </div>
+
+        {/* Thermal receipt + HMAC mention */}
+        <FadeIn delay={0.25}>
+          <div className="mt-8 p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-2xl border border-emerald-100 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">QR Sécurisé HMAC-SHA256</h4>
+                  <p className="text-xs text-slate-500">Thermal 80mm + QR signé, expiration 24h, contrôle anti-falsification</p>
+                </div>
+              </div>
+              <div className="sm:ml-auto flex items-center gap-2 text-xs text-slate-400">
+                <span className="px-3 py-1.5 bg-slate-100 rounded-lg font-mono font-medium">GET /api/ticket-thermal/:ref</span>
+                <span className="px-3 py-1.5 bg-slate-100 rounded-lg font-mono font-medium">GET /api/ticket-pdf/:ref</span>
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
    MAIN PAGE
    ============================================================ */
 
 export default function HomePage() {
   return (
     <>
+      <PWAManager />
       <Navigation />
       <main id="main-content">
         <HeroSection />
@@ -1224,6 +1351,7 @@ export default function HomePage() {
         <WhyChooseUsSection />
         <TestimonialsSection />
         <MissingPassengerLiveSection />
+        <Module5Showcase />
         <CTASection />
       </main>
       <FooterSection />
