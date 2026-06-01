@@ -17,7 +17,6 @@ import {
   Mic,
   Trash2,
   Upload,
-  VolumeUp,
 } from 'lucide-react';
 import { useAgency } from '../layout';
 import { toast } from 'sonner';
@@ -213,13 +212,12 @@ export default function KioskControlPage() {
       return;
     }
 
-    socketRef.current.emit('kiosk:broadcast', {
+    // Emit directly kiosk:generalMessage — the kiosk-service adds timestamp automatically
+    socketRef.current.emit('kiosk:generalMessage', {
+      text: config.generalMessage,
+      priority: 1, // LOW priority
       stationSlug: selectedStation,
-      event: 'kiosk:generalMessage',
-      data: {
-        text: config.generalMessage,
-        priority: 'LOW',
-      },
+      timestamp: Date.now(),
     });
     toast.success(`Message diffusé sur la gare: ${selectedStation}`);
   };
@@ -579,7 +577,7 @@ export default function KioskControlPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <VolumeUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <Volume2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">

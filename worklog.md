@@ -509,3 +509,33 @@ Stage Summary:
 - Slide rotation now supports 3 modes with dynamic sequence
 - Lint clean (only pre-existing migrate-db.js error)
 - Dev server compiling, kiosk service running on port 3004
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix Docker build error and 3 kiosk bugs
+
+Work Log:
+- Identified build error: `VolumeUp` icon doesn't exist in lucide-react
+- Fixed by replacing `VolumeUp` with `Volume2` (already imported) in `src/app/agence/kiosk/page.tsx`
+- Verified arrival blocking logic (Bug 1) — already correctly implemented:
+  - `hasImminentDeparture` checks departures within 5min window
+  - 10-minute block triggers and expires correctly
+  - Banner "ARRIVÉES TEMPORAIREMENT MASQUÉES" shows during block
+  - Slide sequence excludes arrivals during block
+- Fixed "Diffuser maintenant" button (Bug 2):
+  - Changed from generic `kiosk:broadcast` emit to direct `kiosk:generalMessage` emit
+  - Added `timestamp: Date.now()` to the payload
+  - Changed `priority` from string 'LOW' to number 1
+  - The kiosk-service handler now properly adds timestamp and broadcasts to correct room
+- Fixed superadmin ads not displaying (Bug 3):
+  - Root cause: `next.config.ts` only allowed `images.unsplash.com` for remote images
+  - Added wildcard remote patterns (`https://**` and `http://**`) to allow any external ad image URL
+- Started kiosk-service on port 3004 (required for WebSocket connections)
+- Verified build passes successfully
+
+Stage Summary:
+- Docker build error fixed: VolumeUp → Volume2 icon replacement
+- Bug 1 (arrival blocking): Already working correctly, no code changes needed
+- Bug 2 (Diffuser maintenant): Fixed by using direct kiosk:generalMessage event with proper payload
+- Bug 3 (ads not showing): Fixed by adding wildcard remote patterns to next.config.ts
+- Kiosk service running on port 3004
