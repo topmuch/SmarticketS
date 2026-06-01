@@ -419,6 +419,32 @@ export default function DeparturesPage() {
     }
   };
 
+  // ── Mark as CANCELLED ──────────────────────────────
+  const handleMarkCancelled = async (dep: Departure) => {
+    try {
+      const res = await fetch(`/api/admin/departures?id=${dep.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      });
+      if (!res.ok) throw new Error('Erreur serveur');
+      toast.success(`Départ vers ${dep.destination} marqué comme annulé`);
+      fetchDepartures();
+
+      // Broadcast to kiosk via WebSocket
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('kiosk:cancelled', {
+          stationSlug: '', // Broadcast to all stations
+          departureId: dep.id,
+          destination: dep.destination,
+        });
+        console.log('[AdminDepartures] Broadcast cancelled:', dep.destination);
+      }
+    } catch {
+      toast.error("Erreur lors de l'annulation");
+    }
+  };
+
   // ── Open Retard modal ────────────────────────────────
   const openDelayModal = (dep: Departure) => {
     setDelayDeparture(dep);
@@ -730,6 +756,16 @@ export default function DeparturesPage() {
                                     >
                                       <Send className="w-3.5 h-3.5 mr-1" />
                                       Parti
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleMarkCancelled(dep)}
+                                      className="h-8 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                                      title="Marquer comme annulé"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5 mr-1" />
+                                      Annulé
                                     </Button>
                                   </>
                                 )}

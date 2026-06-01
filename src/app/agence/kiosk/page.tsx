@@ -14,6 +14,10 @@ import {
   Send,
   AlertCircle,
   CheckCircle2,
+  Mic,
+  Trash2,
+  Upload,
+  VolumeUp,
 } from 'lucide-react';
 import { useAgency } from '../layout';
 import { toast } from 'sonner';
@@ -42,6 +46,8 @@ interface KioskConfig {
   generalMessage: string;
   generalMessageInterval: number;
   alertSoundEnabled: boolean;
+  customVoiceUrl: string | null;
+  customVoiceName: string | null;
 }
 
 interface Station {
@@ -65,9 +71,16 @@ export default function KioskControlPage() {
     generalMessage: '',
     generalMessageInterval: 10,
     alertSoundEnabled: true,
+    customVoiceUrl: null,
+    customVoiceName: null,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Voice upload
+  const [voiceFile, setVoiceFile] = useState<File | null>(null);
+  const [voiceUploading, setVoiceUploading] = useState(false);
+  const voiceInputRef = useRef<HTMLInputElement>(null);
 
   // Stations
   const [stations, setStations] = useState<Station[]>([]);
@@ -91,8 +104,23 @@ export default function KioskControlPage() {
           generalMessage: data.generalMessage ?? '',
           generalMessageInterval: data.generalMessageInterval ?? 10,
           alertSoundEnabled: data.alertSoundEnabled ?? true,
+          customVoiceUrl: null,
+          customVoiceName: null,
         });
       }
+
+      // Fetch voice info
+      try {
+        const voiceRes = await fetch(`/api/kiosk/voice`);
+        if (voiceRes.ok) {
+          const voiceData = await voiceRes.json();
+          setConfig(prev => ({
+            ...prev,
+            customVoiceUrl: voiceData.url,
+            customVoiceName: voiceData.name,
+          }));
+        }
+      } catch { /* silent */ }
     } catch {
       // silent — use defaults
     } finally {
@@ -208,6 +236,39 @@ export default function KioskControlPage() {
         config: { muted: newMuted },
       });
       toast.success(newMuted ? '🔊 Son coupé sur le kiosk' : '🔊 Son rétabli sur le kiosk');
+    }
+  };
+
+  /* ── Voice upload ── */
+  const handleVoiceUpload = async () => {
+    if (!voiceFile) {
+      toast.error('Veuillez sélectionner un fichier audio');
+      return;
+    }
+    setVoiceUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', voiceFile);
+      const res = await fetch('/api/kiosk/voice', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Erreur serveur');
+      const data = await res.json();
+      setConfig(prev => ({ ...prev, customVoiceUrl: data.url, customVoiceName: data.name }));
+      setVoiceFile(null);
+      toast.success(`Voix "${data.name}" uploadée avec succès`);
+    } catch {
+      toast.error("Erreur lors de l'upload de la voix");
+    } finally {
+      setVoiceUploading(false);
+    }
+  };
+
+  const handleVoiceDelete = async () => {
+    try {
+      await fetch('/api/kiosk/voice', { method: 'DELETE' });
+      setConfig(prev => ({ ...prev, customVoiceUrl: null, customVoiceName: null }));
+      toast.success('Voix personnalisée supprimée');
+    } catch {
+      toast.error('Erreur lors de la suppression');
     }
   };
 
@@ -464,6 +525,7 @@ export default function KioskControlPage() {
                     <li>Le message est lu par la voix de synthèse française (TTS)</li>
                     <li>Un ding-dong précède chaque annonce</li>
                     <li>Les messages critiques (retard, départ) passent en priorité</li>
+                    <li>Upload une voix personnalisée pour remplacer le TTS automatique</li>
                     <li>La touche <kbd className="px-1.5 py-0.5 bg-violet-200 dark:bg-violet-800 rounded text-[10px] font-mono">M</kbd> sur le kiosk coupe le son</li>
                   </ul>
                 </div>
@@ -493,6 +555,114 @@ export default function KioskControlPage() {
                 <Send className="w-4 h-4" />
                 Diffuser maintenant
               </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Voice Upload Card ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Mic className="w-5 h-5 text-violet-500" />
+            Voix Personnalisée
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Uploadez un fichier audio pour remplacer la voix de synthèse (TTS)
+          </p>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Current voice info */}
+          {config.customVoiceUrl && config.customVoiceName && (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                    <VolumeUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                      {config.customVoiceName}
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Voix personnalisée active
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleVoiceDelete}
+                  className="rounded-xl gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Drop zone */}
+          <div
+            onClick={() => voiceInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const file = e.dataTransfer.files?.[0];
+              if (file && (file.type === 'audio/mpeg' || file.type === 'audio/wav' || file.name.endsWith('.mp3') || file.name.endsWith('.wav'))) {
+                setVoiceFile(file);
+              } else {
+                toast.error('Format non supporté. Utilisez MP3 ou WAV.');
+              }
+            }}
+            className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-6 text-center cursor-pointer hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-colors"
+          >
+            <input
+              ref={voiceInputRef}
+              type="file"
+              accept="audio/mpeg,audio/wav,.mp3,.wav"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setVoiceFile(file);
+              }}
+            />\n            <Upload className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-500 mb-2" />
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              {voiceFile ? voiceFile.name : 'Cliquez ou glissez un fichier audio'}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+              MP3 ou WAV — Max 10 Mo
+            </p>
+          </div>
+
+          {/* Upload button */}
+          <Button
+            onClick={handleVoiceUpload}
+            disabled={!voiceFile || voiceUploading}
+            className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl gap-2 shadow-lg shadow-violet-500/20"
+          >
+            {voiceUploading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            {voiceUploading ? 'Upload en cours...' : 'Uploader la voix'}
+          </Button>
+
+          {/* Info box */}
+          <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                <p className="font-semibold text-slate-700 dark:text-slate-300">Remarque</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>La voix personnalisée remplace le TTS automatique</li>
+                  <li>Le fichier doit contenir l&apos;annonce complète à diffuser</li>
+                  <li>Si le fichier est introuvable, le kiosk revient au TTS automatique</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

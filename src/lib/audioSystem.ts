@@ -1,14 +1,17 @@
 /**
- * SmarticketS — Audio System Module (v2)
+ * SmarticketS — Audio System Module (v3)
  *
  * Complete audio system for the Signage Display kiosk, providing:
  * - Web Audio API ding-dong chime (880 Hz ding → 660 Hz dong)
  * - Priority-based announcement queue (CRITICAL / HIGH / MEDIUM / LOW)
  * - Text-to-Speech (TTS) with French voice selection (fr-FR, rate 0.9)
- * - Custom audio playback (MP3 / WAV via URL)
+ * - Custom audio playback (MP3 / WAV via URL) for admin-uploaded voice
+ * - TTS repetition: each announcement is repeated 2× at 5s interval
+ * - Anti-doublon: announcement dedup by departure ID + type per session
+ * - Phase-based announcements: EMBARQUEMENT (T-10), IMMINENT (T-2), RETARD
  * - Mute / volume controls persisted to localStorage
  * - Keyboard shortcut (M) for mute toggle
- * - General message interval timer
+ * - General message interval timer (LOW priority, never cuts urgent)
  * - Voice preloading for mobile/TV browsers
  * - Full cancel capability
  *
@@ -34,6 +37,8 @@ export interface QueuedAnnouncement {
   text: string;
   priority: AnnouncementPriority;
   customAudioUrl?: string;
+  /** Deduplication key — prevents same announcement from being queued twice. */
+  departureKey?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -297,19 +302,21 @@ export function isProcessingQueue(): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Speak an announcement: plays ding-dong, waits 3 seconds, then speaks text via TTS
- * or plays a custom audio URL.
+ * Speak an announcement with repetition: plays ding-dong, waits 3 seconds,
+ * speaks text 2× (TTS or custom audio) with 5s gap between repetitions.
  *
- * If `customAudioUrl` is provided, plays that audio instead of TTS.
- * Respects mute state and volume level.
+ * Repetition ensures the announcement covers the ambient noise in the station.
+ * Anti-doublon: use `addToQueue` with `departureKey` to prevent duplicates.
  *
  * @param text           - The text to speak (used as TTS fallback or for logging).
  * @param customAudioUrl - Optional URL to an MP3/WAV file to play instead of TTS.
+ * @param repeatCount    - Number of times to repeat the TTS (default 2).
  * @returns A promise that resolves when the announcement completes.
  */
 export async function speakAnnouncement(
   text: string,
   customAudioUrl?: string,
+  repeatCount: number = 2,
 ): Promise<void> {
   console.log('[AudioSystem] speakAnnouncement() called:', text.substring(0, 60));
 
@@ -319,18 +326,32 @@ export async function speakAnnouncement(
   // 2. Wait 3 seconds for chime to ring out
   await delay(3000);
 
-  // 3. Speak TTS or play custom audio
-  if (customAudioUrl) {
-    await playCustomAudio(customAudioUrl);
-  } else {
+  // 3. Speak TTS or play custom audio — repeated 2× with 5s gap
+  for (let i = 0; i < repeatCount; i++) {
     if (_isMuted) {
       console.log('[AudioSystem] TTS skipped (muted)');
       return;
     }
-    await speakWithRetry(text);
+
+    if (customAudioUrl) {
+      try {
+        await playCustomAudio(customAudioUrl);
+      } catch {
+        // Fallback to TTS if custom audio fails
+        console.warn('[AudioSystem] Custom audio failed, falling back to TTS');
+        await speakWithRetry(text);
+      }
+    } else {
+      await speakWithRetry(text);
+    }
+
+    // Wait 5 seconds between repetitions (only if more reps remain)
+    if (i < repeatCount - 1) {
+      await delay(5000);
+    }
   }
 
-  console.log('[AudioSystem] Announcement complete');
+  console.log('[AudioSystem] Announcement complete (repeated)', repeatCount, 'time(s)');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -392,20 +413,45 @@ export async function processQueue(): Promise<void> {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Add an announcement to the priority queue.
+ * Announcement dedup set: stores departure keys already announced.
+ * Key format: "departureId:type" (e.g. "abc123:boarding", "abc123:delay")
+ * Reset via `clearAnnouncedSet()` or `cancelAll()`.
+ */
+const announcedSet = new Set<string>();
+
+/**
+ * Check if an announcement has already been made for a given departure key.
+ */
+export function isAlreadyAnnounced(departureKey: string): boolean {
+  return announcedSet.has(departureKey);
+}
+
+/**
+ * Clear the announced set (e.g. on new day or manual reset).
+ */
+export function clearAnnouncedSet(): void {
+  announcedSet.clear();
+  console.log('[AudioSystem] Announced set cleared');
+}
+
+/**
+ * Add an announcement to the priority queue with deduplication.
  *
  * The queue is automatically sorted by priority (CRITICAL first).
  * If the queue processor is not already running, it is triggered.
+ * If `departureKey` is provided and was already announced, the item is skipped.
  *
  * @param text            - The announcement text.
  * @param priority        - Priority level (default: MEDIUM).
  * @param customAudioUrl  - Optional URL to play instead of TTS.
- * @returns The ID of the queued announcement.
+ * @param departureKey    - Optional dedup key to prevent duplicate announcements.
+ * @returns The ID of the queued announcement, or empty string if deduped.
  */
 export function addToQueue(
   text: string,
   priority: AnnouncementPriority = AnnouncementPriority.MEDIUM,
   customAudioUrl?: string,
+  departureKey?: string,
 ): string {
   announcementCounter++;
   const id = `ann-${Date.now()}-${announcementCounter}`;
@@ -415,7 +461,17 @@ export function addToQueue(
     text,
     priority,
     customAudioUrl,
+    departureKey,
   };
+
+  // Dedup check
+  if (departureKey) {
+    if (announcedSet.has(departureKey)) {
+      console.log('[AudioSystem] Announcement deduped:', departureKey);
+      return '';
+    }
+    announcedSet.add(departureKey);
+  }
 
   announcementQueue.push(item);
 
@@ -673,6 +729,9 @@ export function cancelAll(): void {
   // Clear the announcement queue
   announcementQueue.length = 0;
 
+  // Reset dedup set
+  announcedSet.clear();
+
   // Reset processing state
   isProcessing = false;
 
@@ -907,6 +966,68 @@ export async function speakWithRetry(
  */
 function buildAnnouncementText(destination: string, time: string): string {
   return `Madame, Monsieur, les passagers en direction de ${destination} sont priés de monter à bord. Le bus va partir à ${time}.`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Phase-Based Announcement Templates
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Build boarding announcement text (Phase 1 — T-10 min).
+ * 🟢 EMBARQUEMENT
+ */
+export function buildBoardingText(destination: string, time: string, platform?: string | null): string {
+  const platformText = platform ? ` Quai ${platform}.` : '';
+  return `Madame, Monsieur, le bus à destination de ${destination} est en cours d'embarquement.${platformText} Le bus va partir à ${time}.`;
+}
+
+/**
+ * Build imminent departure announcement text (Phase 2 — T-2 min).
+ * 🔴 DÉPART IMMINENT
+ */
+export function buildImminentText(destination: string): string {
+  return `Madame, Monsieur, attention. Le bus à destination de ${destination} va partir dans deux minutes. Merci de monter à bord immédiatement.`
+}
+
+/**
+ * Build delay announcement text (Phase 3 — T+5 min).
+ * ⚠️ RETARD
+ */
+export function buildDelayText(destination: string, minutes: number): string {
+  return `Madame, Monsieur, le bus en direction de ${destination} est en retard de ${minutes} minutes, merci de patienter.`
+}
+
+/**
+ * Build post-delay departure announcement text.
+ * 🟢 RÉSOLUTION RETARD
+ */
+export function buildDepartedAfterDelayText(destination: string): string {
+  return `Merci de votre patience. Le bus en direction de ${destination} va partir.`
+}
+
+/**
+ * Build arrival announcement text.
+ * 🔵 ARRIVÉE
+ */
+export function buildArrivalText(origin: string): string {
+  return `Madame, Monsieur, le bus en provenance de ${origin} vient d'arriver à quai.`
+}
+
+/**
+ * Add a phase-based announcement with proper priority and dedup key.
+ *
+ * @param text            - The announcement text.
+ * @param priority        - Priority level (CRITICAL for imminent, HIGH for delay, MEDIUM for boarding).
+ * @param departureKey    - Dedup key (format: "departureId:phase").
+ * @param customAudioUrl  - Optional admin-uploaded voice audio URL.
+ */
+export function addPhaseAnnouncement(
+  text: string,
+  priority: AnnouncementPriority,
+  departureKey: string,
+  customAudioUrl?: string,
+): string {
+  return addToQueue(text, priority, customAudioUrl, departureKey);
 }
 
 /**

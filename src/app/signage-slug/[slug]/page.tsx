@@ -72,13 +72,15 @@ const POLL_INTERVAL = 15000; // 15s
 function getStatusInfo(status: string, delayMinutes: number, isArrival?: boolean) {
   switch (status) {
     case 'SCHEDULED':
-      return { label: isArrival ? 'À L\'HEURE' : 'À L\'HEURE', cls: 'status-ontime' };
+      return { label: isArrival ? "À L'HEURE" : "À L'HEURE", cls: 'status-ontime' };
     case 'BOARDING':
-      return { label: isArrival ? 'IMMINENTE' : 'EMBARQUEMENT', cls: 'status-boarding' };
+      return { label: 'EMBARQUEMENT', cls: 'status-boarding blink-slow' };
+    case 'IMMINENT':
+      return { label: 'DÉPART IMMINENT', cls: 'status-imminent blink-fast' };
     case 'DELAYED':
-      return { label: `RETARD ${delayMinutes} MIN`, cls: 'status-delayed' };
+      return { label: `RETARD +${delayMinutes} MIN`, cls: 'status-delayed blink-medium' };
     case 'CANCELLED':
-      return { label: 'COMPLET', cls: 'status-canceled' };
+      return { label: 'ANNULÉ', cls: 'status-cancelled' };
     case 'DEPARTED':
       return { label: 'PARTI', cls: 'status-departed' };
     default:
@@ -368,6 +370,88 @@ export default function SignageSlugPage() {
     };
   }, [slug]);
 
+  /* ─── Auto Phase Detection ─────────────────── */
+  useEffect(() => {
+    if (!data) return;
+
+    const checkPhases = () => {
+      const now = new Date();
+      const announced = announcedRef.current;
+
+      for (const dep of data.departures) {
+        if (dep.status === 'DEPARTED' || dep.status === 'CANCELLED') continue;
+
+        const scheduledTime = new Date(dep.scheduledTime);
+        const diffMs = scheduledTime.getTime() - now.getTime();
+        const diffMin = diffMs / 60000;
+
+        // Phase 1: EMBARQUEMENT (T-10 min)
+        if (diffMin <= 10 && diffMin > 2 && dep.status === 'SCHEDULED') {
+          const key = `${dep.id}:boarding`;
+          if (!announced.has(key)) {
+            announced.add(key);
+            setData(prev => prev ? {
+              ...prev,
+              departures: prev.departures.map(d =>
+                d.id === dep.id ? { ...d, status: 'BOARDING' } : d
+              )
+            } : prev);
+            addToQueue(
+              `Madame, Monsieur, le bus à destination de ${dep.destination} est en cours d'embarquement. Le bus va partir à ${dep.effectiveTime}.`,
+              AnnouncementPriority.MEDIUM,
+              undefined,
+              key
+            );
+          }
+        }
+
+        // Phase 2: DÉPART IMMINENT (T-2 min)
+        if (diffMin <= 2 && diffMin > -5 && dep.status !== 'DEPARTED' && dep.status !== 'CANCELLED') {
+          const key = `${dep.id}:imminent`;
+          if (!announced.has(key)) {
+            announced.add(key);
+            setData(prev => prev ? {
+              ...prev,
+              departures: prev.departures.map(d =>
+                d.id === dep.id ? { ...d, status: 'IMMINENT' } : d
+              )
+            } : prev);
+            addToQueue(
+              `Madame, Monsieur, attention. Le bus à destination de ${dep.destination} va partir dans deux minutes. Merci de monter à bord immédiatement.`,
+              AnnouncementPriority.CRITICAL,
+              undefined,
+              key
+            );
+          }
+        }
+
+        // Phase 3: RETARD (T+5 min without departure)
+        if (diffMin < -5 && dep.status === 'SCHEDULED') {
+          const key = `${dep.id}:autodelay`;
+          if (!announced.has(key)) {
+            announced.add(key);
+            setData(prev => prev ? {
+              ...prev,
+              departures: prev.departures.map(d =>
+                d.id === dep.id ? { ...d, status: 'DELAYED', delayMinutes: Math.abs(Math.round(diffMin)) } : d
+              )
+            } : prev);
+            addToQueue(
+              `Madame, Monsieur, le bus en direction de ${dep.destination} est en retard de quelques minutes, merci de patienter.`,
+              AnnouncementPriority.HIGH,
+              undefined,
+              key
+            );
+          }
+        }
+      }
+    };
+
+    checkPhases();
+    const id = setInterval(checkPhases, 30000); // Check every 30 seconds
+    return () => clearInterval(id);
+  }, [data]);
+
   /* ─── WebSocket connection ────────────────────────── */
   useEffect(() => {
     if (!slug) return;
@@ -417,6 +501,57 @@ export default function SignageSlugPage() {
       addToQueue(
         `Merci de votre patience, le bus en direction de ${payload.destination} va partir.`,
         AnnouncementPriority.CRITICAL
+      );
+    });
+
+    socket.on('kiosk:cancelled', (payload: { departureId: string; destination: string; timestamp: number }) => {
+      console.log('[Kiosk] Cancelled received:', payload);
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          departures: prev.departures.map((d) =>
+            d.id === payload.departureId ? { ...d, status: 'CANCELLED' } : d
+          ),
+        };
+      });
+    });
+
+    socket.on('kiosk:boarding', (payload: { departureId: string; destination: string; scheduledTime: string; platform: string | null; timestamp: number }) => {
+      console.log('[Kiosk] Boarding received:', payload);
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          departures: prev.departures.map((d) =>
+            d.id === payload.departureId ? { ...d, status: 'BOARDING' } : d
+          ),
+        };
+      });
+      addToQueue(
+        `Madame, Monsieur, le bus à destination de ${payload.destination} est en cours d'embarquement. Le bus va partir à ${payload.scheduledTime}.`,
+        AnnouncementPriority.MEDIUM,
+        undefined,
+        `${payload.departureId}:boarding`
+      );
+    });
+
+    socket.on('kiosk:imminent', (payload: { departureId: string; destination: string; timestamp: number }) => {
+      console.log('[Kiosk] Imminent received:', payload);
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          departures: prev.departures.map((d) =>
+            d.id === payload.departureId ? { ...d, status: 'IMMINENT' } : d
+          ),
+        };
+      });
+      addToQueue(
+        `Madame, Monsieur, attention. Le bus à destination de ${payload.destination} va partir dans deux minutes. Merci de monter à bord immédiatement.`,
+        AnnouncementPriority.CRITICAL,
+        undefined,
+        `${payload.departureId}:imminent`
       );
     });
 
@@ -871,12 +1006,17 @@ html, body {
   color: #facc15;
   text-shadow: 0 0 15px rgba(250, 204, 21, 0.8);
 }
+.departures-panel .status-imminent {
+  color: #ef4444;
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.9);
+  animation: blink-fast 0.5s infinite;
+}
 .departures-panel .status-delayed {
   color: #ef4444;
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
-  animation: blink-slow 1.5s infinite;
+  animation: blink-medium 1s infinite;
 }
-.departures-panel .status-canceled {
+.departures-panel .status-cancelled {
   color: #ef4444;
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.9);
   text-decoration: line-through;
@@ -904,19 +1044,47 @@ html, body {
   color: #00d4ff;
   text-shadow: 0 0 15px rgba(0, 212, 255, 0.7);
 }
+.arrivals-panel .status-imminent {
+  color: #ef4444;
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.9);
+  animation: blink-fast 0.5s infinite;
+}
 .arrivals-panel .status-delayed {
   color: #ef4444;
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
-  animation: blink-slow 1.5s infinite;
+  animation: blink-medium 1s infinite;
 }
 .arrivals-panel .status-departed {
   color: #666;
   text-shadow: none;
 }
 
+/* ─── 3-LEVEL BLINKING SYSTEM ─── */
+/* Slow blink (1.5s) — EMBARQUEMENT (boarding) */
+.blink-slow {
+  animation: blink-slow 1.5s infinite;
+}
 @keyframes blink-slow {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0.3; }
+}
+
+/* Medium blink (1s) — RETARD (delayed) */
+.blink-medium {
+  animation: blink-medium 1s infinite;
+}
+@keyframes blink-medium {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+/* Fast blink (0.5s) — DÉPART IMMINENT (imminent) */
+.blink-fast {
+  animation: blink-fast 0.5s infinite;
+}
+@keyframes blink-fast {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.1; }
 }
 
 /* ─── COLUMN WIDTHS ─────────────────────────────── */
