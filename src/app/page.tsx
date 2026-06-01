@@ -295,13 +295,7 @@ function Navigation() {
   const isOnHero = !scrolled;
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-slate-200/80'
-          : 'bg-gradient-to-b from-slate-900/60 to-transparent backdrop-blur-sm'
-      }`}
-    >
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl shadow-lg border-b border-slate-200/80 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
@@ -311,7 +305,7 @@ function Navigation() {
               alt="SmarticketS"
               width={374}
               height={135}
-              className={`h-8 sm:h-9 w-auto transition-all duration-300 ${isOnHero ? 'drop-shadow-lg' : 'opacity-80 hover:opacity-100'}`}
+              className="h-8 sm:h-9 w-auto"
             />
           </Link>
 
@@ -325,11 +319,9 @@ function Navigation() {
                   e.preventDefault();
                   handleNavClick(link.href);
                 }}
-                className={`text-sm font-medium transition-colors duration-200 relative after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-blue-500 after:transition-all after:duration-300 hover:after:w-full ${
-                  isOnHero
-                    ? 'text-white/90 hover:text-white after:bg-white/60'
-                    : 'text-slate-600 hover:text-slate-900 after:bg-blue-500'
-                }`}
+              className={`text-sm font-medium text-slate-800 hover:text-slate-900 hover:bg-black/5 active:bg-black/10 rounded-md px-3 py-1.5 transition-colors duration-200 ${
+                isOnHero ? '' : ''
+              }`}
               >
                 {link.label}
               </a>
@@ -340,9 +332,7 @@ function Navigation() {
           <div className="hidden lg:flex items-center gap-4">
             <a
               href="tel:+221784858226"
-              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                isOnHero ? 'text-white/80 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors`}
             >
               <Phone className="w-4 h-4" />
               +221 78 485 82 26
@@ -357,9 +347,7 @@ function Navigation() {
 
           {/* Mobile hamburger */}
           <button
-            className={`lg:hidden p-1 transition-colors duration-300 ${
-              isOnHero ? 'text-white' : 'text-slate-900'
-            }`}
+            className="lg:hidden p-1 text-slate-900 transition-colors duration-300"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Menu"
           >
