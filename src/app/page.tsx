@@ -155,19 +155,22 @@ const STEPS = [
     step: '01',
     title: 'Scannez ou saisissez',
     description: 'Scannez le QR code du billet ou saisissez manuellement la référence du colis à activer.',
-    icon: ScanLine,
+    image: '/images/steps/step1-scan.png',
+    gradient: 'from-blue-500 to-cyan-400',
   },
   {
     step: '02',
     title: 'Activez en 30s',
     description: 'Entrez les infos expéditeur et destinataire. Le colis est activé et sécurisé instantanément.',
-    icon: Zap,
+    image: '/images/steps/step2-activate.png',
+    gradient: 'from-[#FF6B35] to-[#FF1D8D]',
   },
   {
     step: '03',
     title: 'Suivez en temps réel',
     description: 'Recevez des notifications WhatsApp à chaque étape du parcours jusqu\'à la livraison.',
-    icon: MapPin,
+    image: '/images/steps/step3-track.png',
+    gradient: 'from-emerald-500 to-teal-400',
   },
 ];
 
@@ -823,25 +826,45 @@ function HowItWorksSection() {
         </FadeIn>
 
         {/* Steps */}
-        <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mb-16">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 mb-16">
           {STEPS.map((step, i) => (
             <FadeIn key={step.step} delay={i * 0.15}>
-              <div className="relative text-center">
-                {/* Connector line */}
+              <div className="relative group">
+                {/* Connector arrow */}
                 {i < STEPS.length - 1 && (
-                  <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-blue-200 to-emerald-200" />
+                  <div className="hidden md:flex absolute top-1/2 -right-4 lg:-right-5 z-20 w-8 lg:w-10 h-8 lg:h-10 items-center justify-center">
+                    <div className={`w-full h-full rounded-full bg-gradient-to-br ${step.gradient} flex items-center justify-center shadow-lg`}>
+                      <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
+                    </div>
+                  </div>
                 )}
 
-                {/* Step number */}
-                <div className="relative z-10 w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-blue-50 to-emerald-50 border border-blue-100 flex items-center justify-center mb-6 group hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300">
-                  <step.icon className="w-10 h-10 text-blue-600" />
-                  <span className="absolute -top-2 -right-2 w-8 h-8 rounded-lg bg-blue-600 text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-blue-600/30">
-                    {step.step}
-                  </span>
-                </div>
+                {/* Card */}
+                <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
+                  {/* Image */}
+                  <div className="relative h-48 lg:h-56 overflow-hidden">
+                    <Image
+                      src={step.image}
+                      alt={step.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                    {/* Gradient overlay */}
+                    <div className={`absolute inset-0 bg-gradient-to-t ${step.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300`} />
 
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed max-w-xs mx-auto">{step.description}</p>
+                    {/* Step badge */}
+                    <span className={`absolute top-3 left-3 w-10 h-10 rounded-xl bg-gradient-to-br ${step.gradient} text-white text-sm font-extrabold flex items-center justify-center shadow-lg`}>
+                      {step.step}
+                    </span>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-5 lg:p-6">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
               </div>
             </FadeIn>
           ))}
