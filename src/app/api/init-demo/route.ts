@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { ensureSeeded } from '@/lib/auto-seed';
 
 // Initialize / ensure demo users exist (idempotent - upsert)
 export async function GET() {
   try {
+    // Ensure all demo data (stations, departures, etc.) exists first
+    await ensureSeeded();
+
     const adminPassword = await bcrypt.hash('admin123', 10);
     const agencyPassword = await bcrypt.hash('agence123', 10);
 

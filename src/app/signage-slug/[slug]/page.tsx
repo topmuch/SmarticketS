@@ -831,15 +831,28 @@ export default function SignageSlugPage() {
   // ─── Poll station data every 15 seconds ────────────
   useEffect(() => {
     if (!slug) return;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
     const fetchData = async () => {
       try {
+        // On first attempts, trigger init-demo to ensure DB is seeded
+        if (retryCount === 0) {
+          fetch('/api/init-demo').catch(() => {});
+        }
         const res = await fetch(`/api/signage-slug/${encodeURIComponent(slug)}`);
         if (res.status === 404) {
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            // Wait 2s then retry (DB might be seeding)
+            await new Promise(r => setTimeout(r, 2000));
+            return fetchData();
+          }
           setNotFound(true);
           return;
         }
         const json = await res.json();
         if (res.ok) {
+          retryCount = MAX_RETRIES; // stop retrying on success
           setOffline(false);
           setData(json);
           setLastUpdate(new Date().toLocaleTimeString('fr-FR'));
