@@ -449,3 +449,44 @@ Stage Summary:
 - All kiosk features now complete: LED display, audio system (ding-dong + TTS + priority queue), WebSocket real-time, admin controls (Retard/Parti/Voice config)
 - Kiosk-service running on port 3004
 - Code pushed to https://github.com/topmuch/SmarticketS (branch main)
+
+---
+Task ID: 6
+Agent: Main Agent + 3 subagents
+Task: Complete vocal system — TTS repetition, phase detection, voice upload, blinking CSS
+
+Work Log:
+- Enhanced src/lib/audioSystem.ts (v3):
+  - TTS repetition: each announcement repeated 2× at 5s interval for ambient noise coverage
+  - Anti-doublon: deduplication via departureKey (departureId:phase) to prevent duplicate announcements
+  - Phase-based templates: buildBoardingText, buildImminentText, buildDelayText, buildDepartedAfterDelayText, buildArrivalText
+  - addPhaseAnnouncement() helper for priority + dedup
+  - Custom audio fallback: if admin-uploaded voice fails, falls back to TTS automatically
+- Created mini-services/kiosk-service/index.ts (port 3004):
+  - Full Socket.io server with room-based routing (station:{slug})
+  - Events: kiosk:delay, kiosk:departed, kiosk:cancelled, kiosk:boarding, kiosk:imminent, kiosk:config, kiosk:broadcast, kiosk:generalMessage
+  - Broadcast to all stations or specific station by slug
+  - Graceful shutdown (SIGTERM/SIGINT)
+- Created src/app/api/kiosk/voice/route.ts:
+  - POST: Upload audio file (MP3/WAV/OGG/M4A, max 5MB) to public/audio/voices/
+  - GET: Get current custom voice info
+  - DELETE: Remove custom voice file + settings
+- Enhanced src/app/signage-slug/[slug]/page.tsx:
+  - 3-level blinking CSS: blink-slow (1.5s) boarding, blink-medium (1s) delay, blink-fast (0.5s) imminent
+  - Auto phase detection every 30s: T-10→BOARDING, T-2→IMMINENT, T+5→DELAYED
+  - New WebSocket handlers: kiosk:cancelled, kiosk:boarding, kiosk:imminent
+  - Updated getStatusInfo: IMMINENT status, ANNULÉ label, +prefix for delay
+- Enhanced src/app/agence/kiosk/page.tsx:
+  - Voice upload section: drag-and-drop MP3/WAV upload zone
+  - Current voice display with delete option
+  - Voice info fetched from /api/kiosk/voice
+- Enhanced src/app/admin/departures/page.tsx:
+  - New Annulé (cancel) button with WebSocket broadcast
+  - handleMarkCancelled function with kiosk:cancelled broadcast
+
+Stage Summary:
+- 6 files modified/created, 907 insertions, 64 deletions
+- Complete vocal pipeline: admin upload → TTS/voice → priority queue → kiosk speakers
+- Phase automation: boarding (T-10), imminent (T-2), delay (T+5) triggered automatically
+- 3-level blinking: visual feedback matches audio announcements
+- All pushed to GitHub commit e959bd7
