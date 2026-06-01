@@ -1,0 +1,19 @@
+{
+  "name": "smartickets-alert-service",
+  "version": "1.0.0",
+  "description": "SmarticketS Alert Engine — WebSocket + Cron mini-service",
+  "private": true,
+  "scripts": {
+    "dev": "bun --hot index.ts",
+    "start": "bun index.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "socket.io": "^4.8.3",
+    "zod": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.4",
+    "prisma": "^6"
+  }
+}

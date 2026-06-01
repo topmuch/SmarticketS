@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
 
-// POST /api/notifications/[id]/read — Mark a notification as read
-export async function POST(
+// DELETE /api/notifications/[id] — Soft-delete (mark as read) a notification
+export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -21,19 +21,20 @@ export async function POST(
       return NextResponse.json({ error: 'Notification introuvable' }, { status: 404 });
     }
 
-    // Agency isolation: only allow reading notifications from own agency or broadcast
+    // Agency isolation
     if (existing.agencyId && session.agencyId && existing.agencyId !== session.agencyId) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
     }
 
-    const notification = await db.notification.update({
+    // Soft-delete: mark as read
+    await db.notification.update({
       where: { id },
       data: { read: true, updatedAt: new Date() },
     });
 
-    return NextResponse.json({ success: true, notification });
+    return NextResponse.json({ success: true, deleted: id });
   } catch (error) {
-    console.error('[Notifications/[id]/Read] POST error:', error);
+    console.error('[Notifications/[id]] DELETE error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
