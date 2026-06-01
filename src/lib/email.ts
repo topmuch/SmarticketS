@@ -1,5 +1,6 @@
 import prisma from './prisma';
 import crypto from 'crypto';
+import { randomInt } from 'crypto';
 import nodemailer from 'nodemailer';
 
 // Email provider types
@@ -73,7 +74,7 @@ export function generateToken(): string {
 
 // Generate 6-digit code
 export function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return randomInt(100000, 1000000).toString();
 }
 
 // Get email settings from database (auto-creates defaults if missing)

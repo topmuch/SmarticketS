@@ -1,0 +1,96 @@
+/**
+ * Shared Zod validation schemas for all auth endpoints.
+ * Every API route MUST use these schemas before processing.
+ */
+
+import { z } from 'zod';
+
+// ─── Login ────────────────────────────────────────────────────────
+export const loginSchema = z.object({
+  email: z.string()
+    .min(1, 'Email requis')
+    .max(254, 'Email trop long')
+    .email('Format email invalide')
+    .toLowerCase()
+    .transform(v => v.trim()),
+  password: z.string()
+    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+    .max(128, 'Mot de passe trop long'),
+  role: z.enum(['admin', 'agency']).optional(),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+// ─── Email-only (forgot-password, resend-verification) ────────────
+export const emailOnlySchema = z.object({
+  email: z.string()
+    .min(1, 'Email requis')
+    .max(254)
+    .email('Format email invalide')
+    .toLowerCase()
+    .transform(v => v.trim()),
+});
+
+export type EmailOnlyInput = z.infer<typeof emailOnlySchema>;
+
+// ─── Verify Email ──────────────────────────────────────────────────
+export const verifyEmailSchema = z.object({
+  token: z.string().min(10).optional(),
+  code: z.string().length(6, 'Le code doit contenir 6 chiffres').regex(/^\d{6}$/, 'Format code invalide').optional(),
+  email: z.string().email('Format email invalide').toLowerCase().optional(),
+}).refine(
+  (data) => (data.token && !data.code && !data.email) || (!data.token && data.code && data.email),
+  { message: 'Fournissez un token OU un code + email', path: ['token'] }
+);
+
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+
+// ─── Reset Password ───────────────────────────────────────────────
+export const resetPasswordSchema = z.object({
+  token: z.string().min(10).optional(),
+  code: z.string().length(6).regex(/^\d{6}$/).optional(),
+  email: z.string().email().toLowerCase().optional(),
+  password: z.string()
+    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+    .max(128)
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre'
+    ),
+}).refine(
+  (data) => (data.token && !data.code && !data.email) || (!data.token && data.code && data.email),
+  { message: 'Fournissez un token OU un code + email', path: ['token'] }
+);
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+// ─── Staff Login ──────────────────────────────────────────────────
+export const staffLoginSchema = z.object({
+  phone: z.string()
+    .min(1, 'Téléphone requis')
+    .regex(/^\+?\d{10,15}$/, 'Format téléphone invalide'),
+  code: z.string()
+    .length(4, 'Le code doit contenir 4 chiffres')
+    .regex(/^\d{4}$/, 'Format code invalide'),
+});
+
+export type StaffLoginInput = z.infer<typeof staffLoginSchema>;
+
+// ─── Helper: Parse and validate request body ─────────────────────
+export function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): { success: true; data: T } | { success: false; error: string; details?: Record<string, string[]> } {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    const flat = result.error.flatten();
+    const fieldErrors: Record<string, string[]> = {};
+    for (const [key, val] of Object.entries(flat.fieldErrors)) {
+      const messages = (val as unknown as string[]) ?? [];
+      fieldErrors[key] = messages.map(v => String(v));
+    }
+    return {
+      success: false,
+      error: 'Données invalides',
+      details: fieldErrors,
+    };
+  }
+  return { success: true, data: result.data };
+}

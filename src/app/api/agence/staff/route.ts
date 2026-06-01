@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 import {
   ROLE_PERMISSIONS,
   parsePermissions,
@@ -22,6 +23,31 @@ import { normalizePhone, isValidPhoneFormat } from '@/lib/whatsapp';
 import { z } from 'zod';
 import { randomInt } from 'crypto';
 import bcrypt from 'bcryptjs';
+
+export const dynamic = 'force-dynamic';
+
+// ─── Auth Guard ──────────────────────────────────────────────────────
+
+/**
+ * Require authentication and agency membership for all staff endpoints.
+ * Prevents unauthenticated access to staff CRUD operations.
+ */
+async function requireStaffAccess(req: NextRequest): Promise<{ session: NonNullable<Awaited<ReturnType<typeof getSession>>>; error: NextResponse | null }> {
+  const session = await getSession();
+  if (!session) {
+    return {
+      session: session as never,
+      error: NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 }),
+    };
+  }
+  if (!session.agencyId && session.role !== 'superadmin') {
+    return {
+      session: session as never,
+      error: NextResponse.json({ success: false, error: 'Agence requise' }, { status: 403 }),
+    };
+  }
+  return { session: session as NonNullable<Awaited<ReturnType<typeof getSession>>>, error: null };
+}
 
 // ─── Validation Schemas ──────────────────────────────────────────────
 
@@ -65,13 +91,25 @@ const deleteStaffSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    // ─── Auth check ──────────────────────────────────────────
+    const { session, error: authError } = await requireStaffAccess(req);
+    if (authError) return authError;
+
     const { searchParams } = new URL(req.url);
-    const agencyId = searchParams.get('agencyId');
+    const agencyId = searchParams.get('agencyId') || session.agencyId;
 
     if (!agencyId) {
       return NextResponse.json(
         { success: false, error: 'agencyId est requis' },
         { status: 400 }
+      );
+    }
+
+    // Agency isolation: non-superadmin can only see their own agency
+    if (session.role !== 'superadmin' && agencyId !== session.agencyId) {
+      return NextResponse.json(
+        { success: false, error: 'Accès refusé' },
+        { status: 403 }
       );
     }
 
@@ -142,6 +180,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // ─── Auth check ──────────────────────────────────────────
+    const { session, error: authError } = await requireStaffAccess(req);
+    if (authError) return authError;
+
     // Parse and validate body
     const body = await req.json();
     const parsed = createStaffSchema.safeParse(body);
@@ -154,6 +196,14 @@ export async function POST(req: NextRequest) {
     }
 
     const { agencyId, name, phone: rawPhone, role, permissions: customPerms } = parsed.data;
+
+    // Agency isolation
+    if (session.role !== 'superadmin' && agencyId !== session.agencyId) {
+      return NextResponse.json(
+        { success: false, error: 'Accès refusé' },
+        { status: 403 }
+      );
+    }
 
     // Verify agency exists
     const agency = await db.agency.findUnique({ where: { id: agencyId } });
@@ -205,11 +255,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create audit log
+    // Create audit log with actorId
     await db.staffAuditLog.create({
       data: {
         action: 'STAFF_CREATED' as const,
         staffId: staff.id,
+        actorId: session.id,
         details: JSON.stringify({ name, phone, role, permissions }),
       },
     });
@@ -244,6 +295,10 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    // ─── Auth check ──────────────────────────────────────────
+    const { session, error: authError } = await requireStaffAccess(req);
+    if (authError) return authError;
+
     const body = await req.json();
     const parsed = updateStaffSchema.safeParse(body);
 
@@ -256,8 +311,8 @@ export async function PATCH(req: NextRequest) {
 
     const { id, name, role, permissions: customPerms, isActive } = parsed.data;
 
-    // Check staff exists
-    const existing = await db.staff.findUnique({ where: { id } });
+    // Check staff exists + agency isolation
+    const existing = await db.staff.findFirst({ where: { id, agencyId: session.agencyId! } });
     if (!existing) {
       return NextResponse.json(
         { success: false, error: 'Membre non trouvé' },
@@ -291,11 +346,12 @@ export async function PATCH(req: NextRequest) {
       data: updateData,
     });
 
-    // Create audit log
+    // Create audit log with actorId
     await db.staffAuditLog.create({
       data: {
         action: 'STAFF_UPDATED' as const,
         staffId: id,
+        actorId: session.id,
         details: JSON.stringify({ name, role, permissions: customPerms, isActive }),
       },
     });
@@ -328,6 +384,10 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    // ─── Auth check ──────────────────────────────────────────
+    const { session, error: authError } = await requireStaffAccess(req);
+    if (authError) return authError;
+
     const body = await req.json();
     const parsed = deleteStaffSchema.safeParse(body);
 
@@ -340,8 +400,8 @@ export async function DELETE(req: NextRequest) {
 
     const { id } = parsed.data;
 
-    // Check staff exists
-    const existing = await db.staff.findUnique({ where: { id } });
+    // Check staff exists + agency isolation
+    const existing = await db.staff.findFirst({ where: { id, agencyId: session.agencyId! } });
     if (!existing) {
       return NextResponse.json(
         { success: false, error: 'Membre non trouvé' },
@@ -357,11 +417,12 @@ export async function DELETE(req: NextRequest) {
       },
     });
 
-    // Create audit log
+    // Create audit log with actorId
     await db.staffAuditLog.create({
       data: {
         action: 'STAFF_DEACTIVATED' as const,
         staffId: id,
+        actorId: session.id,
         details: JSON.stringify({ name: existing.name, phone: existing.phone }),
       },
     });
