@@ -19,6 +19,11 @@ import {
   Users,
   Megaphone,
   MessageSquare,
+  Timer,
+  CloudSun,
+  AlertTriangle,
+  LayoutGrid,
+  Map,
 } from 'lucide-react';
 import SecondaryPageLayout from '@/components/landing/SecondaryPageLayout';
 import FadeIn from '@/components/landing/FadeIn';
@@ -56,6 +61,34 @@ const keyFeatures = [
       'Configurez vos écrans, gares et contenus directement depuis le tableau de bord admin. Aucune intervention technique sur site nécessaire.',
     gradient: 'from-[#00A887] to-[#008f72]',
   },
+  {
+    icon: Timer,
+    title: 'Compte à Rebours Live',
+    description:
+      'Chaque départ affiche un compte à rebours en temps réel (MM:SS) avec code couleur : vert, jaune, orange, rouge selon l\'urgence.',
+    gradient: 'from-[#7c3aed] to-[#6d28d9]',
+  },
+  {
+    icon: CloudSun,
+    title: 'Météo Destination',
+    description:
+      'Conditions météo en temps réel pour chaque ville d\'arrivée. Les voyageurs connaissent la température et le temps qu\'il fait à destination.',
+    gradient: 'from-[#06b6d4] to-[#0891b2]',
+  },
+  {
+    icon: AlertTriangle,
+    title: 'Retards Automatiques',
+    description:
+      'Détection et affichage instantané des retards avec badge coloré (jaune, orange, rouge). L\'heure prévue de départ est mise à jour automatiquement.',
+    gradient: 'from-[#f59e0b] to-[#d97706]',
+  },
+  {
+    icon: Megaphone,
+    title: 'Annonces d\'Urgence',
+    description:
+      'Bandeau défilant rouge en plein écran pour les messages critiques (accident, grève, fermeture). Auto-dismiss et alerte sonore.',
+    gradient: 'from-[#ef4444] to-[#dc2626]',
+  },
 ];
 
 const benefits = [
@@ -64,12 +97,32 @@ const benefits = [
     icon: Monitor,
   },
   {
+    text: 'Compte à rebours temps réel (MM:SS)',
+    icon: Timer,
+  },
+  {
+    text: 'Météo en temps réel pour chaque destination',
+    icon: CloudSun,
+  },
+  {
+    text: 'Détection automatique des retards',
+    icon: AlertTriangle,
+  },
+  {
     text: 'Annonces vocales automatiques (embarquement)',
     icon: Volume2,
   },
   {
     text: 'Bandeau défilant pour messages urgents',
     icon: Megaphone,
+  },
+  {
+    text: 'Écran supervision (vue globale quais)',
+    icon: LayoutGrid,
+  },
+  {
+    text: 'Carte interactive de la gare',
+    icon: Map,
   },
   {
     text: 'Mode kiosk — plein écran sans navigation',

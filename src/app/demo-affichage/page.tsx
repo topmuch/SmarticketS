@@ -12,6 +12,12 @@ import {
   Monitor,
   Maximize,
   MessageCircle,
+  Timer,
+  CloudSun,
+   AlertTriangle,
+  Megaphone,
+  LayoutGrid,
+  Map,
 } from 'lucide-react';
 
 const WA_URL =
@@ -38,6 +44,45 @@ const INFO_CARDS = [
     description:
       'Des alertes sonores et visuelles automatiques pour prévenir les voyageurs lors de l\'embarquement.',
     color: 'bg-amber-100 text-amber-600',
+  },
+];
+
+const NEW_FEATURE_CARDS = [
+  {
+    icon: Timer,
+    title: 'Compte à Rebours',
+    description: 'Temps restant avant départ en temps réel (MM:SS). Changement de couleur selon l\'urgence.',
+    color: 'bg-blue-100 text-blue-600',
+  },
+  {
+    icon: CloudSun,
+    title: 'Météo Destination',
+    description: 'Conditions météo en temps réel pour chaque ville d\'arrivée. Température et emoji.',
+    color: 'bg-cyan-100 text-cyan-600',
+  },
+  {
+    icon: AlertTriangle,
+    title: 'Retards Automatiques',
+    description: 'Détection et affichage des retards avec badge coloré. Nouvelle heure prévue affichée.',
+    color: 'bg-orange-100 text-orange-600',
+  },
+  {
+    icon: Megaphone,
+    title: 'Annonces d\'Urgence',
+    description: 'Bandeau défilant rouge pour messages critiques. Auto-dismiss après 5 minutes.',
+    color: 'bg-red-100 text-red-600',
+  },
+  {
+    icon: LayoutGrid,
+    title: 'Écran Supervision',
+    description: 'Vue globale de tous les quais de la gare. État de chaque plateforme en un coup d\'œil.',
+    color: 'bg-violet-100 text-violet-600',
+  },
+  {
+    icon: Map,
+    title: 'Carte Interactive',
+    description: 'Plan de gare tactile avec positions des quais. Cliquez pour voir les départs.',
+    color: 'bg-emerald-100 text-emerald-600',
   },
 ];
 
@@ -177,6 +222,38 @@ export default function DemoAffichagePage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* ── New Features Grid ── */}
+        <div className="mt-12 sm:mt-16">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-2">
+            Nouvelles Fonctionnalités
+          </h2>
+          <p className="text-slate-500 text-center mb-8 max-w-2xl mx-auto">
+            6 fonctionnalités avancées pour une expérience voyageur complète
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {NEW_FEATURE_CARDS.map((card) => (
+              <Card
+                key={card.title}
+                className="bg-white border-slate-200/80 shadow-lg shadow-slate-900/5 hover:shadow-xl transition-all duration-300 rounded-2xl group"
+              >
+                <CardContent className="p-6">
+                  <div
+                    className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
+                  >
+                    <card.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 mb-2">
+                    {card.title}
+                  </h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    {card.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* ── CTA Section ── */}

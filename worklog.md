@@ -1815,3 +1815,52 @@ Stage Summary:
 - Fullscreen support via Fullscreen API
 - Responsive design (mobile + desktop)
 - Clean white background scrollable page
+
+---
+Task ID: features-v2
+Agent: Main Agent + full-stack-developer
+Task: 6 nouvelles fonctionnalités écran d'affichage + correction production (auto-seed)
+
+Work Log:
+- Created /src/lib/auto-seed.ts — Auto-seed utility that populates DB on first production request:
+  - Checks if any stations exist; if not, creates agency, stations, routes, departures, users
+  - Uses Setting table as lock to prevent duplicate seeding
+  - Creates station-dakar-peters + 6 destination stations + 6 routes + ~35 departures
+  - Creates admin + agency users with hashed passwords
+- Updated /src/app/api/signage-slug/[slug]/route.ts with 6 feature enhancements:
+  - Feature 1: Added `countdownSec` (exact seconds), `currentTimestamp` (epoch ms) for client-side live countdown
+  - Feature 2: Open-Meteo weather API integration for all destination cities (19 Senegalese cities)
+  - Feature 3: Auto-delay detection — `DELAYED` status with color-coded badges
+  - Feature 4: Emergency messages separated from ticker into `emergencyMessages` array
+  - Feature 5: Supervision data — `supervisionPlatforms` (grouped by platform) + `platformCount`
+  - Feature 6: Station map data — `stationMap` with platform positions and counts
+  - Added `normalizeCity()` function for accent-insensitive city matching (Thiès, Ziguinchor)
+  - Added `fillRate` (0-100%) to each departure
+  - Increased weather fetch limit from 5 to 10 cities
+- Rewrote /src/app/signage-slug/[slug]/page.tsx (1998 lines) with all 6 features:
+  - Feature 1: Live MM:SS countdown with color progression (white→blue→yellow→orange→red→flash)
+  - Feature 2: Weather emoji + temp badge next to each destination
+  - Feature 3: Enhanced delay display with pulsing border, strikethrough time, color-coded badge
+  - Feature 4: Emergency banner (red gradient, auto-dismiss 5min, flash animation)
+  - Feature 5: SUPERVISION tab — responsive platform grid with departure counts
+  - Feature 6: PLAN tab — SVG station map with clickable platform popover
+  - 4-tab system: DÉPARTS | ARRIVÉES | SUPERVISION | PLAN
+  - All existing features preserved (kiosk, ads, audio, QR, ticker, fullscreen, etc.)
+- Updated /src/app/demo-affichage/page.tsx:
+  - Added 6 new feature cards (Timer, CloudSun, AlertTriangle, Megaphone, LayoutGrid, Map)
+  - New "Nouvelles Fonctionnalités" section below existing info cards
+- Updated /src/app/ecrans-affichage/page.tsx:
+  - Added 4 new key features (Compte à Rebours, Météo, Retards, Urgence)
+  - Updated benefits list with 11 items (was 6)
+  - Added missing icon imports (Timer, CloudSun, AlertTriangle, LayoutGrid, Map)
+- Verified all 4 pages render: /signage-slug/dakar-peters, /demo-affichage, /ecrans-affichage, /
+- Lint: 0 new errors on all modified files
+- Dev server: Running stable on port 3000
+
+Stage Summary:
+- 6 features implemented: countdown, weather, delays, emergency, supervision, map
+- Auto-seed mechanism ensures demo works in production (fixes "Station non trouvée" online)
+- API enhanced with weather (Open-Meteo), live countdown, supervision data, station map
+- Signage page completely rewritten (1998 lines) with all features
+- Demo page updated with 6 feature showcase cards
+- Service page updated with new features and benefits
