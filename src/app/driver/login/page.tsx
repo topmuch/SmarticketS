@@ -53,7 +53,7 @@ export default function DriverLoginPage() {
         localStorage.removeItem(STORAGE_KEYS.staffData);
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -99,7 +99,7 @@ export default function DriverLoginPage() {
         setStatus('idle');
       }
     },
-    [phone, code] // eslint-disable-line react-hooks/exhaustive-deps
+    [phone, code]
   );
 
   // Handle individual digit inputs for the code

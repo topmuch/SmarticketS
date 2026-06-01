@@ -52,7 +52,7 @@ export default function ControllerLoginPage() {
         localStorage.removeItem(STORAGE_KEYS.staffData);
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -93,7 +93,7 @@ export default function ControllerLoginPage() {
         setStatus('idle');
       }
     },
-    [phone, code] // eslint-disable-line react-hooks/exhaustive-deps
+    [phone, code]
   );
 
   const handleDigitChange = (index: number, value: string) => {
