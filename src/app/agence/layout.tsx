@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   QrCode,
   LogOut,
@@ -155,8 +155,8 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
           <Link href="/agence/tableau-de-bord" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-lg">
-              <QrCode className="w-6 h-6 text-white" />
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg">
+              <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="40px" />
             </div>
             <div>
               <span className="text-white font-bold text-xl tracking-tight">SmarticketS</span>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   QrCode,
@@ -88,8 +89,8 @@ export default function AdminLayout({
           <div className="p-5 border-b border-[#1a1a3a]">
             <div className="flex items-center justify-between">
               <Link href="/admin/dashboard" className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-lg" style={{ backgroundColor: SIDEBAR_COLOR }}>
-                  <QrCode className="w-5 h-5 text-white" />
+                <div className="relative w-9 h-9 rounded-lg overflow-hidden shadow-lg">
+                  <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
                 </div>
                 <span className="text-white font-bold text-xl tracking-tight">SmarticketS</span>
                 <span className="text-[10px] px-2 py-0.5 rounded text-white font-bold uppercase tracking-wide" style={{ backgroundColor: SIDEBAR_COLOR }}>Admin</span>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   QrCode, 
@@ -211,8 +212,8 @@ function InscrireContent() {
           <span className="text-sm md:text-base font-medium">{t('inscrire.back')}</span>
         </Link>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#0A192F] rounded-lg flex items-center justify-center">
-            <QrCode className="w-5 h-5 text-orange-400" />
+          <div className="relative w-8 h-8 rounded-lg overflow-hidden">
+            <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="32px" />
           </div>
           <span className="font-bold text-blue-900 text-sm">SmarticketS</span>
         </div>

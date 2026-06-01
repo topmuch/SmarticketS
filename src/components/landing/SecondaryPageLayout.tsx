@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { QrCode, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -18,8 +19,8 @@ export default function SecondaryPageLayout({ children, title, subtitle }: Secon
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#215ae2] shadow-[0_4px_12px_rgba(33,90,226,0.25)]">
-                <QrCode className="w-5 h-5 text-white" />
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg">
+                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
               </div>
               <span className="text-xl font-bold text-[#0A2540] tracking-tight">
                 SmarticketS
@@ -61,8 +62,8 @@ export default function SecondaryPageLayout({ children, title, subtitle }: Secon
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#215ae2] flex items-center justify-center">
-                <QrCode className="w-4 h-4 text-white" />
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden">
+                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="32px" />
               </div>
               <span className="text-lg font-bold">SmarticketS</span>
             </div>

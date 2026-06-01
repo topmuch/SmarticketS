@@ -286,11 +286,11 @@ export default function LoginPage({ variant }: { variant: LoginVariant }) {
           <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
               <motion.div
-                className="w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FF1D8D] rounded-2xl flex items-center justify-center shadow-lg shadow-[#FF6B35]/20"
+                className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-[#00A887]/20"
                 whileHover={{ scale: 1.05, rotate: -3 }}
                 transition={{ type: 'spring', stiffness: 400 }}
               >
-                <QrCode className="w-6 h-6 text-white" />
+                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="48px" />
               </motion.div>
               <div>
                 <span className="text-2xl font-bold text-white tracking-tight">SmarticketS</span>
@@ -395,10 +395,10 @@ export default function LoginPage({ variant }: { variant: LoginVariant }) {
           {/* Mobile Logo */}
           <motion.div variants={fadeUp} custom={0} className="lg:hidden flex flex-col items-center mb-10">
             <motion.div
-              className="w-14 h-14 bg-gradient-to-br from-[#FF6B35] to-[#FF1D8D] rounded-2xl flex items-center justify-center shadow-xl shadow-[#FF6B35]/25 mb-4"
+              className="relative w-14 h-14 rounded-2xl overflow-hidden shadow-xl shadow-[#00A887]/25 mb-4"
               whileHover={{ scale: 1.05 }}
             >
-              <QrCode className="w-7 h-7 text-white" />
+              <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="56px" />
             </motion.div>
             <span className="text-2xl font-bold text-slate-800 tracking-tight">SmarticketS</span>
           </motion.div>

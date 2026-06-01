@@ -306,8 +306,8 @@ function Navigation() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 group-hover:shadow-blue-600/50 transition-shadow">
-              <QrCode className="w-5 h-5 text-white" />
+            <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-[#00A887]/30 group-hover:shadow-[#00A887]/50 transition-shadow">
+              <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
             </div>
             <span
               className={`text-xl font-bold tracking-tight transition-colors duration-300 ${
@@ -1130,8 +1130,8 @@ function FooterSection() {
           {/* Brand column */}
           <div className="col-span-2">
             <Link href="/" className="inline-flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-                <QrCode className="w-5 h-5 text-white" />
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-[#00A887]/30">
+                <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
               </div>
               <span className="text-xl font-bold">SmarticketS</span>
             </Link>

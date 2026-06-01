@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { QrCode, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,8 +49,8 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#215ae2] shadow-[0_4px_12px_rgba(33,90,226,0.25)] group-hover:shadow-[0_4px_16px_rgba(33,90,226,0.35)] transition-shadow">
-              <QrCode className="w-5 h-5 text-white" />
+            <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-lg">
+              <Image src="/logo-icon.png" alt="SmarticketS" fill className="object-cover" sizes="36px" />
             </div>
             <span className={`text-xl font-bold tracking-tight transition-colors duration-300 ${isOnHero ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]' : 'text-[#0A2540]'}`}>
               SmarticketS
