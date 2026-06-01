@@ -16,7 +16,7 @@ export const loginSchema = z.object({
   password: z.string()
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
     .max(128, 'Mot de passe trop long'),
-  role: z.enum(['admin', 'agency']).optional(),
+  role: z.enum(['admin', 'agency', 'superadmin']).optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

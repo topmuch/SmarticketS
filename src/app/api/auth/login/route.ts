@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Role-based access check
-    if (role === 'admin' && user.role !== 'superadmin') {
+    if ((role === 'admin' || role === 'superadmin') && user.role !== 'superadmin') {
       await logLoginAttempt({
         userId: user.id,
         email,
