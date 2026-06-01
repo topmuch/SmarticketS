@@ -311,7 +311,7 @@ function Navigation() {
               alt="SmarticketS"
               width={374}
               height={135}
-              className={`h-8 sm:h-9 w-auto transition-all duration-300 ${isOnHero ? 'brightness-0 invert drop-shadow-lg' : ''}`}
+              className={`h-8 sm:h-9 w-auto transition-all duration-300 ${isOnHero ? 'drop-shadow-lg' : 'opacity-80 hover:opacity-100'}`}
             />
           </Link>
 
