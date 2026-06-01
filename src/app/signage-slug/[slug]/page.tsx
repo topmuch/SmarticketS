@@ -16,6 +16,23 @@ import {
 } from '@/lib/audioSystem';
 
 /* ══════════════════════════════════════════════════════════════════════════
+   Signage Ad Type
+   ══════════════════════════════════════════════════════════════════════════ */
+interface SignageAd {
+  id: string;
+  title: string;
+  mediaType: string;
+  mediaUrl: string;
+  videoUrl: string | null;
+  imageUrl: string | null;
+  mobileImageUrl: string | null;
+  duration: number;
+  interval: number;
+  isActive: boolean;
+  priority: number;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    Types
    ══════════════════════════════════════════════════════════════════════════ */
 interface Departure {
@@ -63,8 +80,11 @@ interface StationData {
    Constants
    ══════════════════════════════════════════════════════════════════════════ */
 const SLIDE_DURATION = 120; // seconds
+const AD_SLIDE_DURATION = 60; // seconds for ads slide
 const MAX_ROWS = 10;
 const POLL_INTERVAL = 15000; // 15s
+const ARRIVALS_BLOCK_DURATION = 10 * 60 * 1000; // 10 minutes in ms
+const DEPARTURE_IMMINENT_THRESHOLD = 5 * 60 * 1000; // 5 minutes in ms
 
 /* ══════════════════════════════════════════════════════════════════════════
    Status Helpers
@@ -181,9 +201,16 @@ export default function SignageSlugPage() {
   const [now, setNow] = useState(new Date());
   const [cursorHidden, setCursorHidden] = useState(false);
 
+  /* ─── Signage Ads state ─────────────────────────────── */
+  const [signageAds, setSignageAds] = useState<SignageAd[]>([]);
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+
   /* ─── Slide state ──────────────────────────────────── */
-  const [currentMode, setCurrentMode] = useState<'departures' | 'arrivals'>('departures');
+  const [currentMode, setCurrentMode] = useState<'departures' | 'arrivals' | 'ads'>('departures');
   const [timeRemaining, setTimeRemaining] = useState(SLIDE_DURATION);
+
+  /* ─── Arrivals blocking state ──────────────────────── */
+  const [arrivalsBlockedUntil, setArrivalsBlockedUntil] = useState<number>(0);
 
   /* ─── Refs ────────────────────────────────────────── */
   const rootRef = useRef<HTMLDivElement>(null);
@@ -202,6 +229,30 @@ export default function SignageSlugPage() {
     if (!data) return [];
     return data.arrivals.filter((a) => a.status !== 'DEPARTED');
   }, [data]);
+
+  /* ─── Computed: is any departure imminent (within 5 min)? ─── */
+  const hasImminentDeparture = useMemo(() => {
+    if (!data) return false;
+    const nowMs = Date.now();
+    return data.departures.some((d) => {
+      if (d.status === 'DEPARTED' || d.status === 'CANCELLED') return false;
+      // Parse effectiveTime (HH:MM) to today's timestamp
+      const [h, m] = d.effectiveTime.split(':').map(Number);
+      const effective = new Date();
+      effective.setHours(h, m, 0, 0);
+      const diff = effective.getTime() - nowMs;
+      // Within 5 minutes before or 5 minutes after the scheduled departure
+      return diff >= -5 * 60 * 1000 && diff <= DEPARTURE_IMMINENT_THRESHOLD;
+    });
+  }, [data, now]);
+
+  /* ─── Computed: are arrivals currently blocked? ─── */
+  const isArrivalsBlocked = useMemo(() => {
+    return Date.now() < arrivalsBlockedUntil;
+  }, [arrivalsBlockedUntil, now]);
+
+  /* ─── Computed: current slide duration based on mode ─── */
+  const currentSlideDuration = currentMode === 'ads' ? AD_SLIDE_DURATION : SLIDE_DURATION;
 
   /* ─── Hide scrollbar ───────────────────────────────── */
   useEffect(() => {
@@ -266,11 +317,30 @@ export default function SignageSlugPage() {
     };
   }, [isKiosk]);
 
+  /* ─── Slide sequence based on blocking and ads availability ─── */
+  const slideSequence = useMemo(() => {
+    const hasAds = signageAds.length > 0;
+    const blocked = isArrivalsBlocked;
+    if (!hasAds && blocked) return ['departures'] as const;
+    if (!hasAds && !blocked) return ['departures', 'arrivals'] as const;
+    if (hasAds && blocked) return ['departures', 'ads'] as const;
+    return ['departures', 'ads', 'arrivals'] as const;
+  }, [signageAds.length, isArrivalsBlocked]);
+
   /* ─── Switch mode function ─────────────────────────── */
   const switchMode = useCallback(() => {
-    setCurrentMode((prev) => (prev === 'departures' ? 'arrivals' : 'departures'));
-    setTimeRemaining(SLIDE_DURATION);
-  }, []);
+    setCurrentMode((prev) => {
+      const seq = slideSequence;
+      const idx = seq.indexOf(prev);
+      const nextIdx = (idx + 1) % seq.length;
+      const next = seq[nextIdx];
+      setTimeRemaining(next === 'ads' ? AD_SLIDE_DURATION : SLIDE_DURATION);
+      if (next === 'ads' && signageAds.length > 1) {
+        setCurrentAdIndex((i) => (i + 1) % signageAds.length);
+      }
+      return next;
+    });
+  }, [slideSequence, signageAds.length]);
 
   /* ─── Keyboard shortcuts: S = switch slides, F = fullscreen ─── */
   useEffect(() => {
@@ -299,6 +369,35 @@ export default function SignageSlugPage() {
     };
   }, []);
 
+  /* ─── Fetch signage ads ──────────────────────────── */
+  useEffect(() => {
+    const fetchAds = async () => {
+      try {
+        const res = await fetch('/api/signage-ads');
+        if (res.ok) {
+          const ads = await res.json();
+          setSignageAds(Array.isArray(ads) ? ads : []);
+        }
+      } catch {
+        // silent
+      }
+    };
+    fetchAds();
+    const id = setInterval(fetchAds, 60000); // refresh every 60s
+    return () => clearInterval(id);
+  }, []);
+
+  /* ─── Auto-block arrivals when departure imminent ────────────────── */
+  useEffect(() => {
+    if (!hasImminentDeparture) return;
+    const nowMs = Date.now();
+    if (nowMs < arrivalsBlockedUntil) return; // already blocked
+    setArrivalsBlockedUntil(nowMs + ARRIVALS_BLOCK_DURATION);
+    console.log('[Kiosk] Arrivals blocked for 10 min — imminent departure detected');
+    // Force switch to departures if currently showing arrivals
+    setCurrentMode((prev) => (prev === 'arrivals' ? 'departures' : prev));
+  }, [hasImminentDeparture, arrivalsBlockedUntil]);
+
   /* ─── Slide timer ──────────────────────────────────── */
   useEffect(() => {
     const id = setInterval(() => {
@@ -306,13 +405,13 @@ export default function SignageSlugPage() {
         const next = prev - 1;
         if (next <= 0) {
           setTimeout(() => switchMode(), 0);
-          return SLIDE_DURATION;
+          return currentSlideDuration;
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [switchMode]);
+  }, [switchMode, currentSlideDuration]);
 
   /* ─── Poll station data every 15 seconds ─────────── */
   useEffect(() => {
@@ -555,6 +654,26 @@ export default function SignageSlugPage() {
       );
     });
 
+    socket.on('kiosk:generalMessage', (payload: { text: string; priority: number; timestamp: number }) => {
+      console.log('[Kiosk] General message received:', payload);
+      // Play the general announcement via TTS immediately
+      addToQueue(payload.text, AnnouncementPriority.LOW);
+      // Also show on ticker for visual display
+      setData((prev) => {
+        if (!prev) return prev;
+        const newTicker: TickerMessage = {
+          id: `gm-${payload.timestamp}`,
+          text: payload.text,
+          priority: 'info',
+          active: true,
+        };
+        return {
+          ...prev,
+          tickerMessages: [...prev.tickerMessages, newTicker],
+        };
+      });
+    });
+
     socket.on('kiosk:config', (config: { volume?: number; muted?: boolean; generalMessage?: string; generalMessageInterval?: number }) => {
       console.log('[Kiosk] Config received:', config);
       if (typeof config.volume === 'number') {
@@ -584,8 +703,66 @@ export default function SignageSlugPage() {
     };
   }, [slug]);
 
+  /* ─── Render Ad Slide ────────────────────────────── */
+  const renderAdSlide = () => {
+    if (signageAds.length === 0) return null;
+    const ad = signageAds[currentAdIndex % signageAds.length];
+    const adImageUrl = ad.imageUrl || ad.mobileImageUrl || ad.mediaUrl || '';
+    const isVideo = ad.mediaType === 'VIDEO' && ad.videoUrl;
+
+    return (
+      <div className={`slide-panel ${currentMode === 'ads' ? 'active' : 'left'} ads-panel`}>
+        <div className="ads-content">
+          <div className="ads-badge">PUBLICITÉ</div>
+          {isVideo ? (
+            <video
+              key={ad.id}
+              src={ad.videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="ads-media"
+            />
+          ) : adImageUrl ? (
+            <div style={{ position: 'relative', width: '80%', maxWidth: '900px', aspectRatio: '16/9' }}>
+              <Image
+                key={ad.id}
+                src={adImageUrl}
+                alt={ad.title}
+                fill
+                className="ads-media"
+                style={{ objectFit: 'contain' }}
+                unoptimized
+              />
+            </div>
+          ) : (
+            <div className="ads-placeholder">
+              <p className="ads-placeholder-text">{ad.title}</p>
+            </div>
+          )}
+          {ad.title && !isVideo && (
+            <div className="ads-caption">
+              <span className="ads-caption-text">{ad.title}</span>
+            </div>
+          )}
+          {signageAds.length > 1 && (
+            <div className="ads-dots">
+              {signageAds.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`ads-dot ${idx === currentAdIndex % signageAds.length ? 'ads-dot-active' : ''}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   /* ─── Progress bar % ───────────────────────────────── */
-  const progressPercent = ((SLIDE_DURATION - timeRemaining) / SLIDE_DURATION) * 100;
+  const progressPercent = ((currentSlideDuration - timeRemaining) / currentSlideDuration) * 100;
 
   /* ─── Render helpers ──────────────────────────────── */
   const renderDepartureRow = (dep: Departure) => {
@@ -672,11 +849,13 @@ export default function SignageSlugPage() {
   if (!data) return null;
 
   const isDeparturesMode = currentMode === 'departures';
-  const boardModeClass = isDeparturesMode ? 'departures-mode-active' : 'arrivals-mode-active';
-  const headerModeClass = isDeparturesMode ? 'departures-mode' : 'arrivals-mode';
+  const isArrivalsMode = currentMode === 'arrivals';
+  const isAdsMode = currentMode === 'ads';
+  const boardModeClass = isDeparturesMode ? 'departures-mode-active' : isArrivalsMode ? 'arrivals-mode-active' : 'ads-mode-active';
+  const headerModeClass = isDeparturesMode ? 'departures-mode' : isArrivalsMode ? 'arrivals-mode' : 'ads-mode';
   const departuresPanelClass = isDeparturesMode ? 'slide-panel departures-panel active' : 'slide-panel departures-panel left';
-  const arrivalsPanelClass = isDeparturesMode ? 'slide-panel arrivals-panel right' : 'slide-panel arrivals-panel active';
-  const titleText = isDeparturesMode ? 'DÉPARTS' : 'ARRIVÉES';
+  const arrivalsPanelClass = isArrivalsMode ? 'slide-panel arrivals-panel active' : 'slide-panel arrivals-panel left';
+  const titleText = isDeparturesMode ? 'DÉPARTS' : isArrivalsMode ? 'ARRIVÉES' : 'PUBLICITÉ';
   const destHeader = isDeparturesMode ? 'DESTINATION' : 'PROVENANCE';
   const destClass = isDeparturesMode ? 'departures-panel' : 'arrivals-panel';
 
@@ -709,6 +888,15 @@ export default function SignageSlugPage() {
           </div>
         </div>
 
+        {/* ─── ARRIVALS BLOCKED BANNER ────────────────── */}
+        {isArrivalsBlocked && (
+          <div className="arrivals-blocked-banner">
+            <span className="arrivals-blocked-text">
+              &#9888;&#65039; ARRIVÉES TEMPORAIREMENT MASQUÉES — DÉPART IMMINENT
+            </span>
+          </div>
+        )}
+
         {/* ─── SLIDE WRAPPER ───────────────────────────── */}
         <div className="slide-wrapper">
           {/* Departures Panel */}
@@ -728,6 +916,9 @@ export default function SignageSlugPage() {
             </table>
             <AnalogClock date={now} />
           </div>
+
+          {/* Ads Panel */}
+          {renderAdSlide()}
 
           {/* Arrivals Panel */}
           <div className={arrivalsPanelClass}>
@@ -1085,6 +1276,120 @@ html, body {
 @keyframes blink-fast {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.1; }
+}
+
+/* ─── ADS SLIDE ──────────────────────────────── */
+.ads-panel {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ads-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 4vh 4vw;
+}
+.ads-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.2vw;
+  color: #888;
+  letter-spacing: 0.3vw;
+  text-transform: uppercase;
+  margin-bottom: 2vh;
+  border: 1px solid #333;
+  padding: 0.5vh 2vw;
+}
+.ads-media {
+  max-width: 85%;
+  max-height: 70vh;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 0 40px rgba(255,255,255,0.1);
+}
+.ads-placeholder {
+  width: 70vw;
+  height: 50vh;
+  border: 3px dashed #333;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ads-placeholder-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 3vw;
+  color: #555;
+  text-align: center;
+}
+.ads-caption {
+  margin-top: 2vh;
+  text-align: center;
+}
+.ads-caption-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 2vw;
+  color: #ccc;
+  text-shadow: 0 0 10px rgba(255,255,255,0.3);
+  letter-spacing: 0.1vw;
+}
+.ads-dots {
+  display: flex;
+  gap: 1vw;
+  margin-top: 2vh;
+}
+.ads-dot {
+  width: 1.2vw;
+  height: 1.2vw;
+  max-width: 12px;
+  max-height: 12px;
+  border-radius: 50%;
+  background: #333;
+  transition: all 0.3s ease;
+}
+.ads-dot-active {
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34,197,94,0.6);
+}
+
+/* ─── ARRIVALS BLOCKED BANNER ──────────────────── */
+.arrivals-blocked-banner {
+  background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+  border: 1px solid rgba(239,68,68,0.4);
+  border-top: none;
+  padding: 0.8vh 2vw;
+  text-align: center;
+  flex-shrink: 0;
+  margin-bottom: 1vh;
+}
+.arrivals-blocked-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.6vh;
+  color: #ef4444;
+  letter-spacing: 0.2vw;
+  animation: blink-medium 1s infinite;
+}
+
+/* ─── ADS MODE HEADER ─────────────────────────── */
+.header.ads-mode {
+  border-top-color: #22c55e;
+  border-bottom-color: #22c55e;
+}
+.header.ads-mode .header-icon {
+  background: #22c55e;
+  box-shadow: 0 0 30px rgba(34,197,94,0.8);
+}
+.header.ads-mode h1 {
+  color: #22c55e;
+  text-shadow: 0 0 20px rgba(34,197,94,0.6);
+}
+.board.ads-mode-active .timer-bar {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
 }
 
 /* ─── COLUMN WIDTHS ─────────────────────────────── */

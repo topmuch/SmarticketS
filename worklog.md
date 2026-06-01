@@ -490,3 +490,22 @@ Stage Summary:
 - Phase automation: boarding (T-10), imminent (T-2), delay (T+5) triggered automatically
 - 3-level blinking: visual feedback matches audio announcements
 - All pushed to GitHub commit e959bd7
+---
+Task ID: 7
+Agent: Main Agent
+Task: Fix 3 kiosk bugs — arrivals blocking, diffuser button, superadmin publicités
+
+Work Log:
+- Fixed kiosk arrivals blocking: When any departure is within 5 minutes, arrivals slide is blocked for 10 minutes (T-5 to T+5). Adds `hasImminentDeparture` computed value, `arrivalsBlockedUntil` state, auto-block effect. Shows blinking red warning banner "ARRIVÉES TEMPORAIREMENT MASQUÉES — DÉPART IMMINENT"
+- Fixed "Diffuser maintenant" button: Added missing `socket.on('kiosk:generalMessage', ...)` handler on kiosk display page. When received, calls `addToQueue()` for TTS announcement and appends message to ticker for visual display
+- Fixed superadmin publicités: Added SignageAd fetching from `/api/signage-ads` (refresh every 60s). Added 3rd slide mode "ads" with green LED theme. Kiosk now cycles: departures → ads → arrivals (or departures → ads if arrivals blocked)
+- Modified slide system from 2-mode to 3-mode: `slideSequence` computed dynamically based on ads availability and arrivals blocking state
+- Added CSS for ads panel, arrivals blocked banner, and ads mode header styling (green theme)
+- Kiosk service (port 3004) restarted and running
+
+Stage Summary:
+- 1 file modified: src/app/signage-slug/[slug]/page.tsx
+- 3 bugs fixed: arrivals blocking, general message broadcast, signage ads display
+- Slide rotation now supports 3 modes with dynamic sequence
+- Lint clean (only pre-existing migrate-db.js error)
+- Dev server compiling, kiosk service running on port 3004
