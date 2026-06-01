@@ -28,6 +28,7 @@ import {
 import { useAgency } from '../layout';
 import { isActive, isPending, isLost, isFound, isInTransit, isDelivered, normalizeStatus } from '@/lib/status';
 import LatestNewsWidget from '@/components/LatestNewsWidget';
+import MissingPassengerAlert from '@/components/dashboard/MissingPassengerAlert';
 
 interface Baggage {
   id: string;
@@ -657,6 +658,9 @@ export default function AgencyDashboardPage() {
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">Suivi en temps réel de vos colis Hajj 2026</p>
       </div>
+
+      {/* Missing Passenger Alert Banner */}
+      <MissingPassengerAlert agencyId={agencyId} />
 
       {/* Multicolored KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

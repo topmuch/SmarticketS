@@ -458,6 +458,88 @@ async function main() {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // Create sample passengers for "missing passenger" feature testing
+  // Find a departure ~30 min from now and add 8 tickets (3 validated, 5 missing)
+  // ═══════════════════════════════════════════════════════════
+  console.log('Creating sample passengers for missing-passenger feature...');
+
+  const thirtyMinFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+  const upcomingDep = await prisma.departure.findFirst({
+    where: {
+      agencyId: agency.id,
+      scheduledTime: { gte: thirtyMinFromNow },
+      departureType: 'OUTBOUND',
+    },
+    orderBy: { scheduledTime: 'asc' },
+  });
+
+  if (upcomingDep) {
+    const samplePassengers = [
+      { name: 'Fatou Sow', phone: '772345678', seat: '1A', code: '111111', validated: true },
+      { name: 'Ibrahima Diop', phone: '783456789', seat: '2A', code: '222222', validated: true },
+      { name: 'Aissatou Ba', phone: '764567890', seat: '3A', code: '333333', validated: true },
+      { name: 'Omar Ndiaye', phone: '775678901', seat: '4B', code: '444444', validated: false },
+      { name: 'Mariama Sy', phone: '786789012', seat: '5B', code: '555555', validated: false },
+      { name: 'Moussa Sarr', phone: '777890123', seat: '6B', code: '666666', validated: false },
+      { name: 'Khady Diop', phone: '768901234', seat: '7C', code: '777777', validated: false },
+      { name: 'Abdoulaye Fall', phone: '789012345', seat: '8C', code: '888888', validated: false },
+    ];
+
+    for (const sp of samplePassengers) {
+      const ticketId = `ticket-missing-${sp.code}`;
+      const baggageId = `baggage-missing-${sp.code}`;
+
+      await prisma.baggage.upsert({
+        where: { reference: `TKT-MISS-${sp.code}` },
+        update: {},
+        create: {
+          id: baggageId,
+          reference: `TKT-MISS-${sp.code}`,
+          type: 'voyageur',
+          category: 'ticket',
+          agencyId: agency.id,
+          travelerFirstName: sp.name.split(' ')[0],
+          travelerLastName: sp.name.split(' ').slice(1).join(' '),
+          whatsappOwner: `+221${sp.phone}`,
+          baggageIndex: 1,
+          baggageType: 'soute',
+          status: 'active',
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          destination: upcomingDep.destination,
+        },
+      });
+
+      await prisma.passengerTicket.upsert({
+        where: { id: ticketId },
+        update: {},
+        create: {
+          id: ticketId,
+          baggageId,
+          agencyId: agency.id,
+          departureId: upcomingDep.id,
+          passengerName: sp.name,
+          passengerPhone: sp.phone,
+          destination: upcomingDep.destination,
+          seatNumber: sp.seat,
+          departureTime: upcomingDep.scheduledTime,
+          controlCode: sp.code,
+          ticketStatus: sp.validated ? 'USED' : 'ACTIVE',
+          validatedAt: sp.validated ? new Date(now.getTime() - 10 * 60 * 1000) : null,
+          validatedBy: sp.validated ? 'Contrôleur Auto' : null,
+          activatedAt: upcomingDep.scheduledTime,
+          documentType: 'CNI',
+          documentNumber: `DOC-${sp.code}`,
+          passengerAge: 25 + Math.floor(Math.random() * 20),
+          luggageCount: 1,
+          luggageWeightKg: 10 + Math.floor(Math.random() * 10),
+          luggageFee: 0,
+        },
+      });
+    }
+    console.log(`  → Added 8 passengers to departure ${upcomingDep.id} (3 scanned, 5 missing)`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // Create sample in-transit parcels for driver testing
   // ═══════════════════════════════════════════════════════════
   console.log('Creating sample in-transit parcels for driver testing...');

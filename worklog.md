@@ -1905,3 +1905,43 @@ Stage Summary:
 - Frontend components render all features with proper styling and interactions
 - Auto-seed mechanism ensures production deployment will work without manual DB seeding
 - Lint: 0 new errors (only pre-existing scripts/migrate-db.js)
+---
+Task ID: missing-passenger-alert
+Agent: Main Agent
+Task: Implémenter la fonctionnalité "Passager Manquant" (Missing Passenger Alert)
+
+Work Log:
+- Analysé le schéma Prisma: Departure (tickets relation), PassengerTicket (ticketStatus, controlCode, validatedAt)
+- Créé 3 endpoints API:
+  - GET /api/dashboard/trips/[id]/missing-passengers — Retourne summary + missingPassengers pour un départ
+  - POST /api/dashboard/trips/[id]/mark-present — Force-validation manuelle sans scan
+  - GET /api/dashboard/missing-alerts?agencyId=xxx — Agrège tous les départs avec passagers manquants
+- Créé composant MissingPassengerAlert.tsx:
+  - AlertBanner rouge en haut du dashboard (gradient red/orange)
+  - Pulsation rouge animée sur le bord gauche
+  - Compte à rebours avant départ
+  - Barre de progression embarqués/total
+  - Tableau détaillé: nom, siège, code, téléphone, actions
+  - Bouton 📞 Contacter (ouvre tel:+)
+  - Bouton ✅ Marquer Présent (validation manuelle + refresh)
+  - "Tout marquer présent" en footer
+  - Polling automatique toutes les 30 secondes
+  - Bouton dismiss + refresh
+- Intégré dans /agence/tableau-de-bord/page.tsx (après header, avant KPIs)
+- Ajouté 8 passagers de test au seed (3 scannés, 5 manquants) sur un départ futur
+- Runtime tests:
+  - T1: GET /api/dashboard/trips/dep-.../missing-passengers → 200, 8 sold, 3 scanned, 5 missing ✅
+  - T2: POST mark-present (ticket-missing-555555) → 200, "Mariama Sy marquée présente" ✅
+  - T3: Vérification post-mark → 4 scanned, 4 missing (correct decrement) ✅
+  - T4: GET /api/dashboard/missing-alerts → 200, 0 alerts (30min away, threshold 15min) ✅
+  - T5: Dashboard page /agence/tableau-de-bord → HTTP 200 ✅
+- Lint: 0 new errors (only pre-existing scripts/migrate-db.js)
+
+Stage Summary:
+- 3 API routes created (missing-passengers, mark-present, missing-alerts)
+- 1 frontend component created (MissingPassengerAlert)
+- 1 dashboard page modified (tableau-de-bord)
+- 1 seed file updated (8 sample passengers)
+- Auth: session-based with agency isolation
+- Business logic: Vendus > Scannés → ALERTE when within 15min window
+- All tests pass at runtime
