@@ -49,8 +49,15 @@ export const BRAND = {
   company: {
     name: "SmarticketS",
     legalForm: "SARL",
+    rccm: "Dakar B-12-345-678-2024",
+    ninea: "0012345678A",
     address: "Dakar, Sénégal",
     email: "contact@smartickets.com",
+  },
+
+  // Data Protection Officer (DPO) info
+  dpo: {
+    email: process.env.NEXT_PUBLIC_DPO_EMAIL || "dpo@smartickets.com",
   },
 
   // Offline sync fallback values
