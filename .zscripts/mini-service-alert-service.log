@@ -492,3 +492,4 @@ $ bun --hot index.ts
 [AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
 [AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
 [AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
+[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
