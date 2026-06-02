@@ -41,6 +41,9 @@ import {
   Trash2,
   RefreshCw,
   Megaphone,
+  Wifi,
+  WifiOff,
+  Loader2,
 } from 'lucide-react';
 import {
   addToQueue,
@@ -257,6 +260,35 @@ export default function NotificationsPage() {
   // WebSocket + connection status
   const socketRef = useRef<Socket | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+
+  // ── Connect to kiosk-service ──
+  const connectSocket = useCallback(() => {
+    if (socketRef.current?.connected) return;
+
+    // Clean up old socket
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    const socket = io('/?XTransformPort=3004', {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      timeout: 5000,
+    });
+    socketRef.current = socket;
+    socket.on('connect', () => {
+      setSocketConnected(true);
+      setReconnecting(false);
+    });
+    socket.on('disconnect', () => setSocketConnected(false));
+    socket.on('connect_error', () => {
+      setSocketConnected(false);
+      setReconnecting(false);
+    });
+  }, []);
 
   // ── Preload TTS voices + WebSocket connection ──
   useEffect(() => {
@@ -264,18 +296,23 @@ export default function NotificationsPage() {
     preloadVoices();
 
     // Connect to kiosk-service
-    const socket = io('/?XTransformPort=3004');
-    socketRef.current = socket;
-    socket.on('connect', () => setSocketConnected(true));
-    socket.on('disconnect', () => setSocketConnected(false));
-    socket.on('connect_error', () => setSocketConnected(false));
+    connectSocket();
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
       setSocketConnected(false);
     };
-  }, []);
+  }, [connectSocket]);
+
+  // ── Handle reconnect button click ──
+  const handleReconnect = useCallback(() => {
+    setReconnecting(true);
+    connectSocket();
+    setTimeout(() => setReconnecting(false), 5000);
+  }, [connectSocket]);
 
   // ── Resolve template text with variables ──────────────
   const resolveText = useCallback(
@@ -545,18 +582,32 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <Bell className="w-4 h-4" />
             {templates.length} modèle(s) · {templates.filter((t) => t.isActive).length} actif(s)
-            {/* Socket connection status indicator */}
-            <div className="flex items-center gap-1.5 ml-2">
-              <span
-                className={`inline-block w-2.5 h-2.5 rounded-full ${
-                  socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'
-                }`}
-                title={socketConnected ? 'Connecté au service kiosk' : 'Non connecté au service kiosk'}
-              />
-              <span className="text-xs">
-                {socketConnected ? 'Kiosques connectés' : 'Kiosques déconnectés'}
-              </span>
-            </div>
+            {/* Socket connection status — clickable button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={socketConnected ? undefined : handleReconnect}
+              disabled={socketConnected || reconnecting}
+              className={`rounded-xl gap-1.5 text-xs border ${
+                socketConnected
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                  : 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 cursor-pointer'
+              }`}
+              title={socketConnected ? 'Kiosques connectés' : 'Cliquer pour se reconnecter aux kiosques'}
+            >
+              {reconnecting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : socketConnected ? (
+                <Wifi className="w-3.5 h-3.5" />
+              ) : (
+                <WifiOff className="w-3.5 h-3.5" />
+              )}
+              {reconnecting
+                ? 'Reconnexion...'
+                : socketConnected
+                  ? 'Kiosques connectés'
+                  : 'Connecter les kiosques'}
+            </Button>
           </div>
           <div className="flex items-center gap-2">
             <Button
