@@ -20,11 +20,16 @@ const validatePinSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    // Session auth is optional — public tracking page can validate without login
+    let session = null;
+    try {
+      session = await getSession();
+    } catch {
+      // No session available — continue without auth
     }
-    if (!['controller', 'agency', 'admin', 'superadmin', 'agent'].includes(session.role)) {
+
+    // If session exists, check role
+    if (session && !['controller', 'agency', 'admin', 'superadmin', 'agent'].includes(session.role)) {
       return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
     }
 
@@ -33,8 +38,9 @@ export async function POST(request: NextRequest) {
 
     const reference = data.reference.toUpperCase().trim();
 
-    // Rate limiting: max 10 PIN validations per 60s per session
-    if (!rateLimit(`pin:${session.id}`, { windowMs: 60000, maxRequests: 10 }).allowed) {
+    // Rate limiting: max 10 PIN validations per 60s per session or IP
+    const rateLimitKey = session ? `pin:${session.id}` : `pin:ip:${request.headers.get('x-forwarded-for') || 'unknown'}`;
+    if (!rateLimit(rateLimitKey, { windowMs: 60000, maxRequests: 10 }).allowed) {
       return NextResponse.json({ error: 'rate_limited', message: 'Trop de tentatives. Réessayez dans une minute.' }, { status: 429 });
     }
 
@@ -51,8 +57,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Status must be in_transit
-    if (colis.status !== 'in_transit') {
+    // 3. Status must be in_transit, scanned, or active
+    if (!['in_transit', 'scanned', 'active'].includes(colis.status)) {
       return NextResponse.json({
         error: 'invalid_status',
         message:

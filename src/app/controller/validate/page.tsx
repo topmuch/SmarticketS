@@ -96,7 +96,7 @@ interface PwaGuardState {
 
 // ─── Max code length ─────────────────────────────────────────────────────
 
-const MAX_CODE_LENGTH = 8;
+const MAX_CODE_LENGTH = 18; // CTRL-VOL26-DEMO001 = 18 chars
 
 // ─── Format validated date ───────────────────────────────────────────────
 
@@ -964,14 +964,15 @@ function KeypadScreen({
   isOnline,
 }: {
   code: string;
-  onDigit: (d: string) => void;
+  onDigit: (d: string) => void; // can be a single char or full string from text input
+  setCodeDirect: (v: string) => void;
   onDelete: () => void;
   onValidate: () => void;
   onBack: () => void;
   isLoading: boolean;
   isOnline: boolean;
 }) {
-  const displaySlots = Array.from({ length: MAX_CODE_LENGTH }, (_, i) => ({
+  const displaySlots = Array.from({ length: Math.min(code.length, MAX_CODE_LENGTH) }, (_, i) => ({
     char: i < code.length ? code[i] : '',
     active: i === code.length,
     filled: i < code.length,
@@ -1006,33 +1007,20 @@ function KeypadScreen({
       {/* ─── Code display ──────────────────────────────────── */}
       <div className="px-6 pt-8 pb-6 max-w-lg mx-auto w-full">
         <div className="bg-[#0d1117]/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
-          {/* 8 digit slots */}
-          <div className="flex justify-center gap-3">
-            {displaySlots.map((slot, i) => (
-              <div
-                key={i}
-                className={`w-10 h-12 rounded-xl flex items-center justify-center text-2xl font-bold transition-all duration-150 ${
-                  slot.filled
-                    ? 'bg-[#00d9a3]/20 border-2 border-[#00d9a3]/50 text-[#00d9a3]'
-                    : slot.active
-                      ? 'bg-white/10 border-2 border-white/30 text-white'
-                      : 'bg-white/5 border-2 border-white/8 text-transparent'
-                }`}
-              >
-                {slot.filled ? (
-                  <span className="animate-fade-in-scale">{slot.char}</span>
-                ) : slot.active ? (
-                  <span className="w-[2px] h-6 bg-white/60 animate-pulse rounded" />
-                ) : (
-                  <span className="text-white/10">-</span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Digit count */}
-          <p className="text-center text-xs text-gray-500 mt-4">
-            {code.length}/{MAX_CODE_LENGTH} chiffres saisis
+          {/* Code text input for alphanumeric codes */}
+          <input
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="characters"
+            placeholder="Ex: CTRL-VOL26-DEMO001"
+            value={code}
+            onChange={(e) => setCodeDirect(e.target.value.replace(/[^A-Za-z0-9\-]/g, '').toUpperCase().slice(0, MAX_CODE_LENGTH))}
+            className="w-full bg-[#0d1117]/80 border border-white/10 rounded-2xl px-4 py-4 text-xl font-mono text-[#00d9a3] placeholder-white/20 text-center focus:outline-none focus:border-[#00d9a3]/50 focus:ring-1 focus:ring-[#00d9a3]/30 transition-all"
+          />
+          <p className="text-center text-xs text-gray-500 mt-3">
+            {code.length}/{MAX_CODE_LENGTH} caractères saisis
           </p>
         </div>
       </div>
@@ -1413,9 +1401,16 @@ export default function ControllerValidatePage() {
 
   // ─── Extract numeric code from scanned text ─────────────────
   const extractControlCode = useCallback((text: string): string | null => {
-    if (/^\d{6,8}$/.test(text)) return text;
-    const match = text.match(/\d{6,8}/);
-    return match ? match[0] : null;
+    // Accept full CTRL-XXXX-XXXXX format
+    const trimmed = text.trim();
+    if (/^CTRL-[A-Z0-9]+-[A-Z0-9]+$/i.test(trimmed)) return trimmed.toUpperCase();
+    // Also try to find CTRL-... pattern inside a longer string (e.g. URL)
+    const ctrlMatch = trimmed.match(/(CTRL-[A-Z0-9]+-[A-Z0-9]+)/i);
+    if (ctrlMatch) return ctrlMatch[1].toUpperCase();
+    // Fallback: extract 6-8 digit sequence (legacy numeric codes)
+    if (/^\d{6,8}$/.test(trimmed)) return trimmed;
+    const digitMatch = trimmed.match(/\d{6,8}/);
+    return digitMatch ? digitMatch[0] : null;
   }, []);
 
   // ─── Clear result and code ──────────────────────────────────
@@ -1658,10 +1653,10 @@ export default function ControllerValidatePage() {
 
   // ─── Handle digit press ─────────────────────────────────────
   const handleDigit = useCallback(
-    (digit: string) => {
+    (char: string) => {
       if (code.length >= MAX_CODE_LENGTH) return;
       triggerHaptic(10);
-      setCode((prev) => prev + digit);
+      setCode((prev) => prev + char.toUpperCase());
     },
     [code.length, triggerHaptic],
   );
@@ -1702,6 +1697,9 @@ export default function ControllerValidatePage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (screen !== 'keypad') return;
       if (e.key >= '0' && e.key <= '9') handleDigit(e.key);
+      else if (e.key >= 'A' && e.key <= 'Z') handleDigit(e.key);
+      else if (e.key >= 'a' && e.key <= 'z') handleDigit(e.key);
+      else if (e.key === '-') handleDigit('-');
       else if (e.key === 'Backspace') handleDelete();
       else if (e.key === 'Enter') handleValidate();
       else if (e.key === 'Escape') goToDashboard();
@@ -1799,6 +1797,7 @@ export default function ControllerValidatePage() {
         <KeypadScreen
           code={code}
           onDigit={handleDigit}
+          setCodeDirect={setCode}
           onDelete={handleDelete}
           onValidate={handleValidate}
           onBack={goToDashboard}

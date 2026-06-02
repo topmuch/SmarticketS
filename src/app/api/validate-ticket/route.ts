@@ -7,9 +7,7 @@ import { getSession } from '@/lib/session';
 const validateTicketSchema = z.object({
   controlCode: z
     .string()
-    .min(6, 'Le code doit contenir au moins 6 chiffres')
-    .max(8, 'Le code ne peut pas dépasser 8 chiffres')
-    .regex(/^\d+$/, 'Le code doit contenir uniquement des chiffres'),
+    .min(1, 'Le code est obligatoire'),
   agencyId: z.string().optional(),
 });
 

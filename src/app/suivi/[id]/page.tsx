@@ -434,7 +434,7 @@ export default function SuiviPage() {
         )}
 
         {/* ─── DELIVERY VALIDATION BUTTON (for in_transit parcels) ─── */}
-        {colis && colis.status === 'in_transit' && !ticket && (
+        {colis && colis.status === 'in_transit' && (
           <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-dashed border-emerald-300 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2">
