@@ -930,3 +930,37 @@ Stage Summary:
 - P1 URGENT interrupt: automatic cancel + ding-dong + speak + resume sequence
 - Full backward compatibility maintained: all 30+ existing exports intact
 - Zero TypeScript errors, zero ESLint errors
+---
+Task ID: 11
+Agent: Main Agent
+Task: Automatic departure notification system — 7 status stages, phase detection, audio scripts, delay repeat, CSS enhancements
+
+Work Log:
+- Updated kiosk page (`src/app/signage-slug/[slug]/page.tsx`):
+  - Added `scheduledTime` field to Departure interface for phase detection
+  - Added `RESOLUTION_RETARD` status to `getStatusInfo()` — green glow + slow blink
+  - Changed auto-phase detection: boarding threshold T-10→T-15 minutes
+  - Allowed DELAYED departures to also transition to IMMINENT status
+  - Updated auto-delay announcement to include actual calculated minutes
+  - Added audio announcement on `kiosk:cancelled` WebSocket event (was missing)
+  - Added `kiosk:resolutionDelay` WebSocket handler with TTS announcement
+  - Added delay repeat timer (setInterval every 5min) for DELAYED departures
+  - Enhanced LED_STYLES CSS:
+    - `.status-resolution-retard` (green glow, slow blink) for departures + arrivals
+    - `.status-imminent` now has `font-weight: 900` (bold) in both panels
+    - `.status-delayed` changed to orange (#f97316) instead of red
+    - `.status-departed` now has `line-through` + `opacity: 0.6`
+- Updated kiosk-service (`mini-services/kiosk-service/index.ts`):
+  - Added `kiosk:resolutionDelay` Socket.IO event handler with room-based broadcast
+- Updated admin departures page (`src/app/admin/departures/page.tsx`):
+  - Added `RESOLUTION_RETARD` and `IMMINENT` to STATUS_CONFIG
+  - Added `handleResolutionDelay()` function with API call + WebSocket broadcast
+  - Added green "Résolu" button (only visible when status is DELAYED)
+
+Stage Summary:
+- 3 files modified: kiosk page, kiosk-service, admin departures page
+- 7 departure status stages fully implemented: À l'heure, Embarquement, Départ imminent, En retard, Résolution retard, Parti, Annulé
+- Audio announcements for all status transitions via existing addToQueue() API
+- Delayed departures auto-repeat announcement every 5 minutes until resolved
+- CSS: 3-level blinking system (slow 1.5s, medium 1s, fast 0.5s) with status-specific colors
+- Lint: 0 errors, dev server compiling, kiosk-service running on port 3004

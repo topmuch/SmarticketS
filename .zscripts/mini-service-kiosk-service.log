@@ -23,3 +23,9 @@ $ bun --hot index.ts
 [KioskService] 🟢 2026-06-02T10:41:05.370Z | REST endpoint: POST /api/push/:slug
 [KioskService] 🟢 2026-06-02T10:41:05.370Z | CORS: all origins (gateway proxy mode)
 
+
+[KioskService] 🟢 2026-06-02T19:36:44.541Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-02T19:36:44.541Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-02T19:36:44.541Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-02T19:36:44.541Z | CORS: all origins (gateway proxy mode)
+

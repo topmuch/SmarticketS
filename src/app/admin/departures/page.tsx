@@ -147,6 +147,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
     color: 'bg-amber-100 text-amber-700',
     icon: <AlertTriangle className="w-3 h-3" />,
   },
+  IMMINENT: {
+    label: 'Imminent',
+    color: 'bg-red-100 text-red-700',
+    icon: <AlertTriangle className="w-3 h-3" />,
+  },
+  RESOLUTION_RETARD: {
+    label: 'Retard Résolu',
+    color: 'bg-emerald-100 text-emerald-700',
+    icon: <CheckCircle2 className="w-3 h-3" />,
+  },
 };
 
 const today = () => {
@@ -487,6 +497,31 @@ export default function DeparturesPage() {
     }
   };
 
+  // ── Mark as Résolution Retard ─────────────────────────
+  const handleResolutionDelay = async (dep: Departure) => {
+    try {
+      const res = await fetch(`/api/admin/departures?id=${dep.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'RESOLUTION_RETARD', delayMinutes: 0 }),
+      });
+      if (!res.ok) throw new Error('Erreur serveur');
+      toast.success(`Retard résolu pour ${dep.destination} — le bus va partir`);
+      fetchDepartures();
+
+      // Broadcast to kiosk via WebSocket
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('kiosk:resolutionDelay', {
+          stationSlug: '',
+          departureId: dep.id,
+          destination: dep.destination,
+        });
+      }
+    } catch {
+      toast.error("Erreur lors de la résolution du retard");
+    }
+  };
+
   // ── CSV import ─────────────────────────────────────────
   const handleCsvUpload = async () => {
     if (!csvFile) {
@@ -744,6 +779,18 @@ export default function DeparturesPage() {
                                       <Timer className="w-3.5 h-3.5 mr-1" />
                                       Retard
                                     </Button>
+                                    {dep.status === 'DELAYED' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleResolutionDelay(dep)}
+                                        className="h-8 px-2 text-xs text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg"
+                                        title="Résoudre le retard"
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                        Résolu
+                                      </Button>
+                                    )}
                                     <Button
                                       variant="ghost"
                                       size="sm"

@@ -41,6 +41,7 @@ interface Departure {
   lineNumber: string;
   destination: string;
   effectiveTime: string;
+  scheduledTime: string;
   status: string;
   delayMinutes: number;
   platform: string | null;
@@ -103,6 +104,8 @@ function getStatusInfo(status: string, delayMinutes: number, isArrival?: boolean
       return { label: `RETARD +${delayMinutes} MIN`, cls: 'status-delayed blink-medium' };
     case 'CANCELLED':
       return { label: 'ANNULÉ', cls: 'status-cancelled' };
+    case 'RESOLUTION_RETARD':
+      return { label: 'RETARD RÉSOLU', cls: 'status-resolution-retard blink-slow' };
     case 'DEPARTED':
       return { label: 'PARTI', cls: 'status-departed' };
     case 'IMMINENT_ARRIVAL':
@@ -525,8 +528,8 @@ export default function SignageSlugPage() {
         const diffMs = scheduledTime.getTime() - now.getTime();
         const diffMin = diffMs / 60000;
 
-        // Phase 1: EMBARQUEMENT (T-10 min)
-        if (diffMin <= 10 && diffMin > 2 && dep.status === 'SCHEDULED') {
+        // Phase 1: EMBARQUEMENT (T-15 min)
+        if (diffMin <= 15 && diffMin > 2 && dep.status === 'SCHEDULED') {
           const key = `${dep.id}:boarding`;
           if (!announced.has(key)) {
             announced.add(key);
@@ -545,8 +548,8 @@ export default function SignageSlugPage() {
           }
         }
 
-        // Phase 2: DÉPART IMMINENT (T-2 min)
-        if (diffMin <= 2 && diffMin > -5 && dep.status !== 'DEPARTED' && dep.status !== 'CANCELLED') {
+        // Phase 2: DÉPART IMMINENT (T-2 min) — also allow DELAYED departures
+        if (diffMin <= 2 && diffMin > -5 && dep.status !== 'DEPARTED' && dep.status !== 'CANCELLED' && dep.status !== 'RESOLUTION_RETARD') {
           const key = `${dep.id}:imminent`;
           if (!announced.has(key)) {
             announced.add(key);
@@ -576,8 +579,9 @@ export default function SignageSlugPage() {
                 d.id === dep.id ? { ...d, status: 'DELAYED', delayMinutes: Math.abs(Math.round(diffMin)) } : d
               )
             } : prev);
+            const delayMins = Math.abs(Math.round(diffMin));
             addToQueue(
-              `Madame, Monsieur, le bus en direction de ${dep.destination} est en retard de quelques minutes, merci de patienter.`,
+              `Madame, Monsieur, le bus en direction de ${dep.destination} est en retard de ${delayMins} minutes, merci de patienter.`,
               AnnouncementPriority.HIGH,
               undefined,
               key
@@ -589,6 +593,36 @@ export default function SignageSlugPage() {
 
     checkPhases();
     const id = setInterval(checkPhases, 30000); // Check every 30 seconds
+    return () => clearInterval(id);
+  }, [data]);
+
+  /* ─── Delay Repeat Timer (every 5min) ─────────────────── */
+  useEffect(() => {
+    if (!data) return;
+
+    const repeatDelayAnnouncements = () => {
+      if (!data) return;
+      const announced = announcedRef.current;
+
+      for (const dep of data.departures) {
+        if (dep.status === 'DELAYED') {
+          // Use timestamp-based key to allow repeat (different from one-time key)
+          const repeatKey = `${dep.id}:delayrepeat:${Math.floor(Date.now() / 300000)}`;
+          if (!announced.has(repeatKey)) {
+            announced.add(repeatKey);
+            addToQueue(
+              `Madame, Monsieur, le bus en direction de ${dep.destination} est toujours en retard. Nous vous prions de patienter.`,
+              AnnouncementPriority.NORMAL,
+              undefined,
+              repeatKey
+            );
+          }
+        }
+      }
+    };
+
+    repeatDelayAnnouncements();
+    const id = setInterval(repeatDelayAnnouncements, 300000); // every 5 minutes
     return () => clearInterval(id);
   }, [data]);
 
@@ -657,6 +691,12 @@ export default function SignageSlugPage() {
           ),
         };
       });
+      addToQueue(
+        `Attention, le départ en direction de ${payload.destination} est annulé. Nous nous excusons pour la gêne occasionnée.`,
+        AnnouncementPriority.HIGH,
+        undefined,
+        `${payload.departureId}:cancelled`
+      );
     });
 
     socket.on('kiosk:boarding', (payload: { departureId: string; destination: string; scheduledTime: string; platform: string | null; timestamp: number }) => {
@@ -692,6 +732,24 @@ export default function SignageSlugPage() {
         AnnouncementPriority.CRITICAL,
         undefined,
         `${payload.departureId}:imminent`
+      );
+    });
+
+    socket.on('kiosk:resolutionDelay', (payload: { departureId: string; destination: string; timestamp: number }) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          departures: prev.departures.map((d) =>
+            d.id === payload.departureId ? { ...d, status: 'RESOLUTION_RETARD', delayMinutes: 0 } : d
+          ),
+        };
+      });
+      addToQueue(
+        `Merci de votre patience, le bus en direction de ${payload.destination} va partir. Merci de monter à bord.`,
+        AnnouncementPriority.HIGH,
+        undefined,
+        `${payload.departureId}:resolution`
       );
     });
 
@@ -1274,10 +1332,11 @@ html, body {
   color: #ef4444;
   text-shadow: 0 0 20px rgba(239, 68, 68, 0.9);
   animation: blink-fast 0.5s infinite;
+  font-weight: 900;
 }
 .departures-panel .status-delayed {
-  color: #ef4444;
-  text-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+  color: #f97316;
+  text-shadow: 0 0 15px rgba(249, 115, 22, 0.8);
   animation: blink-medium 1s infinite;
 }
 .departures-panel .status-cancelled {
@@ -1285,9 +1344,16 @@ html, body {
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.9);
   text-decoration: line-through;
 }
+.departures-panel .status-resolution-retard {
+  color: #4ade80;
+  text-shadow: 0 0 15px rgba(74, 222, 128, 0.8);
+  animation: blink-slow 1.5s infinite;
+}
 .departures-panel .status-departed {
   color: #666;
   text-shadow: none;
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 .departures-panel .status-imminent-arrival {
   color: #00d4ff;
@@ -1320,6 +1386,7 @@ html, body {
   color: #ef4444;
   text-shadow: 0 0 20px rgba(239, 68, 68, 0.9);
   animation: blink-fast 0.5s infinite;
+  font-weight: 900;
 }
 .arrivals-panel .status-delayed {
   color: #ef4444;
@@ -1338,6 +1405,11 @@ html, body {
   color: #ef4444;
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.9);
   text-decoration: line-through;
+}
+.arrivals-panel .status-resolution-retard {
+  color: #4ade80;
+  text-shadow: 0 0 15px rgba(74, 222, 128, 0.8);
+  animation: blink-slow 1.5s infinite;
 }
 
 /* ─── 3-LEVEL BLINKING SYSTEM ─── */

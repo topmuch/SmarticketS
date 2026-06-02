@@ -249,6 +249,24 @@ io.on('connection', (socket: Socket) => {
     },
   );
 
+  // ----- kiosk:resolutionDelay ------------------------------------
+  socket.on(
+    'kiosk:resolutionDelay',
+    (payload: {
+      departureId: string;
+      destination: string;
+      stationSlug?: string;
+      timestamp?: number;
+    }) => {
+      const data = {
+        departureId: payload.departureId,
+        destination: payload.destination,
+        timestamp: payload.timestamp ?? Date.now(),
+      };
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:resolutionDelay', data);
+    },
+  );
+
   // ----- kiosk:config -------------------------------------------------------
   socket.on(
     'kiosk:config',
