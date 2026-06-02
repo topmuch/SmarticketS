@@ -482,14 +482,17 @@ export default function SignageSlugPage() {
           retryCount = MAX_RETRIES;
           setData(json);
 
-          // Audio alerts for boarding departures
+          // Audio alerts for boarding departures (use departureKey to prevent duplicates)
           if (json.alertSoundEnabled !== false) {
             for (const dep of json.departures) {
               if (dep.shouldPlayAlert && !announcedRef.current.has(dep.id)) {
                 announcedRef.current.add(dep.id);
+                const dedupKey = `${dep.id}:alert`;
                 addToQueue(
                   `Madame, Monsieur, les passagers en direction de ${dep.destination} sont priés de monter à bord. Le bus va partir à ${dep.effectiveTime}. Quai ${dep.platform}.`,
-                  AnnouncementPriority.MEDIUM
+                  AnnouncementPriority.MEDIUM,
+                  undefined,
+                  dedupKey
                 );
               }
             }
@@ -616,7 +619,9 @@ export default function SignageSlugPage() {
       // Queue audio announcement
       addToQueue(
         `Madame, Monsieur, le bus en direction de ${payload.destination} est en retard de ${payload.minutes} minutes.`,
-        AnnouncementPriority.HIGH
+        AnnouncementPriority.HIGH,
+        undefined,
+        `${payload.departureId}:delay`
       );
     });
 
@@ -636,7 +641,9 @@ export default function SignageSlugPage() {
       // Queue audio
       addToQueue(
         `Merci de votre patience, le bus en direction de ${payload.destination} va partir.`,
-        AnnouncementPriority.CRITICAL
+        AnnouncementPriority.CRITICAL,
+        undefined,
+        `${payload.departureId}:departed`
       );
     });
 
@@ -690,7 +697,7 @@ export default function SignageSlugPage() {
 
     socket.on('kiosk:generalMessage', (payload: { text: string; priority: number; timestamp: number }) => {
       // Play the general announcement via TTS immediately
-      addToQueue(payload.text, AnnouncementPriority.LOW);
+      addToQueue(payload.text, AnnouncementPriority.LOW, undefined, `gm:${payload.timestamp}`);
       // Also show on ticker for visual display
       setData((prev) => {
         if (!prev) return prev;
@@ -728,7 +735,7 @@ export default function SignageSlugPage() {
     socket.on('kiosk:manualAnnounce', (payload: { text: string; priority?: number; timestamp: number }) => {
       // Map payload.priority to AnnouncementPriority and queue
       const priority = AnnouncementPriority[(payload.priority as keyof typeof AnnouncementPriority)] || AnnouncementPriority.HIGH;
-      addToQueue(payload.text, priority);
+      addToQueue(payload.text, priority, undefined, `ma:${payload.timestamp}`);
       // Also show on ticker for visual display
       setData((prev) => {
         if (!prev) return prev;
