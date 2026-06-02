@@ -40,10 +40,14 @@ import {
   Trash2,
   RefreshCw,
   Megaphone,
-  Clock,
 } from 'lucide-react';
-import { playDingDong, speakFrench } from '@/lib/audioSystem';
-import { AnnouncementPriority } from '@/lib/audioSystem';
+import {
+  addToQueue,
+  preloadVoices,
+  playDingDong,
+  speakFrench,
+  AnnouncementPriority,
+} from '@/lib/audioSystem';
 
 // ── Types ──────────────────────────────────────────────────
 interface NotificationTemplate {
@@ -68,8 +72,7 @@ interface NewTemplateForm {
 interface SendModalState {
   open: boolean;
   template: NotificationTemplate | null;
-  nom: string;
-  guichet: string;
+  fields: Record<string, string>;
 }
 
 interface EditModalState {
@@ -174,10 +177,42 @@ const PRIORITY_CONFIG: Record<NotificationTemplate['priority'], { label: string;
 };
 
 const priorityMap: Record<NotificationTemplate['priority'], number> = {
-  P1_URGENT: AnnouncementPriority.CRITICAL,
+  P1_URGENT: AnnouncementPriority.URGENT,
   P2_HIGH: AnnouncementPriority.HIGH,
-  P3_NORMAL: AnnouncementPriority.MEDIUM,
+  P3_NORMAL: AnnouncementPriority.NORMAL,
   P4_LOW: AnnouncementPriority.LOW,
+};
+
+// Which fields each template type needs for the send modal
+const TYPE_FIELDS: Record<string, { key: string; label: string; placeholder: string }[]> = {
+  BOARDING: [
+    { key: 'DESTINATION', label: 'Destination', placeholder: 'Ex : Abidjan' },
+    { key: 'QUAI', label: 'Numéro de quai', placeholder: 'Ex : Quai 3' },
+    { key: 'HEURE', label: 'Heure de départ', placeholder: 'Ex : 14h30' },
+  ],
+  IMMINENT: [
+    { key: 'DESTINATION', label: 'Destination', placeholder: 'Ex : Abidjan' },
+  ],
+  DELAY: [
+    { key: 'DESTINATION', label: 'Destination', placeholder: 'Ex : Abidjan' },
+    { key: 'MINUTES', label: 'Minutes de retard', placeholder: 'Ex : 15' },
+  ],
+  DEPARTED: [
+    { key: 'DESTINATION', label: 'Destination', placeholder: 'Ex : Abidjan' },
+  ],
+  CANCELLED: [
+    { key: 'DESTINATION', label: 'Destination', placeholder: 'Ex : Abidjan' },
+  ],
+  CLIENT_CALL: [
+    { key: 'NOM', label: 'Nom du client', placeholder: 'Ex : Jean Dupont' },
+    { key: 'QUAI', label: 'Numéro de guichet / Quai', placeholder: 'Ex : Quai 3' },
+  ],
+  DRIVER_CALL: [
+    { key: 'NOM', label: 'Nom du chauffeur', placeholder: 'Ex : Koné Ibrahim' },
+    { key: 'QUAI', label: 'Numéro de quai', placeholder: 'Ex : Quai 3' },
+  ],
+  SECURITY: [],
+  GENERAL: [],
 };
 
 const emptyNewForm: NewTemplateForm = {
@@ -196,14 +231,16 @@ export default function AgencyNotificationsPage() {
   // Test state (for local playback)
   const [testing, setTesting] = useState<string | null>(null);
 
-  // Send modal (for CLIENT_CALL and DRIVER_CALL)
+  // Sending state
+  const [sending, setSending] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  // Send modal
   const [sendModal, setSendModal] = useState<SendModalState>({
     open: false,
     template: null,
-    nom: '',
-    guichet: '',
+    fields: {},
   });
-  const [sending, setSending] = useState(false);
 
   // Edit modal
   const [editModal, setEditModal] = useState<EditModalState>({
@@ -220,13 +257,16 @@ export default function AgencyNotificationsPage() {
   const socketRef = useRef<Socket | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
 
-  // ── WebSocket connection to kiosk-service (port 3004) ──
+  // ── Preload TTS voices + WebSocket connection ──
   useEffect(() => {
+    preloadVoices();
+
     const socket = io('/?XTransformPort=3004');
     socketRef.current = socket;
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
     socket.on('connect_error', () => setSocketConnected(false));
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -236,29 +276,25 @@ export default function AgencyNotificationsPage() {
 
   // ── Resolve template text with variables ──────────────
   const resolveText = useCallback(
-    (template: NotificationTemplate, vars?: { DESTINATION?: string; NOM?: string; QUAI?: string; MINUTES?: string; HEURE?: string }) => {
+    (template: NotificationTemplate, vars: Record<string, string>) => {
       let resolved = template.text;
-      if (vars) {
-        resolved = resolved.replace(/\{DESTINATION\}/g, vars.DESTINATION || '???');
-        resolved = resolved.replace(/\{NOM\}/g, vars.NOM || '???');
-        resolved = resolved.replace(/\{QUAI\}/g, vars.QUAI || '???');
-        resolved = resolved.replace(/\{MINUTES\}/g, vars.MINUTES || '???');
-        resolved = resolved.replace(/\{HEURE\}/g, vars.HEURE || '???');
+      for (const [key, value] of Object.entries(vars)) {
+        resolved = resolved.replace(new RegExp(`\\{${key}\\}`, 'g'), value || '???');
       }
       return resolved;
     },
     [],
   );
 
-  // ── Play announcement locally (audio feedback) ───────
-  const playLocalAnnouncement = useCallback(async (text: string) => {
-    try {
-      playDingDong();
-      await new Promise((r) => setTimeout(r, 3000));
-      await speakFrench(text);
-    } catch {
-      // Local playback may fail in some environments (no audio, etc.)
-    }
+  // ── Update template stats ───────────────────────────
+  const updateTemplateStats = useCallback((templateId: string) => {
+    setTemplates((prev) =>
+      prev.map((t) =>
+        t.id === templateId
+          ? { ...t, lastSentAt: new Date().toISOString(), sendCount: t.sendCount + 1 }
+          : t,
+      ),
+    );
   }, []);
 
   // ── Broadcast to kiosks via socket ──────────────────
@@ -275,96 +311,119 @@ export default function AgencyNotificationsPage() {
     return false;
   }, []);
 
-  // ── Update template stats ───────────────────────────
-  const updateTemplateStats = useCallback((templateId: string) => {
-    setTemplates((prev) =>
-      prev.map((t) =>
-        t.id === templateId
-          ? { ...t, lastSentAt: new Date().toISOString(), sendCount: t.sendCount + 1 }
-          : t,
-      ),
-    );
+  // ── Play announcement locally using the audio queue ──
+  const playLocalAnnouncement = useCallback((text: string, priority: number) => {
+    addToQueue(text, priority as AnnouncementPriority);
   }, []);
 
-  // ── Handle Test (local playback only) ───────────────
+  // ── Handle Test (local playback only, raw template text) ──
   const handleTest = useCallback(async (template: NotificationTemplate) => {
     setTesting(template.id);
     try {
       playDingDong();
-      await new Promise((r) => setTimeout(r, 3000));
-      await speakFrench(template.text);
-      toast.success(`Test réussi : "${template.name}"`);
-    } catch {
+      await new Promise((r) => setTimeout(r, 2000));
+      const ok = await speakFrench(template.text);
+      if (ok) {
+        toast.success(`Test réussi : "${template.name}"`);
+      } else {
+        toast.error(`TTS échoué — les voix ne sont pas encore chargées. Réessayez dans quelques secondes.`);
+      }
+    } catch (err) {
       toast.error(`Erreur lors du test de "${template.name}"`);
+      console.error('[Notifications] handleTest error:', err);
     } finally {
       setTesting(null);
     }
   }, []);
 
-  // ── Handle Direct Send (SECURITY, GENERAL) ────────────
-  const handleDirectSend = useCallback(async (template: NotificationTemplate) => {
-    const resolvedText = template.text;
+  // ── Handle Diffuser click (table row button) ────────
+  const handleDiffuserClick = useCallback((template: NotificationTemplate) => {
+    const requiredFields = TYPE_FIELDS[template.type] || [];
 
-    // Always play locally first
-    await playLocalAnnouncement(resolvedText);
-
-    // Then broadcast to kiosks
-    const broadcasted = broadcastToKiosks(resolvedText, template.type, priorityMap[template.priority]);
-
-    // Update stats
-    updateTemplateStats(template.id);
-
-    if (broadcasted) {
-      toast.success(`Notification "${template.name}" diffusée (localement + kiosques)`);
+    if (requiredFields.length > 0) {
+      // Open modal to collect variables
+      const initialFields: Record<string, string> = {};
+      for (const f of requiredFields) {
+        initialFields[f.key] = '';
+      }
+      setSendModal({ open: true, template, fields: initialFields });
     } else {
-      toast.warning(`Notification "${template.name}" diffusée localement (kiosques non connectés)`);
+      // No variables needed — broadcast directly
+      handleDirectDiffuser(template);
+    }
+  }, []);
+
+  // ── Handle Direct Diffuser (SECURITY, GENERAL — no variables) ──
+  const handleDirectDiffuser = useCallback((template: NotificationTemplate) => {
+    setSending(true);
+    setSendingId(template.id);
+
+    try {
+      playLocalAnnouncement(template.text, priorityMap[template.priority]);
+      const broadcasted = broadcastToKiosks(template.text, template.type, priorityMap[template.priority]);
+      updateTemplateStats(template.id);
+
+      if (broadcasted) {
+        toast.success(`📢 "${template.name}" — Annonce diffusée (local + kiosques)`);
+      } else {
+        toast.success(`📢 "${template.name}" — Annonce diffusée localement (kiosques non connectés)`);
+      }
+    } catch (err) {
+      toast.error(`Erreur lors de la diffusion de "${template.name}"`);
+      console.error('[Notifications] handleDirectDiffuser error:', err);
+    } finally {
+      setTimeout(() => {
+        setSending(false);
+        setSendingId(null);
+      }, 1500);
     }
   }, [playLocalAnnouncement, broadcastToKiosks, updateTemplateStats]);
 
-  // ── Handle Send Click (table row button) ─────────────
-  const handleSendClick = useCallback((template: NotificationTemplate) => {
-    if (template.type === 'CLIENT_CALL' || template.type === 'DRIVER_CALL') {
-      setSendModal({ open: true, template, nom: '', guichet: '' });
-    } else {
-      handleDirectSend(template);
-    }
-  }, [handleDirectSend]);
-
-  // ── Handle Send Submit (modal confirm) ────────────────
-  const handleSendSubmit = useCallback(async () => {
+  // ── Handle Send Submit (modal confirm — with variables) ──
+  const handleSendSubmit = useCallback(() => {
     if (!sendModal.template) return;
 
-    const { template, nom, guichet } = sendModal;
+    const { template, fields } = sendModal;
+    const requiredFields = TYPE_FIELDS[template.type] || [];
 
-    if (!nom.trim() || !guichet.trim()) {
-      toast.error('Veuillez remplir tous les champs');
-      return;
+    // Validate all fields are filled
+    for (const f of requiredFields) {
+      if (!fields[f.key]?.trim()) {
+        toast.error(`Veuillez remplir le champ "${f.label}"`);
+        return;
+      }
     }
 
-    const resolvedText = resolveText(template, {
-      NOM: nom.trim(),
-      QUAI: guichet.trim(),
-    });
+    // Resolve text with user-provided values
+    const resolvedFields: Record<string, string> = {};
+    for (const f of requiredFields) {
+      resolvedFields[f.key] = fields[f.key]?.trim() || '';
+    }
+    const resolvedText = resolveText(template, resolvedFields);
 
     setSending(true);
+    setSendingId(template.id);
 
-    // Always play locally first
-    await playLocalAnnouncement(resolvedText);
+    try {
+      playLocalAnnouncement(resolvedText, priorityMap[template.priority]);
+      const broadcasted = broadcastToKiosks(resolvedText, template.type, priorityMap[template.priority]);
+      updateTemplateStats(template.id);
 
-    // Then broadcast to kiosks
-    const broadcasted = broadcastToKiosks(resolvedText, template.type, priorityMap[template.priority]);
-
-    // Update stats
-    updateTemplateStats(template.id);
-
-    if (broadcasted) {
-      toast.success(`Notification "${template.name}" diffusée (localement + kiosques)`);
-    } else {
-      toast.warning(`Notification "${template.name}" diffusée localement (kiosques non connectés)`);
+      if (broadcasted) {
+        toast.success(`📢 "${template.name}" — Annonce diffusée (local + kiosques)`);
+      } else {
+        toast.success(`📢 "${template.name}" — Annonce diffusée localement (kiosques non connectés)`);
+      }
+    } catch (err) {
+      toast.error(`Erreur lors de la diffusion de "${template.name}"`);
+      console.error('[Notifications] handleSendSubmit error:', err);
+    } finally {
+      setSendModal({ open: false, template: null, fields: {} });
+      setTimeout(() => {
+        setSending(false);
+        setSendingId(null);
+      }, 1500);
     }
-
-    setSendModal({ open: false, template: null, nom: '', guichet: '' });
-    setSending(false);
   }, [sendModal, resolveText, playLocalAnnouncement, broadcastToKiosks, updateTemplateStats]);
 
   // ── Handle Edit ───────────────────────────────────────
@@ -451,11 +510,11 @@ export default function AgencyNotificationsPage() {
 
   // ── Compute preview text for send modal ──────────────
   const sendPreview = sendModal.template
-    ? resolveText(sendModal.template, {
-        NOM: sendModal.nom || '???',
-        QUAI: sendModal.guichet || '???',
-      })
+    ? resolveText(sendModal.template, sendModal.fields)
     : '';
+
+  // ── Modal field definitions for current template ──────
+  const modalFields = sendModal.template ? (TYPE_FIELDS[sendModal.template.type] || []) : [];
 
   // ── Render ────────────────────────────────────────────
   return (
@@ -620,19 +679,18 @@ export default function AgencyNotificationsPage() {
                           {testing === template.id ? 'En cours...' : 'Tester'}
                         </Button>
 
-                        {!template.isAuto && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSendClick(template)}
-                            disabled={sending || !template.isActive}
-                            className="h-8 px-2 text-xs text-[#FF1D8D] hover:text-[#FF1D8D]/80 hover:bg-[#FF1D8D]/10 rounded-lg"
-                            title="Diffuser localement et aux kiosques"
-                          >
-                            <Send className={`w-3.5 h-3.5 mr-1 ${sending ? 'animate-pulse' : ''}`} />
-                            {sending ? 'Envoi...' : 'Diffuser'}
-                          </Button>
-                        )}
+                        {/* Diffuser button — ALL templates */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDiffuserClick(template)}
+                          disabled={sendingId === template.id || !template.isActive}
+                          className="h-8 px-2 text-xs text-[#FF1D8D] hover:text-[#FF1D8D]/80 hover:bg-[#FF1D8D]/10 rounded-lg font-semibold"
+                          title="Diffuser l'annonce vocale"
+                        >
+                          <Send className={`w-3.5 h-3.5 mr-1 ${sendingId === template.id ? 'animate-pulse' : ''}`} />
+                          {sendingId === template.id ? 'Diffusion...' : 'Diffuser'}
+                        </Button>
 
                         <Button
                           variant="ghost"
@@ -694,62 +752,56 @@ export default function AgencyNotificationsPage() {
       {/* DIALOGS                                            */}
       {/* ════════════════════════════════════════════════════ */}
 
-      {/* ── Send Modal ── */}
+      {/* ── Send Modal (dynamic fields based on template type) ── */}
       <Dialog
         open={sendModal.open}
         onOpenChange={(open) => {
-          if (!open) setSendModal({ open: false, template: null, nom: '', guichet: '' });
+          if (!open) setSendModal({ open: false, template: null, fields: {} });
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Megaphone className="w-5 h-5 text-[#FF1D8D]" />
-              Envoyer : {sendModal.template?.name}
+              Diffuser : {sendModal.template?.name}
             </DialogTitle>
             <DialogDescription>
               Remplissez les informations pour personnaliser l&apos;annonce vocale.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="send-nom">
-                Nom {sendModal.template?.type === 'DRIVER_CALL' ? 'du chauffeur' : 'du client'}
-              </Label>
-              <Input
-                id="send-nom"
-                placeholder="Ex : Jean Dupont"
-                value={sendModal.nom}
-                onChange={(e) =>
-                  setSendModal((prev) => ({ ...prev, nom: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="send-guichet">Numéro de guichet / Quai</Label>
-              <Input
-                id="send-guichet"
-                placeholder="Ex : Quai 3"
-                value={sendModal.guichet}
-                onChange={(e) =>
-                  setSendModal((prev) => ({ ...prev, guichet: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Aperçu</Label>
-              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
-                <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
-                  &ldquo;{sendPreview}&rdquo;
-                </p>
+            {modalFields.map((field) => (
+              <div key={field.key} className="space-y-2">
+                <Label htmlFor={`send-${field.key}`}>{field.label}</Label>
+                <Input
+                  id={`send-${field.key}`}
+                  placeholder={field.placeholder}
+                  value={sendModal.fields[field.key] || ''}
+                  onChange={(e) =>
+                    setSendModal((prev) => ({
+                      ...prev,
+                      fields: { ...prev.fields, [field.key]: e.target.value },
+                    }))
+                  }
+                />
               </div>
-            </div>
+            ))}
+            {modalFields.length > 0 && (
+              <div className="space-y-2">
+                <Label>Aperçu de l&apos;annonce</Label>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                    &ldquo;{sendPreview}&rdquo;
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() =>
-                setSendModal({ open: false, template: null, nom: '', guichet: '' })
+                setSendModal({ open: false, template: null, fields: {} })
               }
               className="rounded-xl"
             >
@@ -757,7 +809,10 @@ export default function AgencyNotificationsPage() {
             </Button>
             <Button
               onClick={handleSendSubmit}
-              disabled={sending || !sendModal.nom.trim() || !sendModal.guichet.trim()}
+              disabled={
+                sending ||
+                modalFields.some((f) => !sendModal.fields[f.key]?.trim())
+              }
               className="bg-[#FF1D8D] hover:bg-[#FF1D8D]/90 text-white rounded-xl"
             >
               <Send className={`w-4 h-4 mr-1.5 ${sending ? 'animate-pulse' : ''}`} />
