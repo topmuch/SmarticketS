@@ -296,22 +296,23 @@ export async function GET(
 
       let computedStatus: string;
 
-      if (dep.status === 'DELAYED' || delayMinutes > 0) {
+      // Admin-forced statuses take priority
+      if (dep.status === 'ARRIVED') {
+        computedStatus = 'ARRIVED';
+      } else if (dep.status === 'CANCELLED') {
+        computedStatus = 'CANCELLED';
+      } else if (dep.status === 'DELAYED' || delayMinutes > 0) {
         computedStatus = 'DELAYED';
-        if (diffMin <= 5 && diffMin > -3) computedStatus = 'BOARDING';
-        else if (diffMin <= -3) computedStatus = 'DEPARTED';
-      } else if (diffMin > 5) {
+      } else if (diffMin <= 10 && diffMin > 0) {
+        // Within 10 minutes → IMMINENT_ARRIVAL (arrival imminent)
+        computedStatus = 'IMMINENT_ARRIVAL';
+      } else if (diffMin <= 0 && diffMin > -60) {
+        // Time passed but within 60 minutes → ARRIVED
+        computedStatus = 'ARRIVED';
+      } else if (diffMin > 10) {
         computedStatus = 'SCHEDULED';
-      } else if (diffMin <= 5 && diffMin > -3) {
-        computedStatus = 'BOARDING';
-      } else if (diffMin > -60) {
-        computedStatus = 'DEPARTED';
       } else {
         continue;
-      }
-
-      if (dep.status === 'CANCELLED') {
-        computedStatus = 'CANCELLED';
       }
 
       const os = (dep as Record<string, unknown>).originStation as { name?: string } | null;

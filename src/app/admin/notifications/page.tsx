@@ -57,7 +57,7 @@ import {
 interface NotificationTemplate {
   id: string;
   name: string;
-  type: 'BOARDING' | 'IMMINENT' | 'DELAY' | 'DEPARTED' | 'CANCELLED' | 'CLIENT_CALL' | 'DRIVER_CALL' | 'SECURITY' | 'GENERAL';
+  type: 'BOARDING' | 'IMMINENT' | 'DELAY' | 'DEPARTED' | 'CANCELLED' | 'CLIENT_CALL' | 'DRIVER_CALL' | 'SECURITY' | 'GENERAL' | 'ARRIVAL_INCOMING' | 'ARRIVAL_ARRIVED' | 'ARRIVAL_DELAYED' | 'ARRIVAL_CANCELLED';
   text: string;
   priority: 'P1_URGENT' | 'P2_HIGH' | 'P3_NORMAL' | 'P4_LOW';
   isAuto: boolean;
@@ -157,6 +157,47 @@ const DEFAULT_TEMPLATES: NotificationTemplate[] = [
     isActive: true,
     sendCount: 0,
   },
+  // ── Arrival templates ──
+  {
+    id: '8',
+    name: 'Arrivée imminente',
+    type: 'ARRIVAL_INCOMING',
+    text: "Le bus en provenance de {VILLE_ORIGINE} arrivera dans environ 10 minutes au quai {QUAI}. Les passagers attendant ce bus sont priés de se rapprocher de la zone d'arrivée.",
+    priority: 'P3_NORMAL',
+    isAuto: true,
+    isActive: true,
+    sendCount: 0,
+  },
+  {
+    id: '9',
+    name: 'Arrivé (bus à quai)',
+    type: 'ARRIVAL_ARRIVED',
+    text: "Le bus en provenance de {VILLE_ORIGINE} est arrivé au quai {QUAI}. Les passagers peuvent descendre. Les destinataires de colis sont invités à se présenter au guichet bagages.",
+    priority: 'P2_HIGH',
+    isAuto: true,
+    isActive: true,
+    sendCount: 0,
+  },
+  {
+    id: '10',
+    name: 'Retard arrivée',
+    type: 'ARRIVAL_DELAYED',
+    text: 'Information. Le bus en provenance de {VILLE_ORIGINE} accuse un retard estimé à {X} minutes. Nous vous remercions de votre patience.',
+    priority: 'P2_HIGH',
+    isAuto: true,
+    isActive: true,
+    sendCount: 0,
+  },
+  {
+    id: '11',
+    name: 'Arrivée annulée',
+    type: 'ARRIVAL_CANCELLED',
+    text: "Attention. Le bus en provenance de {VILLE_ORIGINE} prévu à {HEURE} n'arrivera pas. Les passagers sont priés de contacter le guichet pour assistance.",
+    priority: 'P2_HIGH',
+    isAuto: true,
+    isActive: true,
+    sendCount: 0,
+  },
 ];
 
 // ── Helpers ────────────────────────────────────────────────
@@ -171,6 +212,10 @@ const TYPE_LABELS: Record<NotificationTemplate['type'], string> = {
   DRIVER_CALL: 'Appel Chauffeur',
   SECURITY: 'Sécurité',
   GENERAL: 'Général',
+  ARRIVAL_INCOMING: 'Arrivée imminente',
+  ARRIVAL_ARRIVED: 'Arrivé',
+  ARRIVAL_DELAYED: 'Retard arrivée',
+  ARRIVAL_CANCELLED: 'Arrivée annulée',
 };
 
 const PRIORITY_CONFIG: Record<NotificationTemplate['priority'], { label: string; color: string }> = {
@@ -217,6 +262,23 @@ const TYPE_FIELDS: Record<string, { key: string; label: string; placeholder: str
   ],
   SECURITY: [],
   GENERAL: [],
+  // ── Arrival template fields ──
+  ARRIVAL_INCOMING: [
+    { key: 'VILLE_ORIGINE', label: "Ville d'origine", placeholder: 'Ex : Dakar' },
+    { key: 'QUAI', label: "Numéro de quai", placeholder: 'Ex : Quai 3' },
+  ],
+  ARRIVAL_ARRIVED: [
+    { key: 'VILLE_ORIGINE', label: "Ville d'origine", placeholder: 'Ex : Dakar' },
+    { key: 'QUAI', label: "Numéro de quai", placeholder: 'Ex : Quai 3' },
+  ],
+  ARRIVAL_DELAYED: [
+    { key: 'VILLE_ORIGINE', label: "Ville d'origine", placeholder: 'Ex : Dakar' },
+    { key: 'X', label: 'Minutes de retard', placeholder: 'Ex : 15' },
+  ],
+  ARRIVAL_CANCELLED: [
+    { key: 'VILLE_ORIGINE', label: "Ville d'origine", placeholder: 'Ex : Dakar' },
+    { key: 'HEURE', label: 'Heure prévue', placeholder: 'Ex : 14h30' },
+  ],
 };
 
 const emptyNewForm: NewTemplateForm = {
@@ -797,10 +859,12 @@ export default function NotificationsPage() {
           <div className="flex flex-wrap gap-2">
             {[
               { var: '{DESTINATION}', desc: 'Destination du bus' },
+              { var: '{VILLE_ORIGINE}', desc: "Ville d'origine du bus (arrivées)" },
               { var: '{NOM}', desc: 'Nom de la personne' },
               { var: '{QUAI}', desc: 'Numéro de quai / guichet' },
               { var: '{MINUTES}', desc: 'Minutes de retard' },
-              { var: '{HEURE}', desc: 'Heure de départ' },
+              { var: '{X}', desc: 'Minutes de retard (arrivées)' },
+              { var: '{HEURE}', desc: 'Heure de départ / arrivée' },
             ].map((v) => (
               <code
                 key={v.var}
@@ -996,6 +1060,10 @@ export default function NotificationsPage() {
                     <SelectItem value="DELAY">Retard</SelectItem>
                     <SelectItem value="DEPARTED">Départ effectué</SelectItem>
                     <SelectItem value="CANCELLED">Annulé</SelectItem>
+                    <SelectItem value="ARRIVAL_INCOMING">Arrivée imminente</SelectItem>
+                    <SelectItem value="ARRIVAL_ARRIVED">Arrivé</SelectItem>
+                    <SelectItem value="ARRIVAL_DELAYED">Retard arrivée</SelectItem>
+                    <SelectItem value="ARRIVAL_CANCELLED">Arrivée annulée</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

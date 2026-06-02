@@ -748,7 +748,7 @@ model Departure {
   platform        String?
   availableSeats  Int      @default(45)
   totalSeats      Int      @default(45)
-  status          String   @default("SCHEDULED") // SCHEDULED, BOARDING, DEPARTED, CANCELLED, DELAYED
+  status          String   @default("SCHEDULED") // SCHEDULED, BOARDING, DEPARTED, CANCELLED, DELAYED, ARRIVED, IMMINENT_ARRIVAL
   delayMinutes    Int      @default(0)
 
   // Relations multi-gares

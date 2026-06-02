@@ -1102,11 +1102,75 @@ export function buildDepartedAfterDelayText(destination: string): string {
 }
 
 /**
- * Build arrival announcement text.
+ * Build arrival announcement text (legacy — simple).
  * 🔵 ARRIVÉE
  */
 export function buildArrivalText(origin: string): string {
   return `Madame, Monsieur, le bus en provenance de ${origin} vient d'arriver à quai.`
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Arrival Phase-Based Announcement Templates
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Build imminent arrival announcement text (H-10 min).
+ * 🔵 ARRIVÉE IMMINENTE — P3 NORMAL
+ * Uses "en provenance de" (NEVER "à destination de" for arrivals).
+ */
+export function buildArrivalIncomingText(
+  origin: string,
+  platform: string | null,
+): string {
+  const platformText = platform ? ` au quai ${platform}` : '';
+  return `Le bus en provenance de ${origin} arrivera dans environ 10 minutes${platformText}. Les passagers attendant ce bus sont priés de se rapprocher de la zone d'arrivée.`;
+}
+
+/**
+ * Build arrival at platform announcement text (bus has arrived — confirmed by Admin or GPS).
+ * 🟢 ARRIVÉ — P2 HIGH
+ * Uses "en provenance de" (NEVER "à destination de" for arrivals).
+ */
+export function buildArrivalArrivedText(
+  origin: string,
+  platform: string | null,
+): string {
+  const platformText = platform ? ` au quai ${platform}` : '';
+  return `Le bus en provenance de ${origin} est arrivé${platformText}. Les passagers peuvent descendre. Les destinataires de colis sont invités à se présenter au guichet bagages.`;
+}
+
+/**
+ * Build arrival delay announcement text (H+10min without arrival).
+ * 🔴 RETARD ARRIVÉE — P2 HIGH
+ * Uses "en provenance de" (NEVER "à destination de" for arrivals).
+ */
+export function buildArrivalDelayedText(
+  origin: string,
+  minutes: number,
+): string {
+  return `Information. Le bus en provenance de ${origin} accuse un retard estimé à ${minutes} minutes. Nous vous remercions de votre patience.`;
+}
+
+/**
+ * Build cancelled arrival announcement text (Admin cancellation).
+ * 🔴 ARRIVÉE ANNULÉE — P2 HIGH
+ * Uses "en provenance de" (NEVER "à destination de" for arrivals).
+ */
+export function buildArrivalCancelledText(
+  origin: string,
+  time: string,
+): string {
+  return `Attention. Le bus en provenance de ${origin} prévu à ${time} n'arrivera pas. Les passagers sont priés de contacter le guichet pour assistance.`;
+}
+
+/**
+ * Build repeated delay arrival announcement text (every 5 min repeat).
+ * 🔴 RETARD ARRIVÉE (RÉPÉTITION) — P2 HIGH
+ */
+export function buildArrivalDelayRepeatText(
+  origin: string,
+): string {
+  return `Information. Le bus en provenance de ${origin} est toujours en retard. Nous vous remercions de votre patience et vous tiendrons informés.`;
 }
 
 /**

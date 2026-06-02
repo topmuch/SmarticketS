@@ -35,7 +35,7 @@ const updateDepartureSchema = z.object({
   platform: z.string().optional().nullable(),
   availableSeats: z.number().int().min(0).optional(),
   totalSeats: z.number().int().min(1).optional(),
-  status: z.enum(['SCHEDULED', 'BOARDING', 'DEPARTED', 'CANCELLED', 'DELAYED']).optional(),
+  status: z.enum(['SCHEDULED', 'BOARDING', 'DEPARTED', 'CANCELLED', 'DELAYED', 'ARRIVED', 'IMMINENT_ARRIVAL']).optional(),
   delayMinutes: z.number().int().min(0).optional(),
   // Multi-gare: station linkage
   originStationId: z.string().optional().nullable(),
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     const statusParam = searchParams.get('status');
 
     // Validate status param against allowed values
-    const ALLOWED_STATUSES = ['SCHEDULED', 'BOARDING', 'DEPARTED', 'CANCELLED', 'DELAYED'];
+    const ALLOWED_STATUSES = ['SCHEDULED', 'BOARDING', 'DEPARTED', 'CANCELLED', 'DELAYED', 'ARRIVED', 'IMMINENT_ARRIVAL'];
     if (statusParam && !ALLOWED_STATUSES.includes(statusParam)) {
       return NextResponse.json(
         { error: `Statut invalide: ${statusParam}. Valeurs autorisées: ${ALLOWED_STATUSES.join(', ')}` },

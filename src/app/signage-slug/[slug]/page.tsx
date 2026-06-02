@@ -14,6 +14,11 @@ import {
   toggleMute,
   setVolume,
   AnnouncementPriority,
+  buildArrivalIncomingText,
+  buildArrivalArrivedText,
+  buildArrivalDelayedText,
+  buildArrivalCancelledText,
+  buildArrivalDelayRepeatText,
 } from '@/lib/audioSystem';
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -111,7 +116,7 @@ function getStatusInfo(status: string, delayMinutes: number, isArrival?: boolean
     case 'IMMINENT_ARRIVAL':
       return { label: 'ARRIVÉE IMMINENTE', cls: 'status-imminent-arrival blink-slow' };
     case 'ARRIVED':
-      return { label: 'ARRIVÉ', cls: 'status-arrived' };
+      return { label: 'ARRIVÉ', cls: 'status-arrived blink-slow' };
     default:
       return { label: status, cls: 'status-ontime' };
   }
@@ -626,6 +631,102 @@ export default function SignageSlugPage() {
     return () => clearInterval(id);
   }, [data]);
 
+  /* ─── Arrival Auto Phase Detection ─────────────────── */
+  useEffect(() => {
+    if (!data) return;
+
+    const checkArrivalPhases = () => {
+      const now = new Date();
+      const announced = announcedRef.current;
+
+      for (const arr of data.arrivals) {
+        if (arr.status === 'DEPARTED' || arr.status === 'CANCELLED') continue;
+
+        // Parse scheduledTime from API (HH:MM string) to today's date
+        const [h, m] = arr.effectiveTime.split(':').map(Number);
+        const effective = new Date();
+        effective.setHours(h, m, 0, 0);
+        const diffMs = effective.getTime() - now.getTime();
+        const diffMin = diffMs / 60000;
+
+        // Phase 1: ARRIVÉE IMMINENTE (H-10 min)
+        if (diffMin <= 10 && diffMin > 0 && arr.status === 'SCHEDULED') {
+          const key = `${arr.id}:arrival_incoming`;
+          if (!announced.has(key)) {
+            announced.add(key);
+            setData(prev => prev ? {
+              ...prev,
+              arrivals: prev.arrivals.map(a =>
+                a.id === arr.id ? { ...a, status: 'IMMINENT_ARRIVAL' } : a
+              )
+            } : prev);
+            addToQueue(
+              buildArrivalIncomingText(arr.originStationName, arr.platform),
+              AnnouncementPriority.NORMAL,
+              undefined,
+              key
+            );
+          }
+        }
+
+        // Phase 2: Auto-delay for arrivals (H+10min without arrival)
+        if (diffMin < -10 && arr.status === 'SCHEDULED') {
+          const key = `${arr.id}:arrival_autodelay`;
+          if (!announced.has(key)) {
+            announced.add(key);
+            const delayMins = Math.abs(Math.round(diffMin));
+            setData(prev => prev ? {
+              ...prev,
+              arrivals: prev.arrivals.map(a =>
+                a.id === arr.id ? { ...a, status: 'DELAYED', delayMinutes: delayMins } : a
+              )
+            } : prev);
+            addToQueue(
+              buildArrivalDelayedText(arr.originStationName, delayMins),
+              AnnouncementPriority.HIGH,
+              undefined,
+              key
+            );
+          }
+        }
+      }
+    };
+
+    checkArrivalPhases();
+    const id = setInterval(checkArrivalPhases, 30000); // Check every 30 seconds
+    return () => clearInterval(id);
+  }, [data]);
+
+  /* ─── Arrival Delay Repeat Timer (every 5min) ────────── */
+  useEffect(() => {
+    if (!data) return;
+
+    const repeatArrivalDelayAnnouncements = () => {
+      if (!data) return;
+      const announced = announcedRef.current;
+
+      for (const arr of data.arrivals) {
+        if (arr.status === 'DELAYED') {
+          // Use timestamp-based key to allow repeat (different from one-time key)
+          const repeatKey = `${arr.id}:arrival_delayrepeat:${Math.floor(Date.now() / 300000)}`;
+          if (!announced.has(repeatKey)) {
+            announced.add(repeatKey);
+            addToQueue(
+              buildArrivalDelayRepeatText(arr.originStationName),
+              AnnouncementPriority.HIGH,
+              undefined,
+              repeatKey
+            );
+          }
+        }
+      }
+    };
+
+    repeatArrivalDelayAnnouncements();
+    const id = setInterval(repeatArrivalDelayAnnouncements, 300000); // every 5 minutes
+    return () => clearInterval(id);
+  }, [data]);
+
   /* ─── WebSocket connection ────────────────────────── */
   useEffect(() => {
     if (!slug) return;
@@ -750,6 +851,64 @@ export default function SignageSlugPage() {
         AnnouncementPriority.HIGH,
         undefined,
         `${payload.departureId}:resolution`
+      );
+    });
+
+    // ── Arrival WebSocket handlers ──
+    socket.on('kiosk:arrivalArrived', (payload: { arrivalId: string; origin: string; platform: string | null; timestamp: number }) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          arrivals: prev.arrivals.map((a) =>
+            a.id === payload.arrivalId ? { ...a, status: 'ARRIVED' } : a
+          ),
+        };
+      });
+      const key = `${payload.arrivalId}:arrived`;
+      announcedRef.current.delete(`${payload.arrivalId}:arrival_incoming`); // clear incoming dedup
+      announcedRef.current.delete(`${payload.arrivalId}:arrival_autodelay`); // clear delay dedup
+      addToQueue(
+        buildArrivalArrivedText(payload.origin, payload.platform),
+        AnnouncementPriority.HIGH,
+        undefined,
+        key
+      );
+    });
+
+    socket.on('kiosk:arrivalDelayed', (payload: { arrivalId: string; origin: string; minutes: number; timestamp: number }) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          arrivals: prev.arrivals.map((a) =>
+            a.id === payload.arrivalId ? { ...a, status: 'DELAYED', delayMinutes: payload.minutes } : a
+          ),
+        };
+      });
+      addToQueue(
+        buildArrivalDelayedText(payload.origin, payload.minutes),
+        AnnouncementPriority.HIGH,
+        undefined,
+        `${payload.arrivalId}:arrival_delayed`
+      );
+    });
+
+    socket.on('kiosk:arrivalCancelled', (payload: { arrivalId: string; origin: string; scheduledTime: string; timestamp: number }) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          arrivals: prev.arrivals.map((a) =>
+            a.id === payload.arrivalId ? { ...a, status: 'CANCELLED' } : a
+          ),
+        };
+      });
+      addToQueue(
+        buildArrivalCancelledText(payload.origin, payload.scheduledTime),
+        AnnouncementPriority.HIGH,
+        undefined,
+        `${payload.arrivalId}:arrival_cancelled`
       );
     });
 
@@ -1373,10 +1532,14 @@ html, body {
   color: #f4a900;
   text-shadow: 0 0 12px rgba(244, 169, 0, 0.7);
 }
-.arrivals-panel .status-ontime,
+.arrivals-panel .status-ontime {
+  color: #4ade80;
+  text-shadow: 0 0 15px rgba(74, 222, 128, 0.8);
+}
 .arrivals-panel .status-arrived {
   color: #4ade80;
   text-shadow: 0 0 15px rgba(74, 222, 128, 0.8);
+  animation: blink-slow 1.5s infinite;
 }
 .arrivals-panel .status-boarding {
   color: #00d4ff;
