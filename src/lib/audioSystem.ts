@@ -1,9 +1,11 @@
 /**
- * SmarticketS — Audio System Module (v3)
+ * SmarticketS — Audio System Module (v4)
  *
  * Complete audio system for the Signage Display kiosk, providing:
  * - Web Audio API ding-dong chime (880 Hz ding → 660 Hz dong)
- * - Priority-based announcement queue (CRITICAL / HIGH / MEDIUM / LOW)
+ * - Priority-based announcement queue (URGENT / HIGH / NORMAL / LOW)
+ * - VocalManager class — singleton, class-based API for cleaner usage
+ * - P1 URGENT interrupt capability — instantly cuts current speech for security alerts
  * - Text-to-Speech (TTS) with French voice selection (fr-FR, rate 0.9)
  * - Custom audio playback (MP3 / WAV via URL) for admin-uploaded voice
  * - TTS repetition: each announcement is repeated 2× at 5s interval
@@ -16,19 +18,39 @@
  * - Full cancel capability
  *
  * This is a pure library module — no React hooks, no JSX, no 'use client'.
- * All browser APIs are guarded with `typeof window !== 'undefined'`.
+ * All browser APIs are guarded with `typeof window !== 'undefined'.
  */
 
 // ═══════════════════════════════════════════════════════════════════
 //  Types
 // ═══════════════════════════════════════════════════════════════════
 
-/** Priority levels for the announcement queue. Higher number = higher priority. */
+/**
+ * Priority levels for the announcement queue.
+ * Higher number = higher priority.
+ *
+ * P1 = URGENT (10) — cuts the current speech (security alerts)
+ * P2 = HIGH   (8)  — manual calls (client, driver)
+ * P3 = NORMAL (5)  — automatic (boarding, delay, imminent)
+ * P4 = LOW    (1)  — general messages
+ */
 export enum AnnouncementPriority {
+  /** P4 — General messages, never cuts urgent announcements */
   LOW = 1,
-  MEDIUM = 3,
-  HIGH = 4,
-  CRITICAL = 5,
+  /** P3 — Automatic announcements: boarding, delay, imminent */
+  NORMAL = 5,
+  /** P2 — Manual calls: client, driver */
+  HIGH = 8,
+  /** P1 — URGENT: Security alerts, cuts current speech immediately */
+  URGENT = 10,
+
+  // ── Deprecated aliases (backward compatibility) ──
+  /** @deprecated Use AnnouncementPriority.URGENT instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  CRITICAL = 10,
+  /** @deprecated Use AnnouncementPriority.NORMAL instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  MEDIUM = 5,
 }
 
 /** A single queued announcement item. */
@@ -77,6 +99,9 @@ let persistentStateLoaded = false;
 
 /** Keyboard event handler reference (for cleanup). */
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+
+/** Whether an interrupt is currently in progress (prevents re-entrant interrupts). */
+let isInterrupting = false;
 
 // ═══════════════════════════════════════════════════════════════════
 //  Browser Guard
@@ -375,7 +400,7 @@ export async function processQueue(): Promise<void> {
   console.log('[AudioSystem] Queue processor started');
 
   while (announcementQueue.length > 0) {
-    // Sort by priority descending (CRITICAL first), then by insertion order (FIFO)
+    // Sort by priority descending (URGENT first), then by insertion order (FIFO)
     announcementQueue.sort((a, b) => {
       if (b.priority !== a.priority) {
         return b.priority - a.priority;
@@ -437,19 +462,23 @@ export function clearAnnouncedSet(): void {
 /**
  * Add an announcement to the priority queue with deduplication.
  *
- * The queue is automatically sorted by priority (CRITICAL first).
+ * The queue is automatically sorted by priority (URGENT first).
  * If the queue processor is not already running, it is triggered.
  * If `departureKey` is provided and was already announced, the item is skipped.
  *
+ * **P1 URGENT interrupt**: When a URGENT (10) item is added, immediately
+ * cancels any in-progress speech, plays ding-dong, waits 3s, speaks the
+ * P1 message, then resumes normal queue processing.
+ *
  * @param text            - The announcement text.
- * @param priority        - Priority level (default: MEDIUM).
+ * @param priority        - Priority level (default: NORMAL).
  * @param customAudioUrl  - Optional URL to play instead of TTS.
  * @param departureKey    - Optional dedup key to prevent duplicate announcements.
  * @returns The ID of the queued announcement, or empty string if deduped.
  */
 export function addToQueue(
   text: string,
-  priority: AnnouncementPriority = AnnouncementPriority.MEDIUM,
+  priority: AnnouncementPriority = AnnouncementPriority.NORMAL,
   customAudioUrl?: string,
   departureKey?: string,
 ): string {
@@ -489,6 +518,13 @@ export function addToQueue(
     return a.id.localeCompare(b.id);
   });
 
+  // ── P1 URGENT interrupt: immediately cut current speech ──
+  if (priority >= AnnouncementPriority.URGENT) {
+    // Use microtask to avoid blocking the current call stack
+    void handleP1Interrupt(item);
+    return id;
+  }
+
   // Trigger processing if not already running
   if (!isProcessing) {
     // Use microtask to avoid synchronous recursion
@@ -496,6 +532,84 @@ export function addToQueue(
   }
 
   return id;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  P1 URGENT Interrupt Handler
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Handle a P1 URGENT interrupt:
+ *  1. Cancel any in-progress speech immediately
+ *  2. Wait 300ms for cancel to take effect
+ *  3. Play ding-dong immediately
+ *  4. Wait 3 seconds
+ *  5. Speak the P1 message
+ *  6. Resume queue processing
+ *
+ * Re-entrant-safe: if an interrupt is already in progress, the new item
+ * is simply added to the queue and will be processed next.
+ */
+async function handleP1Interrupt(p1Item: QueuedAnnouncement): Promise<void> {
+  // Prevent re-entrant interrupts
+  if (isInterrupting) {
+    console.log('[AudioSystem] P1 interrupt already in progress — queueing');
+    // If queue processor isn't running, start it (the P1 item is already in queue)
+    if (!isProcessing) {
+      void processQueue();
+    }
+    return;
+  }
+
+  isInterrupting = true;
+  console.log('[AudioSystem] P1 URGENT interrupt triggered:', p1Item.text.substring(0, 60));
+
+  try {
+    // 1. Remove the P1 item from the queue (we'll handle it directly)
+    const idx = announcementQueue.findIndex((i) => i.id === p1Item.id);
+    if (idx >= 0) {
+      announcementQueue.splice(idx, 1);
+    }
+
+    // 2. Cancel any in-progress speech
+    if (hasSpeechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    // 3. Wait 300ms for cancel to take effect
+    await delay(300);
+
+    // 4. Play ding-dong immediately
+    playDingDong();
+
+    // 5. Wait 3 seconds for chime to ring out
+    await delay(3000);
+
+    // 6. Speak the P1 message
+    console.log('[AudioSystem] Speaking P1 message:', p1Item.text.substring(0, 60));
+    if (_isMuted) {
+      console.log('[AudioSystem] P1 TTS skipped (muted)');
+    } else if (p1Item.customAudioUrl) {
+      try {
+        await playCustomAudio(p1Item.customAudioUrl);
+      } catch {
+        console.warn('[AudioSystem] P1 custom audio failed, falling back to TTS');
+        await speakWithRetry(p1Item.text);
+      }
+    } else {
+      await speakWithRetry(p1Item.text);
+    }
+
+    console.log('[AudioSystem] P1 interrupt complete — resuming queue');
+  } catch (err) {
+    console.error('[AudioSystem] Error during P1 interrupt:', err);
+  } finally {
+    isInterrupting = false;
+    // Resume queue processing if there are more items
+    if (announcementQueue.length > 0 && !isProcessing) {
+      void processQueue();
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -735,6 +849,9 @@ export function cancelAll(): void {
   // Reset processing state
   isProcessing = false;
 
+  // Reset interrupt state
+  isInterrupting = false;
+
   console.log('[AudioSystem] All audio operations cancelled');
 }
 
@@ -954,6 +1071,34 @@ export async function speakWithRetry(
   return false;
 }
 
+/**
+ * Simple TTS speak — speaks text once (no ding-dong, no repetition).
+ * Useful for quick one-shot announcements.
+ *
+ * @param text           - The text to speak.
+ * @param customAudioUrl - Optional URL to play instead of TTS.
+ * @returns A promise that resolves when the speech completes.
+ */
+export async function speak(
+  text: string,
+  customAudioUrl?: string,
+): Promise<void> {
+  if (_isMuted) {
+    console.log('[AudioSystem] speak() skipped (muted)');
+    return;
+  }
+
+  if (customAudioUrl) {
+    try {
+      await playCustomAudio(customAudioUrl);
+    } catch {
+      await speakWithRetry(text);
+    }
+  } else {
+    await speakWithRetry(text);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  Backward-Compatible Aliases (legacy API)
 // ═══════════════════════════════════════════════════════════════════
@@ -1017,7 +1162,7 @@ export function buildArrivalText(origin: string): string {
  * Add a phase-based announcement with proper priority and dedup key.
  *
  * @param text            - The announcement text.
- * @param priority        - Priority level (CRITICAL for imminent, HIGH for delay, MEDIUM for boarding).
+ * @param priority        - Priority level (URGENT for imminent, HIGH for delay, NORMAL for boarding).
  * @param departureKey    - Dedup key (format: "departureId:phase").
  * @param customAudioUrl  - Optional admin-uploaded voice audio URL.
  */
@@ -1031,7 +1176,7 @@ export function addPhaseAnnouncement(
 }
 
 /**
- * @deprecated Use `addToQueue()` with `AnnouncementPriority.MEDIUM` instead.
+ * @deprecated Use `addToQueue()` with `AnnouncementPriority.NORMAL` instead.
  *
  * Legacy boarding announcement function for backward compatibility.
  * Builds the announcement text and adds it to the queue.
@@ -1041,7 +1186,7 @@ export async function playBoardingAnnouncement(
   time: string,
 ): Promise<void> {
   const text = buildAnnouncementText(destination, time);
-  addToQueue(text, AnnouncementPriority.MEDIUM);
+  addToQueue(text, AnnouncementPriority.NORMAL);
 }
 
 /**
@@ -1064,3 +1209,197 @@ function delay(ms: number): Promise<void> {
     pendingTimers.push(id);
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  VocalManager — Class-Based API (Singleton)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * VocalManager provides a class-based API for the audio system.
+ *
+ * Wraps all module-level functions in a singleton instance for cleaner
+ * usage in React components and other consumers. All methods delegate
+ * to the module-level functions so the state is shared.
+ *
+ * Usage:
+ * ```typescript
+ * import { vocalManager, AnnouncementPriority } from '@/lib/audioSystem';
+ *
+ * // Enqueue an announcement
+ * vocalManager.enqueue('Bus à destination de Dakar', AnnouncementPriority.NORMAL);
+ *
+ * // Play a ding-dong
+ * vocalManager.playDingDong();
+ *
+ * // P1 URGENT interrupt
+ * vocalManager.interruptWithPriority({
+ *   id: 'urgent-1',
+ *   text: 'Alerte sécurité — évacuez la zone',
+ *   priority: AnnouncementPriority.URGENT,
+ * });
+ * ```
+ */
+export class VocalManager {
+  private static instance: VocalManager | null = null;
+
+  /** Private constructor — use VocalManager.getInstance() */
+  private constructor() {}
+
+  /**
+   * Get the singleton VocalManager instance.
+   * Creates the instance lazily on first access.
+   */
+  static getInstance(): VocalManager {
+    if (!VocalManager.instance) {
+      VocalManager.instance = new VocalManager();
+    }
+    return VocalManager.instance;
+  }
+
+  // ── Queue Methods ──
+
+  /**
+   * Add an announcement to the priority queue.
+   *
+   * @param text           - The announcement text.
+   * @param priority       - Priority level (URGENT, HIGH, NORMAL, LOW).
+   * @param customAudioUrl - Optional URL to play instead of TTS.
+   * @param departureKey   - Optional dedup key to prevent duplicates.
+   * @returns The ID of the queued announcement, or empty string if deduped.
+   */
+  enqueue(
+    text: string,
+    priority: AnnouncementPriority = AnnouncementPriority.NORMAL,
+    customAudioUrl?: string,
+    departureKey?: string,
+  ): string {
+    return addToQueue(text, priority, customAudioUrl, departureKey);
+  }
+
+  /**
+   * Process the announcement queue manually.
+   * Usually called automatically — this is for explicit control.
+   */
+  processQueue(): Promise<void> {
+    return processQueue();
+  }
+
+  // ── Playback ──
+
+  /**
+   * Play the ding-dong chime.
+   */
+  playDingDong(): void {
+    playDingDong();
+  }
+
+  /**
+   * Speak text once (no ding-dong, no repetition).
+   * Useful for quick one-shot announcements.
+   *
+   * @param text           - The text to speak.
+   * @param customAudioUrl - Optional URL to play instead of TTS.
+   */
+  speak(text: string, customAudioUrl?: string): Promise<void> {
+    return speak(text, customAudioUrl);
+  }
+
+  // ── P1 URGENT Interrupt ──
+
+  /**
+   * Immediately cancel any in-progress speech.
+   * This is the "emergency stop" for speech only (timers and queue are preserved).
+   *
+   * Use `interruptWithPriority()` for a full P1 interrupt sequence
+   * (cancel + ding-dong + speak).
+   */
+  interruptCurrent(): void {
+    if (hasSpeechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    console.log('[AudioSystem] Current speech interrupted');
+  }
+
+  /**
+   * Execute a full P1 URGENT interrupt sequence:
+   *  1. Cancel any in-progress speech
+   *  2. Wait 300ms for cancel to take effect
+   *  3. Play ding-dong immediately
+   *  4. Wait 3 seconds
+   *  5. Speak the P1 message
+   *  6. Resume queue processing
+   *
+   * Re-entrant-safe: if an interrupt is already in progress,
+   * the item is added to the queue for later processing.
+   *
+   * @param p1Item - The URGENT announcement to speak.
+   */
+  interruptWithPriority(p1Item: QueuedAnnouncement): Promise<void> {
+    return handleP1Interrupt(p1Item);
+  }
+
+  // ── Controls ──
+
+  /**
+   * Toggle the mute state.
+   * @returns The new mute state (true = muted).
+   */
+  toggleMute(): boolean {
+    return toggleMute();
+  }
+
+  /**
+   * Set the volume level.
+   * @param v - Volume between 0.0 (silent) and 1.0 (maximum).
+   */
+  setVolume(v: number): void {
+    setVolume(v);
+  }
+
+  /**
+   * Get the current mute state.
+   */
+  getIsMuted(): boolean {
+    return getIsMuted();
+  }
+
+  /**
+   * Get the current volume level (0.0 – 1.0).
+   */
+  getCurrentVolume(): number {
+    return getCurrentVolume();
+  }
+
+  // ── Lifecycle ──
+
+  /**
+   * Cancel everything: all timers, intervals, speech, and clear the queue.
+   * This is the "emergency stop" for the entire audio system.
+   */
+  cancelAll(): void {
+    cancelAll();
+  }
+
+  /**
+   * Preload speech-synthesis voices.
+   * Should be called early (e.g. on first user interaction or page mount).
+   */
+  preloadVoices(): void {
+    preloadVoices();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Singleton Instance Export
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * The singleton VocalManager instance.
+ * Use this for the class-based API:
+ *
+ * ```typescript
+ * import { vocalManager } from '@/lib/audioSystem';
+ * vocalManager.enqueue('...', AnnouncementPriority.URGENT);
+ * ```
+ */
+export const vocalManager: VocalManager = VocalManager.getInstance();

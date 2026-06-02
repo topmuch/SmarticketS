@@ -1,4 +1,4 @@
-import { createServer } from 'http';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { Server, Socket } from 'socket.io';
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,6 @@ function resolveStationRoom(stationSlug?: string): string | string[] {
 
 function broadcastTo(socket: Socket, room: string | string[], event: string, data: unknown) {
   if (Array.isArray(room)) {
-    // Target every known station room individually
     for (const r of room) {
       socket.to(r).emit(event, data);
     }
@@ -37,9 +36,68 @@ function broadcastTo(socket: Socket, room: string | string[], event: string, dat
 }
 
 // ---------------------------------------------------------------------------
+// REST Push Endpoint Handler
+// ---------------------------------------------------------------------------
+function jsonRes(res: ServerResponse, code: number, data: unknown) {
+  res.writeHead(code, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
+
+function handleRestPush(req: IncomingMessage, res: ServerResponse) {
+  const url = new URL(req.url || '/', `http://localhost:${PORT}`);
+  const pathParts = url.pathname.split('/').filter(Boolean);
+
+  if (pathParts[0] !== 'api' || pathParts[1] !== 'push' || !pathParts[2]) {
+    jsonRes(res, 404, { error: 'Not found. Use POST /api/push/:slug' });
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    jsonRes(res, 405, { error: 'Method not allowed. Use POST.' });
+    return;
+  }
+
+  const slug = pathParts[2];
+  const chunks: Buffer[] = [];
+  req.on('data', (chunk: Buffer) => chunks.push(chunk));
+  req.on('end', () => {
+    try {
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      const { event, data, broadcast } = body;
+      if (!event || typeof event !== 'string') {
+        jsonRes(res, 400, { error: 'Missing "event" field' });
+        return;
+      }
+
+      const payload = { ...data, timestamp: Date.now() };
+      if (broadcast) {
+        io.emit(event, payload);
+      } else {
+        io.to(`station:${slug}`).emit(event, payload);
+      }
+
+      console.log(`[KioskService] 🔔 ${ts()} | REST PUSH → slug=${slug} | event=${event}`);
+      jsonRes(res, 200, { success: true, event, slug, timestamp: Date.now() });
+    } catch {
+      jsonRes(res, 400, { error: 'Invalid JSON body' });
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Socket.IO Server
 // ---------------------------------------------------------------------------
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+  // Handle REST push requests on the same HTTP server
+  const url = new URL(req.url || '/', `http://localhost:${PORT}`);
+  if (req.method === 'POST' && url.pathname.startsWith('/api/push/')) {
+    handleRestPush(req, res);
+  } else {
+    // Default response for non-socket requests
+    jsonRes(res, 404, { error: 'Not found' });
+  }
+});
+
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
@@ -55,24 +113,44 @@ const io = new Server(httpServer, {
 });
 
 // ---------------------------------------------------------------------------
-// Connection handler
+// Connection handler with role-based rooms
 // ---------------------------------------------------------------------------
+interface ClientInfo {
+  id: string;
+  role: 'kiosk' | 'admin' | 'unknown';
+  slug?: string;
+  joinedRooms: Set<string>;
+}
+
+const connectedClients = new Map<string, ClientInfo>();
+
 io.on('connection', (socket: Socket) => {
   console.log(`[KioskService] ✅ ${ts()} | Client connected: ${socket.id}`);
 
-  // Track which rooms this socket has joined (for logging)
-  const joinedRooms = new Set<string>();
+  const clientInfo: ClientInfo = {
+    id: socket.id,
+    role: 'unknown',
+    joinedRooms: new Set<string>(),
+  };
+  connectedClients.set(socket.id, clientInfo);
 
-  // ----- join:station -------------------------------------------------------
-  socket.on('join:station', (slug: string) => {
+  // ----- join:station (with role) -------------------------------------------
+  socket.on('join:station', (payload: { slug: string; role?: string }) => {
+    const slug = payload?.slug;
+    const role = payload?.role || 'kiosk';
+
     if (!slug || typeof slug !== 'string') {
       console.warn(`[KioskService] ⚠️  ${ts()} | join:station called with invalid slug from ${socket.id}`);
       return;
     }
+
     const room = `station:${slug}`;
     socket.join(room);
-    joinedRooms.add(room);
-    console.log(`[KioskService] 🚪 ${ts()} | ${socket.id} joined ${room}`);
+    clientInfo.slug = slug;
+    clientInfo.role = role as 'kiosk' | 'admin';
+    clientInfo.joinedRooms.add(room);
+
+    console.log(`[KioskService] 🚪 ${ts()} | ${socket.id} joined ${room} as ${role}`);
   });
 
   // ----- kiosk:delay --------------------------------------------------------
@@ -217,11 +295,53 @@ io.on('connection', (socket: Socket) => {
     },
   );
 
+  // ----- kiosk:manualAnnounce (new: P1/P2 from admin) ----------------------
+  socket.on(
+    'kiosk:manualAnnounce',
+    (payload: {
+      text: string;
+      priority: number;
+      stationSlug?: string;
+      type?: 'CLIENT_CALL' | 'DRIVER_CALL' | 'SECURITY' | 'GENERAL';
+      metadata?: Record<string, unknown>;
+    }) => {
+      const data = {
+        text: payload.text,
+        priority: payload.priority,
+        type: payload.type || 'GENERAL',
+        metadata: payload.metadata || {},
+        timestamp: Date.now(),
+      };
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:manualAnnounce', data);
+    },
+  );
+
+  // ----- kiosk:updateTrip (new: generic trip update from admin) -------------
+  socket.on(
+    'kiosk:updateTrip',
+    (payload: {
+      departureId: string;
+      status: string;
+      destination: string;
+      stationSlug?: string;
+      [key: string]: unknown;
+    }) => {
+      const data = {
+        departureId: payload.departureId,
+        status: payload.status,
+        destination: payload.destination,
+        timestamp: Date.now(),
+      };
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:updateTrip', data);
+    },
+  );
+
   // ----- disconnect ---------------------------------------------------------
   socket.on('disconnect', (reason) => {
     console.log(
-      `[KioskService] ❌ ${ts()} | Client disconnected: ${socket.id} | reason: ${reason} | rooms: [${[...joinedRooms].join(', ')}]`,
+      `[KioskService] ❌ ${ts()} | Client disconnected: ${socket.id} | reason: ${reason} | rooms: [${[...clientInfo.joinedRooms].join(', ')}]`,
     );
+    connectedClients.delete(socket.id);
   });
 
   // ----- error handling -----------------------------------------------------
@@ -236,6 +356,7 @@ io.on('connection', (socket: Socket) => {
 httpServer.listen(PORT, () => {
   console.log(`\n[KioskService] 🟢 ${ts()} | Kiosk WebSocket service running on port ${PORT}`);
   console.log(`[KioskService] 🟢 ${ts()} | Transports: websocket, polling`);
+  console.log(`[KioskService] 🟢 ${ts()} | REST endpoint: POST /api/push/:slug`);
   console.log(`[KioskService] 🟢 ${ts()} | CORS: all origins (gateway proxy mode)\n`);
 });
 

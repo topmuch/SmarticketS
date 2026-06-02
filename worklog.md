@@ -801,3 +801,132 @@ Stage Summary:
 - Fixed Docker build error caused by missing BRAND constant properties
 - File modified: `src/lib/constants.ts` (+7 lines)
 - Commit: `2caef15` pushed to `main`
+---
+Task ID: 5
+Agent: General-Purpose Agent
+Task: Phase 5 — Create Notifications Manager page at src/app/admin/notifications/page.tsx
+
+Work Log:
+- Read reference files for patterns: departures page (AdminLayout, WebSocket, dialogs, tables), signage page (styling), audioSystem.ts (playDingDong, speakFrench, AnnouncementPriority)
+- Read NewAdminLayout component props (title, subtitle, children, unreadMessages)
+- Verified Textarea shadcn component exists at src/components/ui/textarea.tsx
+- Created `src/app/admin/notifications/page.tsx` — complete Notifications Manager page with:
+  - `'use client'` directive with all specified imports (AdminLayout, shadcn components, socket.io-client, sonner toast, lucide icons)
+  - NotificationTemplate interface with all fields (id, name, type, text, priority, isAuto, isActive, lastSentAt, sendCount)
+  - 7 default templates pre-populated: Embarquement, Départ imminent, Retard, Appel Client, Appel Chauffeur, Alerte Sécurité, Message Général
+  - Table with 7 columns: Name, Type (badge), Priority (colored badges), Mode (Auto green / Manual purple), Status (toggle switch), Send Count, Actions
+  - Priority badge colors: P1 red, P2 orange, P3 blue, P4 gray
+  - Action buttons per row: Tester (Play, local ding-dong + TTS on admin PC), Envoyer (Send, manual only via WebSocket), Modifier (Volume2, edit text dialog), Supprimer (Trash2, manual only)
+  - Send modal for CLIENT_CALL/DRIVER_CALL: fields for Nom and Guichet, live preview of resolved text, sends via socket.emit('kiosk:manualAnnounce', ...) to all kiosques (stationSlug: '*')
+  - Direct send for SECURITY and GENERAL templates (no modal needed)
+  - Edit modal for modifying template text
+  - New notification creation modal (name, type select, text textarea, priority select) — always manual (isAuto=false)
+  - WebSocket connection to port 3004 via `io('/?XTransformPort=3004')`
+  - Active/inactive toggle switch per template
+  - Info card showing available template variables ({DESTINATION}, {NOM}, {QUAI}, {MINUTES}, {HEURE})
+  - All UI labels in French, sonner toasts for feedback, responsive Tailwind design
+- Lint: 0 errors on new file
+
+Stage Summary:
+- 1 file created: `src/app/admin/notifications/page.tsx` (~530 lines)
+- Full Notifications Manager page with template CRUD, local test playback, WebSocket kiosk broadcast
+- Follows AdminLayout pattern from departures page
+- Priority-mapped to AnnouncementPriority enum from audioSystem.ts
+- WebSocket emits `kiosk:manualAnnounce` event to kiosk-service on port 3004
+- Zero lint errors introduced
+---
+Task ID: 3
+Agent: Kiosk Enhancement Agent
+Task: Phase 3 — Enhance Kiosk page (departed fade, arrival statuses, branding, socket events)
+
+Work Log:
+- **3.1 PARTI 5-minute fade**: Added `DEPARTED_FADE_DURATION` constant (5 min), `departedTimersRef` (Map<string, number> tracking when each departure was marked DEPARTED), `departedFadeTick` state for periodic re-evaluation, and a 5-second interval effect to trigger it. Modified `visibleDepartures` useMemo to show DEPARTED rows for 5 minutes before removing. Updated `kiosk:departed` handler to record timestamp in ref. Updated `kiosk:updateTrip` handler to also record timestamp when status becomes DEPARTED.
+- **3.2 Enhanced arrival statuses**: Added `IMMINENT_ARRIVAL` (→ "ARRIVÉE IMMINENTE", blue class `status-imminent-arrival blink-slow`) and `ARRIVED` (→ "ARRIVÉ", green class `status-arrived`) cases to `getStatusInfo`. Added CSS rules for both new status classes in departures-panel and arrivals-panel sections.
+- **3.3 Branding text**: Changed `brand-sub` div from "GARE ROUTIÈRE" to "SmarticketS Gare Routière".
+- **3.4 Socket role**: Updated `join:station` emit from `socket.emit('join:station', slug)` to `socket.emit('join:station', { slug, role: 'kiosk' })`.
+- **3.5 kiosk:manualAnnounce**: Added socket listener that maps payload.priority to AnnouncementPriority, calls addToQueue for TTS, and appends to tickerMessages with 'urgent' priority for visual display.
+- **3.6 kiosk:updateTrip**: Added socket listener that updates departure status in state based on payload.status, handles optional delayMinutes, and records departed timestamp if status is DEPARTED.
+- Lint: 0 errors on modified file
+
+Stage Summary:
+- 1 file modified: src/app/signage-slug/[slug]/page.tsx
+- 6 enhancements applied: departed fade timer, new arrival statuses, branding text, socket role, manual announce handler, trip update handler
+- All existing functionality preserved (LED styling, slide animation, clock, ticker, ads, auto-phase detection, WebSocket events)
+- No changes to renderDepartureRow, renderArrivalRow, renderEmptyRows, renderAdSlide functions
+- Zero lint errors
+
+---
+Task ID: 4
+Agent: Enhancement Agent
+Task: Phase 4 — Enhance Admin Signage page with Audio Controls, Upload, General Message, WebSocket
+
+Work Log:
+- Added `useRef` to React imports; added `io, Socket` from socket.io-client; added `Upload` to lucide-react icons
+- Extended `SignageSettings` interface with 7 new fields: volume (number), muted (boolean), customAudioUrl (string), customAudioName (string), generalMessage (string), generalMessageEnabled (boolean), generalMessageFrequency (number/minutes)
+- Added `formatFileSize` helper utility (bytes → human-readable)
+- Added `socketRef` (useRef<Socket>) and `selectedAudioFile` state
+- Added WebSocket connection useEffect to kiosk-service port 3004 with cleanup on unmount
+- Added `handleVolumeChange`: patches settings + emits `kiosk:config` with volume (0-1 mapped) and stationSlug: '*'
+- Added `handleMuteToggle`: patches settings + emits `kiosk:config` with muted and stationSlug: '*'
+- Added `handleSendAudio`: constructs audioUrl from filename, patches customAudioUrl/customAudioName, emits `kiosk:config`
+- Enhanced `handleSave`: after PUT save, pushes volume/muted/generalMessage config to kiosk via WebSocket; if generalMessageEnabled, also emits `kiosk:generalMessage` with priority 1
+- Section 4.1 — Volume & Audio Controls: range slider (0-100, displays current %), mute toggle switch with Volume2/VolumeX icons
+- Section 4.2 — Audio personnalisé: file upload input (.mp3,.wav), selected file display (name + size), current audio indicator, "Envoyer au kiosk" button
+- Section 4.3 — Message général: text input, frequency select (30min/1h30/2h), "Activer" toggle switch
+- All existing sections preserved intact (Identité, Alertes, Ticker)
+- ESLint: 0 errors, 0 warnings
+- TypeScript: 0 errors with project tsconfig
+
+Stage Summary:
+- 1 file modified: src/app/admin/signage/page.tsx (497 → 756 lines, +259 lines)
+- 3 new UI sections added: Volume & Audio, Audio Upload, General Message
+- WebSocket integration to kiosk-service (port 3004) for real-time config push
+- Save button now broadcasts config + general message to kiosks
+- Volume/mute changes emit immediately for real-time kiosk control
+- Zero lint errors, zero type errors
+---
+Task ID: 2
+Agent: Audio Enhancement Agent
+Task: Phase 2 — Enhance audioSystem.ts with VocalManager class and P1 interrupt capability
+
+Work Log:
+- Read existing audioSystem.ts (v3, 1067 lines) and all consumer files (signage-slug, signage)
+- Updated AnnouncementPriority enum with new semantic names and values:
+  - P1 = URGENT (10) — cuts current speech (security alerts)
+  - P2 = HIGH (8) — manual calls (client, driver)
+  - P3 = NORMAL (5) — automatic (boarding, delay, imminent)
+  - P4 = LOW (1) — general messages
+  - Backward-compatible aliases: CRITICAL=10 (deprecated), MEDIUM=5 (deprecated)
+  - eslint-disable-next-line on alias members to suppress no-duplicate-enum-values
+- Created VocalManager class (singleton pattern):
+  - getInstance() — lazy singleton access
+  - enqueue(text, priority, customAudioUrl?, departureKey?) — delegates to addToQueue
+  - processQueue() — delegates to module processQueue
+  - playDingDong() — delegates to module playDingDong
+  - speak(text, customAudioUrl?) — new one-shot TTS (no ding-dong, no repetition)
+  - interruptCurrent() — cancels speech immediately (emergency stop for speech only)
+  - interruptWithPriority(p1Item) — full P1 sequence: cancel → 300ms → ding-dong → 3s → speak → resume
+  - toggleMute(), setVolume(v), getIsMuted(), getCurrentVolume() — delegates to module functions
+  - cancelAll(), preloadVoices() — lifecycle methods
+- Implemented P1 URGENT interrupt behavior in addToQueue():
+  - When priority >= URGENT, calls handleP1Interrupt() instead of normal processQueue()
+  - handleP1Interrupt(): cancel speech → 300ms delay → playDingDong → 3s delay → speak → resume queue
+  - Re-entrant-safe via isInterrupting flag (prevents overlapping interrupts)
+  - P1 item removed from queue and handled directly, then queue resumes
+- Added isInterrupting state variable (reset in cancelAll)
+- Added new `speak()` export function — one-shot TTS without ding-dong/repetition
+- Exported vocalManager singleton instance (VocalManager.getInstance())
+- Verified all existing consumer imports still work:
+  - signage-slug: addToQueue, preloadVoices, cancelAll, installKeyboardShortcut, startGeneralMessageInterval, toggleMute, setVolume, AnnouncementPriority
+  - signage: playDingDong, playBoardingAnnouncement, cancelAnnouncements, preloadVoices
+- TypeScript: 0 errors (full project tsc --noEmit)
+- ESLint: 0 errors, 0 warnings
+
+Stage Summary:
+- 1 file modified: src/lib/audioSystem.ts (v3 → v4, ~1410 lines)
+- 2 new exports: VocalManager class, vocalManager singleton instance
+- 1 new function export: speak() (one-shot TTS)
+- Priority enum updated: URGENT=10, HIGH=8, NORMAL=5, LOW=1 (+ backward compat CRITICAL, MEDIUM)
+- P1 URGENT interrupt: automatic cancel + ding-dong + speak + resume sequence
+- Full backward compatibility maintained: all 30+ existing exports intact
+- Zero TypeScript errors, zero ESLint errors

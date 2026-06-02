@@ -86,6 +86,7 @@ const MAX_ROWS = 10;
 const POLL_INTERVAL = 15000; // 15s
 const ARRIVALS_BLOCK_DURATION = 10 * 60 * 1000; // 10 minutes in ms
 const DEPARTURE_IMMINENT_THRESHOLD = 5 * 60 * 1000; // 5 minutes in ms
+const DEPARTED_FADE_DURATION = 5 * 60 * 1000; // 5 minutes in ms — show PARTI rows before removing
 
 /* ══════════════════════════════════════════════════════════════════════════
    Status Helpers
@@ -93,7 +94,7 @@ const DEPARTURE_IMMINENT_THRESHOLD = 5 * 60 * 1000; // 5 minutes in ms
 function getStatusInfo(status: string, delayMinutes: number, isArrival?: boolean) {
   switch (status) {
     case 'SCHEDULED':
-      return { label: isArrival ? "À L'HEURE" : "À L'HEURE", cls: 'status-ontime' };
+      return { label: "À L'HEURE", cls: 'status-ontime' };
     case 'BOARDING':
       return { label: 'EMBARQUEMENT', cls: 'status-boarding blink-slow' };
     case 'IMMINENT':
@@ -104,6 +105,10 @@ function getStatusInfo(status: string, delayMinutes: number, isArrival?: boolean
       return { label: 'ANNULÉ', cls: 'status-cancelled' };
     case 'DEPARTED':
       return { label: 'PARTI', cls: 'status-departed' };
+    case 'IMMINENT_ARRIVAL':
+      return { label: 'ARRIVÉE IMMINENTE', cls: 'status-imminent-arrival blink-slow' };
+    case 'ARRIVED':
+      return { label: 'ARRIVÉ', cls: 'status-arrived' };
     default:
       return { label: status, cls: 'status-ontime' };
   }
@@ -219,12 +224,29 @@ export default function SignageSlugPage() {
   const announcedRef = useRef<Set<string>>(new Set());
   const socketRef = useRef<Socket | null>(null);
   const generalMessageCleanupRef = useRef<(() => void) | null>(null);
+  const departedTimersRef = useRef<Map<string, number>>(new Map()); // departureId → timestamp when marked DEPARTED
 
-  /* ─── Computed: active departures (not DEPARTED) and arrivals ────────── */
+  /* ─── Departed fade tick: forces re-evaluation of visible departures ─── */
+  const [departedFadeTick, setDepartedFadeTick] = useState(0);
+
+  /* ─── Computed: active departures (show DEPARTED for 5 min then hide) ────── */
   const visibleDepartures = useMemo(() => {
     if (!data) return [];
-    return data.departures.filter((d) => d.status !== 'DEPARTED');
-  }, [data]);
+    const nowMs = Date.now();
+    // Force dependency on tick so this re-evaluates periodically
+    void departedFadeTick;
+    return data.departures.filter((d) => {
+      if (d.status !== 'DEPARTED') return true;
+      const departedAt = departedTimersRef.current.get(d.id);
+      if (departedAt === undefined) {
+        // If no timestamp recorded, record now and keep visible
+        departedTimersRef.current.set(d.id, nowMs);
+        return true;
+      }
+      // Remove if DEPARTED for longer than fade duration
+      return (nowMs - departedAt) < DEPARTED_FADE_DURATION;
+    });
+  }, [data, departedFadeTick]);
 
   const visibleArrivals = useMemo(() => {
     if (!data) return [];
@@ -274,6 +296,14 @@ export default function SignageSlugPage() {
     const tick = () => setNow(new Date());
     tick();
     const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  /* ─── Departed fade tick (every 5s) — re-evaluate which DEPARTED rows to hide ─── */
+  useEffect(() => {
+    const id = setInterval(() => {
+      setDepartedFadeTick((t) => t + 1);
+    }, 5000);
     return () => clearInterval(id);
   }, []);
 
@@ -567,7 +597,7 @@ export default function SignageSlugPage() {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      socket.emit('join:station', slug);
+      socket.emit('join:station', { slug, role: 'kiosk' });
     });
 
     socket.on('kiosk:delay', (payload: { departureId: string; minutes: number; destination: string; timestamp: number }) => {
@@ -591,6 +621,8 @@ export default function SignageSlugPage() {
     });
 
     socket.on('kiosk:departed', (payload: { departureId: string; destination: string; timestamp: number }) => {
+      // Record the departure timestamp for the 5-minute fade timer
+      departedTimersRef.current.set(payload.departureId, Date.now());
       // Mark departure as departed in state
       setData((prev) => {
         if (!prev) return prev;
@@ -691,6 +723,47 @@ export default function SignageSlugPage() {
           config.generalMessageInterval
         );
       }
+    });
+
+    socket.on('kiosk:manualAnnounce', (payload: { text: string; priority?: number; timestamp: number }) => {
+      // Map payload.priority to AnnouncementPriority and queue
+      const priority = AnnouncementPriority[(payload.priority as keyof typeof AnnouncementPriority)] || AnnouncementPriority.HIGH;
+      addToQueue(payload.text, priority);
+      // Also show on ticker for visual display
+      setData((prev) => {
+        if (!prev) return prev;
+        const newTicker: TickerMessage = {
+          id: `ma-${payload.timestamp}`,
+          text: payload.text,
+          priority: 'urgent',
+          active: true,
+        };
+        return {
+          ...prev,
+          tickerMessages: [...prev.tickerMessages, newTicker],
+        };
+      });
+    });
+
+    socket.on('kiosk:updateTrip', (payload: { departureId: string; status: string; delayMinutes?: number; timestamp: number }) => {
+      // Update departure status in state based on payload.status
+      setData((prev) => {
+        if (!prev) return prev;
+        const update: Partial<Departure> = { status: payload.status };
+        if (typeof payload.delayMinutes === 'number') {
+          update.delayMinutes = payload.delayMinutes;
+        }
+        // If transitioning to DEPARTED, record the timestamp for fade timer
+        if (payload.status === 'DEPARTED') {
+          departedTimersRef.current.set(payload.departureId, Date.now());
+        }
+        return {
+          ...prev,
+          departures: prev.departures.map((d) =>
+            d.id === payload.departureId ? { ...d, ...update } : d
+          ),
+        };
+      });
     });
 
     socket.on('disconnect', () => {
@@ -884,7 +957,7 @@ export default function SignageSlugPage() {
             <div className="brand-logo-wrap">
               <Image src="/logo-full.png" alt="SmarticketS" width={120} height={40} className="brand-logo" />
             </div>
-            <div className="brand-sub">GARE ROUTIÈRE</div>
+            <div className="brand-sub">SmarticketS Gare Routière</div>
           </div>
         </div>
 
@@ -1209,6 +1282,14 @@ html, body {
   color: #666;
   text-shadow: none;
 }
+.departures-panel .status-imminent-arrival {
+  color: #00d4ff;
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+}
+.departures-panel .status-arrived {
+  color: #4ade80;
+  text-shadow: 0 0 15px rgba(74, 222, 128, 0.8);
+}
 
 /* ─── ARRIVALS LED COLORS ──────────────────────── */
 .arrivals-panel .led-time {
@@ -1241,6 +1322,15 @@ html, body {
 .arrivals-panel .status-departed {
   color: #666;
   text-shadow: none;
+}
+.arrivals-panel .status-imminent-arrival {
+  color: #00d4ff;
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+}
+.arrivals-panel .status-cancelled {
+  color: #ef4444;
+  text-shadow: 0 0 15px rgba(239, 68, 68, 0.9);
+  text-decoration: line-through;
 }
 
 /* ─── 3-LEVEL BLINKING SYSTEM ─── */
