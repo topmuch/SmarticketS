@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { z } from 'zod';
 
 // Default settings
 const defaultSettings = {
@@ -70,8 +71,22 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { settings } = body;
 
-    // Update each setting
+    // Whitelist of allowed setting key prefixes
+    const ALLOWED_PREFIXES = [
+      'company_', 'seo_', 'languages', 'default_language', 'currency',
+      'signage_', 'kiosk_', 'email_', 'whatsapp_', 'sms_',
+      'feature_', 'theme_', 'map_', 'stripe_', 'payment_',
+    ];
+
+    // Validate each setting key against whitelist
     for (const [key, value] of Object.entries(settings)) {
+      const isAllowed = ALLOWED_PREFIXES.some(prefix => key.startsWith(prefix));
+      if (!isAllowed) {
+        return NextResponse.json(
+          { error: `Clé de paramètre non autorisée: ${key}` },
+          { status: 400 }
+        );
+      }
       await db.setting.upsert({
         where: { key },
         create: { key, value: String(value) },

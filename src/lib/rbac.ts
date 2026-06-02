@@ -64,8 +64,9 @@ export const DEFAULT_PERMISSIONS = ROLE_PERMISSIONS;
 
 // ─── JWT Configuration ──────────────────────────────────────────────
 
-const JWT_SECRET = process.env.JWT_SECRET || 'smartickets-field-secret-2024';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'smartickets-staff-refresh-secret';
+// Required env vars — app will fail to start if missing
+const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
 
 export interface StaffJwtPayload {
   staffId: string;

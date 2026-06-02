@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,11 @@ export async function GET(
   { params }: { params: Promise<{ stationId: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const { stationId } = await params;
     const { searchParams } = new URL(request.url);
     const agencyId = searchParams.get('agencyId');

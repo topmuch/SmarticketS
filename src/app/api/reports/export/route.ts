@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 // GET - Export baggages to CSV
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const agencyId = searchParams.get('agencyId');
+    // Force agencyId from session to prevent cross-agency data leakage
+    const agencyId = searchParams.get('agencyId') || session.agencyId;
+
+    if (session.role !== 'admin' && session.role !== 'superadmin' && session.agencyId !== agencyId) {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
+
     const status = searchParams.get('status'); // optional filter
     const type = searchParams.get('type'); // optional filter
 
-    // Build filter
-    const filter: Record<string, unknown> = {};
-    if (agencyId) filter.agencyId = agencyId;
+    // Build filter — always use verified agencyId
+    const filter: Record<string, unknown> = { agencyId };
     if (status) filter.status = status;
     if (type) filter.type = type;
 

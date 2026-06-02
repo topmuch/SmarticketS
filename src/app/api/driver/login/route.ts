@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { createSession, deleteSession, logLoginAttempt } from '@/lib/session';
+import { rateLimit } from '@/lib/rate-limit';
 
 const DRIVER_COOKIE_NAME = 'smartickets_driver_session';
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -16,6 +17,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Email et mot de passe requis' },
         { status: 400 },
+      );
+    }
+
+    // Rate limiting: 5 attempts per 15 min per email
+    if (rateLimit(`driver:login:${email.toLowerCase()}`, { windowMs: 900000, maxRequests: 5 })) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Réessayez dans 15 minutes.' },
+        { status: 429 },
       );
     }
 

@@ -88,6 +88,15 @@ export async function GET(request: NextRequest) {
     const dateParam = searchParams.get('date');
     const statusParam = searchParams.get('status');
 
+    // Validate status param against allowed values
+    const ALLOWED_STATUSES = ['SCHEDULED', 'BOARDING', 'DEPARTED', 'CANCELLED', 'DELAYED'];
+    if (statusParam && !ALLOWED_STATUSES.includes(statusParam)) {
+      return NextResponse.json(
+        { error: `Statut invalide: ${statusParam}. Valeurs autorisées: ${ALLOWED_STATUSES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
     // Resolve agencyId
     const effectiveAgencyId = resolveAgencyId(user, agencyIdParam);
     if (effectiveAgencyId instanceof NextResponse) return effectiveAgencyId;

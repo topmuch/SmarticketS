@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,10 +57,16 @@ export async function GET(req: NextRequest) {
    ═══════════════════════════════════════════════════════════════ */
 export async function PUT(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { agencyId, volume, muted, generalMessage, generalMessageInterval, alertSoundEnabled } = body;
 
-    if (!agencyId) {
+    const effectiveAgencyId = agencyId || session.agencyId;
+    if (!effectiveAgencyId) {
       return NextResponse.json({ error: 'agencyId requis' }, { status: 400 });
     }
 

@@ -156,11 +156,9 @@ export default function KioskControlPage() {
     socketRef.current = socket;
     socket.on('connect', () => {
       setSocketConnected(true);
-      console.log('[KioskControl] Socket connected');
     });
     socket.on('disconnect', () => {
       setSocketConnected(false);
-      console.log('[KioskControl] Socket disconnected');
     });
     return () => {
       socket.disconnect();
@@ -192,7 +190,6 @@ export default function KioskControlPage() {
             generalMessageInterval: config.generalMessageInterval,
           },
         });
-        console.log('[KioskControl] Config broadcast to kiosk');
       }
     } catch {
       toast.error("Erreur lors de la sauvegarde");

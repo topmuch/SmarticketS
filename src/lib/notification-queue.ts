@@ -57,7 +57,14 @@ export class NotificationQueue {
    * Enqueue a new notification into the retry queue.
    * Returns the queued notification with its assigned ID.
    */
+  private static readonly MAX_QUEUE_SIZE = 10_000;
+
   enqueue(notification: Omit<QueuedNotification, 'id' | 'attempts' | 'status' | 'nextRetryAt' | 'createdAt'>): QueuedNotification {
+    // Auto-purge if queue exceeds max size to prevent unbounded memory growth
+    if (this.queue.size >= NotificationQueue.MAX_QUEUE_SIZE) {
+      this.purge();
+    }
+
     const id = this.generateId();
     const now = Date.now();
 
@@ -113,6 +120,9 @@ export class NotificationQueue {
       if (processed > 0) {
         console.log(`[NotificationQueue] Processed ${processed} notifications: ${sent} sent, ${failed} failed`);
       }
+
+      // Auto-purge completed/expired notifications after processing
+      this.purge();
     } finally {
       this.isProcessing = false;
     }

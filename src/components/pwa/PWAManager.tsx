@@ -207,8 +207,6 @@ export function PWAManager() {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
-        console.log('[PWA] Service Worker registered:', registration.scope);
-
         const isStandalone =
           window.matchMedia('(display-mode: standalone)').matches ||
           ('standalone' in window.navigator && (window.navigator as Navigator & { standalone: boolean }).standalone);
@@ -217,8 +215,8 @@ export function PWAManager() {
           document.body.classList.add('pwa-mode');
         }
       })
-      .catch((error) => {
-        console.warn('[PWA] Service Worker registration failed:', error);
+      .catch(() => {
+        // SW registration failed silently
       });
   }, []);
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +10,19 @@ export const dynamic = 'force-dynamic';
    ═══════════════════════════════════════════════════════════════ */
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { text, stationSlug, agencyId } = body;
+
+    // Verify agency ownership
+    const effectiveAgencyId = agencyId || session.agencyId;
+    if (session.role !== 'admin' && session.role !== 'superadmin' && session.agencyId !== effectiveAgencyId) {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
 
     if (!text || !text.trim()) {
       return NextResponse.json({ error: 'Message requis' }, { status: 400 });

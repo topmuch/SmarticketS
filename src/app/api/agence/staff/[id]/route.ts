@@ -239,8 +239,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Membre non trouvé' }, { status: 404 });
     }
 
-    // Generate new code
-    const { plain: code, hash: codeHash } = generateSecureCode();
+    // Generate new code (async bcrypt)
+    const { plain: code, hash: codeHash } = await generateSecureCode();
     const codeExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     // Update staff with new code, reset activation

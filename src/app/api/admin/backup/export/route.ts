@@ -11,9 +11,8 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
-    const isAdmin = ['superadmin', 'admin'].includes(user.role);
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    if (user.role !== 'superadmin') {
+      return NextResponse.json({ error: 'Accès non autorisé — superadmin uniquement' }, { status: 403 });
     }
 
     // Fetch all data from database
@@ -28,7 +27,9 @@ export async function GET(request: NextRequest) {
       featureFlags,
       messages,
     ] = await Promise.all([
-      db.user.findMany(),
+      db.user.findMany({
+        select: { password: false },
+      }),
       db.agency.findMany(),
       db.baggage.findMany(),
       db.scanLog.findMany(),

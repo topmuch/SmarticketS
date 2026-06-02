@@ -174,7 +174,7 @@ function AISuggestions({ agencyId, stats }: { agencyId: string; stats: Stats }) 
         setError('Impossible de charger les suggestions');
       }
     } catch (err) {
-      console.error('Error fetching AI suggestion:', err);
+      console.error('Error fetching AI suggestion:', err); // Error logging intentional
       setError('Erreur lors du chargement');
     } finally {
       setLoading(false);
@@ -335,7 +335,7 @@ function AdBanner() {
           setAds(data.advertisements);
         }
       } catch (err) {
-        console.error('Error fetching ads:', err);
+        console.error('Error fetching ads:', err); // Error logging intentional
       } finally {
         setLoading(false);
       }
@@ -464,12 +464,12 @@ export default function AgencyDashboardPage() {
         setBaggages(Array.isArray(data.baggages) ? data.baggages : []);
         setStats(data.stats || { total: 0, pending: 0, active: 0, scanned: 0, lost: 0, found: 0 });
       } else {
-        console.error('API error:', data.error || 'Unknown error');
+        console.error('API error:', data.error || 'Unknown error'); // Error logging intentional
         setBaggages([]);
         setStats({ total: 0, pending: 0, active: 0, scanned: 0, lost: 0, found: 0 });
       }
     } catch (error) {
-      console.error('Error fetching baggages:', error);
+      console.error('Error fetching baggages:', error); // Error logging intentional
       setBaggages([]);
       setStats({ total: 0, pending: 0, active: 0, scanned: 0, lost: 0, found: 0 });
     } finally {
@@ -520,7 +520,7 @@ export default function AgencyDashboardPage() {
       setShowDeleteModal(false);
       setBaggageToDelete(null);
     } catch (error) {
-      console.error('Error deleting baggage:', error);
+      console.error('Error deleting baggage:', error); // Error logging intentional
     }
   };
 
@@ -549,7 +549,7 @@ export default function AgencyDashboardPage() {
         setCommandForm({ type: 'hajj', count: 10, notes: '' });
       }, 2000);
     } catch (error) {
-      console.error('Error sending command:', error);
+      console.error('Error sending command:', error); // Error logging intentional
     } finally {
       setCommandSubmitting(false);
     }
@@ -873,7 +873,7 @@ export default function AgencyDashboardPage() {
                                       const res = await fetch(`/api/baggage/${baggage.id}/declare-lost`, { method: 'PUT' });
                                       if (res.ok) fetchBaggages();
                                     } catch (error) {
-                                      console.error('Error declaring lost:', error);
+                                      console.error('Error declaring lost:', error); // Error logging intentional
                                     }
                                   }
                                 }}
@@ -892,7 +892,7 @@ export default function AgencyDashboardPage() {
                                       const res = await fetch(`/api/baggage/${baggage.id}/mark-found`, { method: 'PUT' });
                                       if (res.ok) fetchBaggages();
                                     } catch (error) {
-                                      console.error('Error marking found:', error);
+                                      console.error('Error marking found:', error); // Error logging intentional
                                     }
                                   }
                                 }}
@@ -1245,7 +1245,7 @@ export default function AgencyDashboardPage() {
                             setShowDetailModal(false);
                           }
                         } catch (error) {
-                          console.error('Error updating baggage:', error);
+                          console.error('Error updating baggage:', error); // Error logging intentional
                         }
                       }}
                       className="w-full py-2 bg-[#ff7f00] hover:bg-[#ff9f00] text-white rounded-lg text-sm font-medium transition-colors"

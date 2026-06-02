@@ -1,7 +1,12 @@
-import prisma from './prisma';
+import { db } from './db';
 import crypto from 'crypto';
 import { randomInt } from 'crypto';
 import nodemailer from 'nodemailer';
+
+/** Escape HTML entities to prevent XSS in email templates */
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
 
 // Email provider types
 export type EmailProvider = 'console' | 'smtp';
@@ -21,14 +26,14 @@ async function ensureEmailColumns() {
   if (_migrationRan) return;
   _migrationRan = true;
   try {
-    const cols = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+    const cols = await db.$queryRawUnsafe<Array<{ name: string }>>(
       `PRAGMA table_info("EmailSettings")`
     );
     const colSet = new Set(cols.map(c => c.name));
     for (const col of EMAIL_COLUMNS) {
       if (colSet.has(col.column)) continue;
       try {
-        await prisma.$executeRawUnsafe(
+        await db.$executeRawUnsafe(
           `ALTER TABLE "EmailSettings" ADD COLUMN "${col.column}" ${col.type}`
         );
         console.log(`[email:ensureColumns] Added EmailSettings.${col.column}`);
@@ -82,11 +87,11 @@ export async function getEmailSettings(): Promise<EmailConfig | null> {
   try {
     // Ensure columns exist before querying (lazy migration)
     await ensureEmailColumns();
-    let settings = await prisma.emailSettings.findFirst();
+    let settings = await db.emailSettings.findFirst();
     if (!settings) {
       // Auto-create default settings so the table is never empty
       console.log('📧 No email settings found, creating defaults...');
-      settings = await prisma.emailSettings.create({
+      settings = await db.emailSettings.create({
         data: {
           provider: 'console',
           fromEmail: 'noreply@smartickets.com',
@@ -119,7 +124,7 @@ export async function saveEmailSettings(config: Partial<EmailConfig>): Promise<E
   try {
     // Ensure columns exist before querying (lazy migration)
     await ensureEmailColumns();
-    const existing = await prisma.emailSettings.findFirst();
+    const existing = await db.emailSettings.findFirst();
     
     if (existing) {
       // Build update data - only include fields that are explicitly provided
@@ -149,7 +154,7 @@ export async function saveEmailSettings(config: Partial<EmailConfig>): Promise<E
 
       console.log('📧 Saving email settings, fields:', Object.keys(data).join(', '));
 
-      const updated = await prisma.emailSettings.update({
+      const updated = await db.emailSettings.update({
         where: { id: existing.id },
         data,
       });
@@ -166,7 +171,7 @@ export async function saveEmailSettings(config: Partial<EmailConfig>): Promise<E
         smtpEncryption: updated.smtpEncryption || 'tls',
       };
     } else {
-      const created = await prisma.emailSettings.create({
+      const created = await db.emailSettings.create({
         data: {
           provider: config.provider || 'console',
           fromEmail: config.fromEmail || 'noreply@smartickets.com',
@@ -216,7 +221,7 @@ async function logEmail(
   data?: Record<string, unknown>
 ): Promise<void> {
   try {
-    await prisma.emailLog.create({
+    await db.emailLog.create({
       data: {
         to,
         subject,
@@ -237,9 +242,9 @@ async function logEmail(
 // Update email test status
 export async function updateTestStatus(success: boolean, error?: string): Promise<void> {
   try {
-    const existing = await prisma.emailSettings.findFirst();
+    const existing = await db.emailSettings.findFirst();
     if (existing) {
-      await prisma.emailSettings.update({
+      await db.emailSettings.update({
         where: { id: existing.id },
         data: {
           lastTestAt: new Date(),
@@ -369,11 +374,11 @@ export function getVerificationEmailTemplate(name: string, verificationUrl: stri
         </div>
         <div style="background: #f9f9f9; border-radius: 10px; padding: 30px;">
           <h2 style="color: #333; margin-top: 0;">Vérification de votre email</h2>
-          <p style="color: #666;">Bonjour ${name},</p>
+          <p style="color: #666;">Bonjour ${escapeHtml(name)},</p>
           <p style="color: #666;">Merci de vous être inscrit sur SmarticketS. Vérifiez votre adresse email en utilisant le code ci-dessous :</p>
           <div style="text-align: center; margin: 30px 0;">
             <div style="background: #fff; border: 2px solid #ff7f00; border-radius: 10px; padding: 20px; display: inline-block;">
-              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff7f00;">${code}</span>
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff7f00;">${escapeHtml(code)}</span>
             </div>
           </div>
           <p style="color: #666; text-align: center;">Ou cliquez sur le bouton suivant :</p>
@@ -400,11 +405,11 @@ export function getPasswordResetEmailTemplate(name: string, resetUrl: string, co
         </div>
         <div style="background: #f9f9f9; border-radius: 10px; padding: 30px;">
           <h2 style="color: #333; margin-top: 0;">Réinitialisation de votre mot de passe</h2>
-          <p style="color: #666;">Bonjour ${name},</p>
+          <p style="color: #666;">Bonjour ${escapeHtml(name)},</p>
           <p style="color: #666;">Vous avez demandé la réinitialisation de votre mot de passe. Utilisez le code ci-dessous :</p>
           <div style="text-align: center; margin: 30px 0;">
             <div style="background: #fff; border: 2px solid #ff7f00; border-radius: 10px; padding: 20px; display: inline-block;">
-              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff7f00;">${code}</span>
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff7f00;">${escapeHtml(code)}</span>
             </div>
           </div>
           <p style="color: #666; text-align: center;">Ou cliquez sur le bouton suivant :</p>
@@ -453,51 +458,30 @@ export function getTestEmailTemplate(): { html: string; text: string } {
 export async function createEmailToken(email: string, type: 'email_verification' | 'password_reset'): Promise<{ token: string; code: string }> {
   const token = generateToken();
   const code = generateCode();
-  
-  // Set expiration: 24h for verification, 1h for password reset
   const expiresHours = type === 'email_verification' ? 24 : 1;
   const expiresAt = new Date(Date.now() + expiresHours * 60 * 60 * 1000);
-  
-  // Delete any existing tokens for this email and type
-  await prisma.emailToken.deleteMany({
-    where: { email, type }
+
+  await db.$transaction(async (tx) => {
+    await tx.emailToken.deleteMany({ where: { email, type } });
+    await tx.emailToken.create({ data: { email, token, code, type, expiresAt } });
   });
-  
-  // Create new token
-  await prisma.emailToken.create({
-    data: {
-      email,
-      token,
-      code,
-      type,
-      expiresAt,
-    }
-  });
-  
+
   return { token, code };
 }
 
 export async function verifyEmailToken(token: string, type: 'email_verification' | 'password_reset'): Promise<{ valid: boolean; email?: string; error?: string }> {
-  const emailToken = await prisma.emailToken.findFirst({
-    where: {
-      token,
-      type,
-      used: false,
-      expiresAt: { gt: new Date() }
-    }
+  const result = await db.emailToken.updateMany({
+    where: { token, type, used: false, expiresAt: { gt: new Date() } },
+    data: { used: true, usedAt: new Date() },
   });
-  
-  if (!emailToken) {
+
+  if (result.count === 0) {
     return { valid: false, error: 'Token invalide ou expiré' };
   }
-  
-  // Mark as used
-  await prisma.emailToken.update({
-    where: { id: emailToken.id },
-    data: { used: true, usedAt: new Date() }
-  });
-  
-  return { valid: true, email: emailToken.email };
+
+  // Fetch email from the now-updated token
+  const emailToken = await db.emailToken.findFirst({ where: { token, type } });
+  return { valid: true, email: emailToken?.email };
 }
 
 export function getBaggageLostEmailTemplate(data: {
@@ -509,7 +493,7 @@ export function getBaggageLostEmailTemplate(data: {
   flightNumber?: string;
 }): { html: string; text: string } {
   const now = new Date().toLocaleString('fr-FR');
-  const travelerDisplay = data.travelerName ? `${data.travelerName}` : 'Non renseigné';
+  const travelerDisplay = data.travelerName ? escapeHtml(data.travelerName) : 'Non renseigné';
   return {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -522,7 +506,7 @@ export function getBaggageLostEmailTemplate(data: {
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Référence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.reference}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Voyageur</td>
@@ -531,22 +515,22 @@ export function getBaggageLostEmailTemplate(data: {
             ${data.agencyName ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.agencyName}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
             </tr>` : ''}
             ${data.baggageType ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Type de colis</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.baggageType}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.baggageType)}</td>
             </tr>` : ''}
             ${data.flightNumber ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Vol</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.flightNumber}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.flightNumber)}</td>
             </tr>` : ''}
             ${data.destination ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px;">Destination</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333;">${data.destination}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.destination)}</td>
             </tr>` : ''}
           </table>
         </div>
@@ -567,7 +551,7 @@ export function getBaggageFoundEmailTemplate(data: {
   baggageType?: string;
 }): { html: string; text: string } {
   const now = new Date().toLocaleString('fr-FR');
-  const travelerDisplay = data.travelerName ? `${data.travelerName}` : 'Non renseigné';
+  const travelerDisplay = data.travelerName ? escapeHtml(data.travelerName) : 'Non renseigné';
   return {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -580,7 +564,7 @@ export function getBaggageFoundEmailTemplate(data: {
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Référence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.reference}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Voyageur</td>
@@ -589,12 +573,12 @@ export function getBaggageFoundEmailTemplate(data: {
             ${data.agencyName ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.agencyName}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
             </tr>` : ''}
             ${data.baggageType ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px;">Type de colis</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333;">${data.baggageType}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.baggageType)}</td>
             </tr>` : ''}
           </table>
         </div>
@@ -627,22 +611,22 @@ export function getNewAgencyEmailTemplate(data: {
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Nom de l'agence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.name}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.name)}</td>
             </tr>
             ${data.email ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Email</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.email}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.email)}</td>
             </tr>` : ''}
             ${data.phone ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Téléphone</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.phone}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.phone)}</td>
             </tr>` : ''}
             ${data.address ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px;">Adresse</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333;">${data.address}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.address)}</td>
             </tr>` : ''}
           </table>
         </div>
@@ -681,21 +665,21 @@ export function getAgencyMessageEmailTemplate(data: {
           <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.agencyName}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
             </tr>
             ${data.subject ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Sujet</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.subject}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.subject)}</td>
             </tr>` : ''}
             ${data.senderEmail ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Email agence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.senderEmail}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.senderEmail)}</td>
             </tr>` : ''}
           </table>
           <div style="background: #fff; border: 1px solid #fde68a; border-radius: 8px; padding: 15px; margin-top: 20px;">
-            <p style="color: #333; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${data.message}</p>
+            <p style="color: #333; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(data.message)}</p>
           </div>
         </div>
         <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
@@ -729,29 +713,29 @@ export function getNewLeadEmailTemplate(data: {
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Nom</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.name}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.name)}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Email</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.email}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.email)}</td>
             </tr>
             ${data.phone ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Téléphone</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.phone}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.phone)}</td>
             </tr>` : ''}
             ${data.company ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Entreprise</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.company}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.company)}</td>
             </tr>` : ''}
             ${data.source ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px;">Source</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333;">${data.source}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.source)}</td>
             </tr>` : ''}
           </table>
-          ${data.notes ? `<div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin-top: 20px;"><p style="color: #666; font-size: 14px;"><strong>Notes :</strong> ${data.notes}</p></div>` : ''}
+          ${data.notes ? `<div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin-top: 20px;"><p style="color: #666; font-size: 14px;"><strong>Notes :</strong> ${escapeHtml(data.notes)}</p></div>` : ''}
         </div>
         <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
         <div style="text-align: center; color: #999; font-size: 12px;">
@@ -795,39 +779,39 @@ export function getColisActivatedEmailTemplate(data: {
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee; width: 40%;">Référence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.reference}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
             </tr>
             ${data.agencyName ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.agencyName}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
             </tr>` : ''}
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Expéditeur</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.senderName || 'Non renseigné'} ${data.senderPhone ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${data.senderPhone})</span>` : ''}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.senderName || 'Non renseigné')} ${data.senderPhone ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${escapeHtml(data.senderPhone)})</span>` : ''}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Destinataire</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.receiverName || 'Non renseigné'} ${data.receiverPhone ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${data.receiverPhone})</span>` : ''}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.receiverName || 'Non renseigné')} ${data.receiverPhone ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${escapeHtml(data.receiverPhone)})</span>` : ''}</td>
             </tr>
             ${data.companyName ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Compagnie</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.companyName}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.companyName)}</td>
             </tr>` : ''}
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Trajet</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.departureCity || '—'} → ${data.arrivalCity || '—'}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.departureCity || '—')} → ${escapeHtml(data.arrivalCity || '—')}</td>
             </tr>
             ${data.departureDate ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Départ</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.departureDate}${data.departureTime ? ' à ' + data.departureTime : ''}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.departureDate)}${data.departureTime ? ' à ' + escapeHtml(data.departureTime) : ''}</td>
             </tr>` : ''}
             ${data.colisType ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Type de colis</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.colisType}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.colisType)}</td>
             </tr>` : ''}
             ${data.paymentStatus ? `
             <tr>
@@ -876,34 +860,34 @@ export function getColisDeliveredEmailTemplate(data: {
           <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee; width: 40%;">Référence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.reference}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
             </tr>
             ${data.agencyName ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.agencyName}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
             </tr>` : ''}
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Expéditeur</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.senderName || 'Non renseigné'}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.senderName || 'Non renseigné')}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Destinataire</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.receiverName || 'Non renseigné'}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.receiverName || 'Non renseigné')}</td>
             </tr>
             ${data.departureCity && data.arrivalCity ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Trajet</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.departureCity} → ${data.arrivalCity}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.departureCity)} → ${escapeHtml(data.arrivalCity)}</td>
             </tr>` : ''}
             ${data.companyName ? `
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Compagnie</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.companyName}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.companyName)}</td>
             </tr>` : ''}
             <tr>
               <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Lieu de livraison</td>
-              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${data.deliveryLocation || 'Non renseigné'}</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.deliveryLocation || 'Non renseigné')}</td>
             </tr>
             ${data.deliveryDate ? `
             <tr>
@@ -925,7 +909,7 @@ export function getColisDeliveredEmailTemplate(data: {
 // ============ EMAIL CODE VERIFICATION ============
 
 export async function verifyEmailCode(code: string, email: string, type: 'email_verification' | 'password_reset'): Promise<{ valid: boolean; error?: string }> {
-  const emailToken = await prisma.emailToken.findFirst({
+  const emailToken = await db.emailToken.findFirst({
     where: {
       email,
       code,
@@ -940,7 +924,7 @@ export async function verifyEmailCode(code: string, email: string, type: 'email_
   }
   
   // Mark as used
-  await prisma.emailToken.update({
+  await db.emailToken.update({
     where: { id: emailToken.id },
     data: { used: true, usedAt: new Date() }
   });

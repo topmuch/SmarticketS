@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { calculateExpirationDate } from '@/lib/qr';
 import { z } from 'zod';
 
+// PUBLIC ENDPOINT — intentionally unauthenticated for QR scanning
+
 const WHATSAPP_REGEX = /^\+[1-9]\d{1,14}$/;
 
 // Schema accepts both old fields (sender/receiver) and new fields (traveler)

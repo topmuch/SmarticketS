@@ -91,16 +91,14 @@ export default function RealtimeAlertListener() {
       socket.on('connect', () => {
         setConnected(true);
         backoffRef.current = INITIAL_BACKOFF_MS;
-        console.log('[RealtimeAlertListener] Connected to alert-service');
 
         if (agId) {
           socket.emit('agency:connect', { agencyId: agId });
-          console.log(`[RealtimeAlertListener] Joined agency room: ${agId}`);
         }
       });
 
-      socket.on('agency:connected', (data: { agencyId: string; message: string }) => {
-        console.log(`[RealtimeAlertListener] Agency confirmed: ${data.agencyId}`);
+      socket.on('agency:connected', (_data: { agencyId: string; message: string }) => {
+        // agency room joined successfully
       });
 
       socket.on('alert:new', (alert: AlertEvent) => {
@@ -141,14 +139,13 @@ export default function RealtimeAlertListener() {
         scheduleReconnect(agId);
       });
 
-      socket.on('connect_error', (error: Error) => {
+      socket.on('connect_error', (_error: Error) => {
         setConnected(false);
-        console.warn('[RealtimeAlertListener] Connect error:', error.message);
         scheduleReconnect(agId);
       });
 
-      socket.on('error', (error: { message: string }) => {
-        console.warn('[RealtimeAlertListener] Socket error:', error.message);
+      socket.on('error', (_error: { message: string }) => {
+        // socket error occurred
       });
 
       socket.connect();
@@ -160,9 +157,6 @@ export default function RealtimeAlertListener() {
       }
 
       const delay = backoffRef.current;
-      console.log(
-        `[RealtimeAlertListener] Reconnecting in ${delay / 1000}s...`
-      );
 
       reconnectTimerRef.current = setTimeout(() => {
         connectSocketRef.current(agId);

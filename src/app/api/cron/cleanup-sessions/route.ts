@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanupExpiredSessions } from '@/lib/session';
 
-// Cron secret for authorization
-const CRON_SECRET = process.env.CRON_SECRET || 'your-cron-secret-key';
+// Cron secret for authorization — required in all environments
+const CRON_SECRET = process.env.CRON_SECRET;
 
 /**
  * Cron endpoint to cleanup expired sessions
@@ -23,12 +23,20 @@ const CRON_SECRET = process.env.CRON_SECRET || 'your-cron-secret-key';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify authorization
+    // Verify authorization — CRON_SECRET env var is required
+    if (!CRON_SECRET) {
+      console.error('[/api/cron/cleanup-sessions] CRON_SECRET env var is not set');
+      return NextResponse.json(
+        { error: 'Server misconfigured — CRON_SECRET not set' },
+        { status: 500 }
+      );
+    }
+
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
-    // Check for valid secret (skip in development)
-    if (process.env.NODE_ENV === 'production' && token !== CRON_SECRET) {
+    // Always validate the secret (no environment skip)
+    if (token !== CRON_SECRET) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

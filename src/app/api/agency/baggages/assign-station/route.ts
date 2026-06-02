@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,11 @@ const assignSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const body = await request.json();
     const parsed = assignSchema.safeParse(body);
 
@@ -28,6 +34,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { baggageIds, stationId, agencyId } = parsed.data;
+
+    // Verify agency ownership
+    if (session.role !== 'admin' && session.role !== 'superadmin' && session.agencyId !== agencyId) {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
 
     // Verify station belongs to agency
     const station = await db.station.findUnique({

@@ -67,10 +67,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('Received lead data:', body);
 
     const validatedData = leadSchema.parse(body);
-    console.log('Validated data:', validatedData);
 
     const lead = await db.lead.create({
       data: {
@@ -85,8 +83,6 @@ export async function POST(request: NextRequest) {
         assignedToId: validatedData.assignedToId || null,
       }
     });
-
-    console.log('Created lead:', lead);
 
     // 📧 Send email notification to superadmin
     try {

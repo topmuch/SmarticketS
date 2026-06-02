@@ -13,6 +13,16 @@ const userSchema = z.object({
   agencyId: z.string().optional(),
 });
 
+// Update validation schema — stricter than create
+const userUpdateSchema = z.object({
+  id: z.string().min(1, 'ID utilisateur requis'),
+  email: z.string().email().optional(),
+  name: z.string().optional(),
+  password: z.string().min(6).optional(),
+  role: z.enum(['superadmin', 'admin', 'agent', 'agency']).optional(),
+  agencyId: z.string().nullable().optional(),
+});
+
 // Password hashing with bcrypt (compatible with login API)
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -122,12 +132,32 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, password, ...data } = body;
+    const parsed = userUpdateSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation error', details: parsed.error.errors },
+        { status: 400 }
+      );
+    }
+
+    const { id, password, role, ...data } = parsed.data;
 
     const updateData: Record<string, unknown> = { ...data };
     
     if (password) {
       updateData.password = await hashPassword(password);
+    }
+
+    // Only superadmin can change roles
+    if (role && currentUser.role !== 'superadmin') {
+      return NextResponse.json(
+        { error: 'Seul un superadmin peut modifier les rôles' },
+        { status: 403 }
+      );
+    }
+    if (role) {
+      updateData.role = role;
     }
 
     const user = await db.user.update({
@@ -141,6 +171,12 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Update user error:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

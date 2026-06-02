@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { verifyEmailToken, verifyEmailCode } from '@/lib/email';
 import { resetPasswordSchema, validateBody } from '@/lib/validation';
-import { checkResetPasswordRateLimit } from '@/lib/rate-limiter';
+import { checkResetPasswordRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 

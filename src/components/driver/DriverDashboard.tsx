@@ -27,7 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { WhatsAppShareButton } from '@/components/shared/WhatsAppShareButton';
-import { startSyncEngine, stopSyncEngine, syncEngine } from '@/lib/offline/sync';
+import { startSyncEngine, stopSyncEngine } from '@/lib/offline/sync';
 import { addToSyncQueue } from '@/lib/offline/queue';
 
 // ─── Types ────────────────────────────────────────────────

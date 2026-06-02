@@ -9,6 +9,8 @@
  *    causing Internal Server Error on ALL pages including login.
  */
 
+import { validateEnv } from '@/lib/validate-env';
+
 const REQUIRED_COLUMNS: { table: string; column: string; type: string }[] = [
   // ── EmailSettings ──
   { table: 'EmailSettings', column: 'recipientColisEmail', type: 'TEXT' },
@@ -77,6 +79,9 @@ export async function register() {
   //    An unhandled rejection here prevents the Next.js server from
   //    starting → Internal Server Error on every page.
   try {
+    // Validate required environment variables first
+    validateEnv();
+
     // Only run in Node.js runtime (not Edge runtime)
     if (process.env.NEXT_RUNTIME !== 'nodejs') {
       return;

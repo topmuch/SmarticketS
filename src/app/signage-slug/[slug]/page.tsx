@@ -401,7 +401,6 @@ export default function SignageSlugPage() {
     const nowMs = Date.now();
     if (nowMs < arrivalsBlockedUntil) return; // already blocked
     setArrivalsBlockedUntil(nowMs + ARRIVALS_BLOCK_DURATION);
-    console.log('[Kiosk] Arrivals blocked for 10 min — imminent departure detected');
     // Force switch to departures if currently showing arrivals
     setCurrentMode((prev) => (prev === 'arrivals' ? 'departures' : prev));
   }, [hasImminentDeparture, arrivalsBlockedUntil]);
@@ -567,12 +566,10 @@ export default function SignageSlugPage() {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('[Kiosk] Socket connected');
       socket.emit('join:station', slug);
     });
 
     socket.on('kiosk:delay', (payload: { departureId: string; minutes: number; destination: string; timestamp: number }) => {
-      console.log('[Kiosk] Delay received:', payload);
       // Mark departure as delayed in state
       setData((prev) => {
         if (!prev) return prev;
@@ -593,7 +590,6 @@ export default function SignageSlugPage() {
     });
 
     socket.on('kiosk:departed', (payload: { departureId: string; destination: string; timestamp: number }) => {
-      console.log('[Kiosk] Departed received:', payload);
       // Mark departure as departed in state
       setData((prev) => {
         if (!prev) return prev;
@@ -612,7 +608,6 @@ export default function SignageSlugPage() {
     });
 
     socket.on('kiosk:cancelled', (payload: { departureId: string; destination: string; timestamp: number }) => {
-      console.log('[Kiosk] Cancelled received:', payload);
       setData((prev) => {
         if (!prev) return prev;
         return {
@@ -625,7 +620,6 @@ export default function SignageSlugPage() {
     });
 
     socket.on('kiosk:boarding', (payload: { departureId: string; destination: string; scheduledTime: string; platform: string | null; timestamp: number }) => {
-      console.log('[Kiosk] Boarding received:', payload);
       setData((prev) => {
         if (!prev) return prev;
         return {
@@ -644,7 +638,6 @@ export default function SignageSlugPage() {
     });
 
     socket.on('kiosk:imminent', (payload: { departureId: string; destination: string; timestamp: number }) => {
-      console.log('[Kiosk] Imminent received:', payload);
       setData((prev) => {
         if (!prev) return prev;
         return {
@@ -663,7 +656,6 @@ export default function SignageSlugPage() {
     });
 
     socket.on('kiosk:generalMessage', (payload: { text: string; priority: number; timestamp: number }) => {
-      console.log('[Kiosk] General message received:', payload);
       // Play the general announcement via TTS immediately
       addToQueue(payload.text, AnnouncementPriority.LOW);
       // Also show on ticker for visual display
@@ -683,7 +675,6 @@ export default function SignageSlugPage() {
     });
 
     socket.on('kiosk:config', (config: { volume?: number; muted?: boolean; generalMessage?: string; generalMessageInterval?: number }) => {
-      console.log('[Kiosk] Config received:', config);
       if (typeof config.volume === 'number') {
         setVolume(config.volume);
       }
@@ -702,7 +693,7 @@ export default function SignageSlugPage() {
     });
 
     socket.on('disconnect', () => {
-      console.log('[Kiosk] Socket disconnected');
+      // silently disconnect
     });
 
     return () => {

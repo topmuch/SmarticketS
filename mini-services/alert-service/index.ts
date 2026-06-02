@@ -312,6 +312,7 @@ async function evaluateAllRulesForAgency(agencyId: string): Promise<{
 
 const PORT = 3003;
 const startTime = Date.now();
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'smartickets-internal-secret';
 
 const httpServer = createServer((req, res) => {
   // Health check
@@ -338,6 +339,14 @@ const httpServer = createServer((req, res) => {
 
     req.on('end', async () => {
       try {
+        // API key authentication
+        const authHeader = req.headers.authorization;
+        if (!authHeader || authHeader !== `Bearer ${INTERNAL_SECRET}`) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unauthorized' }));
+          return;
+        }
+
         const parsed = JSON.parse(body);
         const validation = evaluateRequestSchema.safeParse(parsed);
 
@@ -420,7 +429,7 @@ const httpServer = createServer((req, res) => {
 
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     methods: ['GET', 'POST'],
   },
   path: '/socket.io',

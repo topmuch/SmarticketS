@@ -172,7 +172,7 @@ export function canAccessRoute(role: string, route: string): boolean {
   };
 
   const requiredPerms = routePermissions[route];
-  if (!requiredPerms) return true; // No restriction if not defined
+  if (!requiredPerms) return false; // Default deny for unmapped routes
 
   return hasAnyPermission(role, requiredPerms);
 }

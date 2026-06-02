@@ -5,12 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence, useInView, useScroll, useTransform } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
-  QrCode,
   Menu,
   X,
   Search,
@@ -42,7 +40,6 @@ import {
   Send,
   Clock,
   Monitor,
-  UserX,
   FileDown,
 } from 'lucide-react';
 
@@ -292,8 +289,6 @@ function Navigation() {
     }
   }, []);
 
-  const isOnHero = !scrolled;
-
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl shadow-lg border-b border-slate-200/80 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -319,9 +314,7 @@ function Navigation() {
                   e.preventDefault();
                   handleNavClick(link.href);
                 }}
-              className={`text-sm font-medium text-slate-800 hover:text-slate-900 hover:bg-black/5 active:bg-black/10 rounded-md px-3 py-1.5 transition-colors duration-200 ${
-                isOnHero ? '' : ''
-              }`}
+              className="text-sm font-medium text-slate-800 hover:text-slate-900 hover:bg-black/5 active:bg-black/10 rounded-md px-3 py-1.5 transition-colors duration-200"
               >
                 {link.label}
               </a>

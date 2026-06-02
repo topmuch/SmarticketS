@@ -382,10 +382,10 @@ export default function DeparturesPage() {
     const socket = io('/?XTransformPort=3004');
     socketRef.current = socket;
     socket.on('connect', () => {
-      console.log('[AdminDepartures] Socket connected to kiosk-service');
+      // connected to kiosk-service
     });
     socket.on('disconnect', () => {
-      console.log('[AdminDepartures] Socket disconnected');
+      // disconnected from kiosk-service
     });
     return () => {
       socket.disconnect();
@@ -412,7 +412,6 @@ export default function DeparturesPage() {
           departureId: dep.id,
           destination: dep.destination,
         });
-        console.log('[AdminDepartures] Broadcast departed:', dep.destination);
       }
     } catch {
       toast.error("Erreur lors du changement de statut");
@@ -438,7 +437,6 @@ export default function DeparturesPage() {
           departureId: dep.id,
           destination: dep.destination,
         });
-        console.log('[AdminDepartures] Broadcast cancelled:', dep.destination);
       }
     } catch {
       toast.error("Erreur lors de l'annulation");
@@ -481,7 +479,6 @@ export default function DeparturesPage() {
           minutes,
           destination: delayDeparture.destination,
         });
-        console.log('[AdminDepartures] Broadcast delay:', delayDeparture.destination, minutes, 'min');
       }
     } catch {
       toast.error('Erreur lors de l\'application du retard');

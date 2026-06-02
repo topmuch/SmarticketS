@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { getSession } from '@/lib/session';
 
 // Validation schema
 const validateTicketSchema = z.object({
@@ -14,6 +15,14 @@ const validateTicketSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+    if (!['controller', 'agency', 'admin', 'superadmin', 'agent'].includes(session.role)) {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const data = validateTicketSchema.parse(body);
 

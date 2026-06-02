@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { generateControlCode } from '@/lib/qr';
 import { z } from 'zod';
 
+// PUBLIC ENDPOINT — intentionally unauthenticated for ticket activation
+
 // Zod schema pour validation
 const activateTicketSchema = z.object({
   baggageId: z.string().min(1, 'ID du QR requis'),

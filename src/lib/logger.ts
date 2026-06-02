@@ -4,6 +4,7 @@
  */
 
 import { logMetric } from './logger-metrics';
+import { db } from './db';
 
 // ─── Types ───
 type LogLevel = 'info' | 'warn' | 'error' | 'fatal';
@@ -34,25 +35,17 @@ function sanitizeMeta(obj?: Record<string, unknown>): string | undefined {
   return JSON.stringify(sanitized);
 }
 
-// ─── Fire-and-forget DB writer ───
+// ─── Fire-and-forget DB writer (uses shared singleton from db.ts) ───
 function writeToDb(entry: LogEntry): void {
-  // Dynamic import to avoid circular dependencies
-  import('@prisma/client').then(({ PrismaClient }) => {
-    const db = new PrismaClient();
-    db.systemLog.create({
-      data: {
-        level: entry.level,
-        message: entry.message,
-        source: entry.source,
-        metadata: sanitizeMeta(entry.metadata),
-      },
-    }).catch(() => {
-      // Silently fail - logging should never break the app
-    }).finally(() => {
-      db.$disconnect().catch(() => {});
-    });
+  db.systemLog.create({
+    data: {
+      level: entry.level,
+      message: entry.message,
+      source: entry.source,
+      metadata: sanitizeMeta(entry.metadata),
+    },
   }).catch(() => {
-    // If even the import fails, just ignore
+    // Silently fail - logging should never break the app
   });
 }
 

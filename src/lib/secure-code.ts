@@ -17,15 +17,15 @@ export interface GeneratedCode {
  * Generate a secure 4-digit code + its bcrypt hash.
  * The plain code is ephemeral and should only be shown once to the admin.
  */
-export function generateSecureCode(): GeneratedCode {
+export async function generateSecureCode(): Promise<GeneratedCode> {
   const code = randomInt(1000, 9999).toString(); // 4 digits
-  const hash = bcrypt.hashSync(code, 10);
+  const hash = await bcrypt.hash(code, 10);
   return { plain: code, hash };
 }
 
 /**
  * Verify a plain-text code against a stored bcrypt hash.
  */
-export function verifyCode(plainCode: string, hash: string): boolean {
-  return bcrypt.compareSync(plainCode, hash);
+export async function verifyCode(plainCode: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(plainCode, hash);
 }

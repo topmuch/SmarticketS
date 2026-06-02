@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 // GET - Fetch agency profile
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const agencyId = searchParams.get('agencyId');
+    const agencyId = searchParams.get('agencyId') || session.agencyId;
+
+    if (session.role !== 'admin' && session.role !== 'superadmin' && session.agencyId !== agencyId) {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
 
     if (!agencyId) {
       return NextResponse.json(
@@ -49,18 +59,28 @@ export async function GET(request: NextRequest) {
 // PUT - Update agency profile
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { agencyId, name, email, phone, address } = body;
 
-    if (!agencyId) {
+    const effectiveAgencyId = agencyId || session.agencyId;
+    if (!effectiveAgencyId) {
       return NextResponse.json(
         { error: 'Agency ID is required' },
         { status: 400 }
       );
     }
 
+    if (session.role !== 'admin' && session.role !== 'superadmin' && session.agencyId !== effectiveAgencyId) {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
+
     const agency = await db.agency.update({
-      where: { id: agencyId },
+      where: { id: effectiveAgencyId },
       data: {
         name,
         email,

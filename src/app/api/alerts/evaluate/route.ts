@@ -40,9 +40,13 @@ export async function POST(req: NextRequest) {
     if (result.created > 0 && result.alerts.length > 0) {
       try {
         const alertServiceUrl = `http://localhost:3003/api/internal/evaluate`;
+        const internalSecret = process.env.INTERNAL_SECRET || 'smartickets-internal-secret';
         const forwardRes = await fetch(alertServiceUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${internalSecret}`,
+          },
           body: JSON.stringify({
             eventType,
             agencyId: targetAgencyId,

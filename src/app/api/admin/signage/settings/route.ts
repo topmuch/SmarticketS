@@ -102,6 +102,15 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { getSession } = await import('@/lib/session');
+    const user = await getSession();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const data = signageSettingsSchema.parse(body);
 

@@ -14,7 +14,8 @@
 import crypto from 'crypto';
 
 // ─── Secret ──────────────────────────────────────────────────
-const HMAC_SECRET = process.env.QR_HMAC_SECRET || crypto.randomBytes(32).toString('hex');
+// Required env var — must be stable across restarts and instances
+const HMAC_SECRET = process.env.QR_HMAC_SECRET!;
 
 // Expiry: 24 hours for QR codes (configurable)
 const QR_EXPIRY_MS = 24 * 60 * 60 * 1000;

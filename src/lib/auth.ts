@@ -72,7 +72,8 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 24 * 60 * 60 // 24 hours
   },
-  secret: process.env.NEXTAUTH_SECRET || 'smartickets-secret-key-change-in-production'
+  // Required env var — app will fail to start if missing
+  secret: process.env.NEXTAUTH_SECRET!
 };
 
 export const handler = NextAuth(authOptions);

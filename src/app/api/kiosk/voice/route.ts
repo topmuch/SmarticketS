@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +49,11 @@ export async function GET() {
    ═══════════════════════════════════════════════════════════════ */
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file');
 
@@ -126,6 +132,11 @@ export async function POST(request: NextRequest) {
    ═══════════════════════════════════════════════════════════════ */
 export async function DELETE() {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     // Read current voice URL to know which file to delete
     const urlSetting = await db.setting.findUnique({
       where: { key: SETTING_KEYS.url },

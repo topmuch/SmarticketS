@@ -111,8 +111,15 @@ export async function detectFraud(
 // ============================================
 
 // Translation cache (in-memory for simplicity, could use Redis)
-const translationCache = new Map<string, { translation: string; timestamp: number }>();
+const translationCache = new Map<string, { translation: string; expiresAt: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+// Clean up expired cache entries every 10 minutes
+setInterval(() => {
+  for (const [key, entry] of translationCache) {
+    if (Date.now() > entry.expiresAt) translationCache.delete(key);
+  }
+}, 10 * 60 * 1000);
 
 // Language detection based on country
 const COUNTRY_TO_LANGUAGE: Record<string, string> = {
@@ -145,7 +152,7 @@ export async function translateText(
   // Check cache
   const cacheKey = `${text}:${targetLang}`;
   const cached = translationCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+  if (cached && Date.now() < cached.expiresAt) {
     return { translated: cached.translation, wasTranslated: true };
   }
 
@@ -168,9 +175,9 @@ export async function translateText(
       const translated = data.responseData.translatedText;
       
       // Cache the result
-      translationCache.set(cacheKey, { 
-        translation: translated, 
-        timestamp: Date.now() 
+      translationCache.set(cacheKey, {
+        translation: translated,
+        expiresAt: Date.now() + CACHE_TTL,
       });
       
       return { translated, wasTranslated: true };

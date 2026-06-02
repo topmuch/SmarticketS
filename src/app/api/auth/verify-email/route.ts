@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyEmailToken, verifyEmailCode } from '@/lib/email';
 import { verifyEmailSchema, validateBody } from '@/lib/validation';
-import { checkVerifyEmailRateLimit } from '@/lib/rate-limiter';
+import { checkVerifyEmailRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 

@@ -183,7 +183,7 @@ export default function NotificationCenter() {
 
     pollingRef.current = setInterval(() => {
       fetchUnreadCount();
-    }, 30_000);
+    }, 60_000);
 
     return () => {
       if (pollingRef.current) {

@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createSession, logLoginAttempt, deleteSession } from '@/lib/session';
 import { loginSchema, validateBody } from '@/lib/validation';
-import { checkLoginRateLimit, checkIpRateLimit } from '@/lib/rate-limiter';
+import { checkLoginRateLimit, checkIpRateLimit } from '@/lib/rate-limit';
 import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';

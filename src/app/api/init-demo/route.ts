@@ -6,6 +6,10 @@ import { ensureSeeded } from '@/lib/auto-seed';
 // Initialize / ensure demo users exist (idempotent - upsert)
 export async function GET() {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+    }
+
     // Ensure all demo data (stations, departures, etc.) exists first
     await ensureSeeded();
 
@@ -56,8 +60,8 @@ export async function GET() {
       success: true,
       message: 'Users ready',
       users: [
-        { email: 'admin@smartickets.com', password: 'admin123', role: 'superadmin' },
-        { email: 'agence@smartickets.com', password: 'agence123', role: 'agency' }
+        { email: 'admin@smartickets.com', role: 'superadmin' },
+        { email: 'agence@smartickets.com', role: 'agency' }
       ]
     });
   } catch (error) {

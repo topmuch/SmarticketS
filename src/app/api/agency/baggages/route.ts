@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { normalizeStatus, isPending, isActive, statusFilterIn } from '@/lib/status';
+import { getSession } from '@/lib/session';
 
 // GET - List all baggages for an agency
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const agencyId = searchParams.get('agencyId');
+    const agencyId = searchParams.get('agencyId') || session.agencyId;
+
+    if (session.role !== 'admin' && session.role !== 'superadmin' && session.agencyId !== agencyId) {
+      return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
+    }
     const status = searchParams.get('status');
     const category = searchParams.get('category');
     const search = searchParams.get('search');

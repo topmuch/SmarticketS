@@ -187,9 +187,11 @@ export default function LoginPage({ variant }: { variant: LoginVariant }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  // Auto-init demo users on first visit (idempotent)
+  // Auto-init demo users on first visit (idempotent) — dev only
   useEffect(() => {
-    fetch('/api/init-demo').catch(() => {});
+    if (process.env.NODE_ENV === 'development') {
+      fetch('/api/init-demo').catch(() => {});
+    }
   }, []);
 
   // Redirect if already logged in

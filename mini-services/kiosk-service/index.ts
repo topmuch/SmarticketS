@@ -42,7 +42,7 @@ function broadcastTo(socket: Socket, room: string | string[], event: string, dat
 const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     methods: ['GET', 'POST'],
     allowedHeaders: ['*'],
     credentials: true,
