@@ -123,8 +123,9 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
     { label: "Perdus", icon: <AlertTriangle className="w-5 h-5" />, href: "/agence/perdus", badge: stats?.lost || 0 },
     { label: "Trouvés", icon: <ThumbsUp className="w-5 h-5" />, href: "/agence/trouvailles", badge: stats?.found || 0 },
     
-    // ─── COMMUNICATION ───
-    { label: "Assistance", icon: <MessageCircle className="w-5 h-5" />, href: "/agence/assistance", badge: unreadMessages, section: "COMMUNICATION" },
+    // ─── MESSAGES ───
+    { label: "Assistance", icon: <MessageCircle className="w-5 h-5" />, href: "/agence/assistance", badge: unreadMessages, section: "MESSAGES" },
+    { label: "Notifications", icon: <Bell className="w-5 h-5" />, href: "/agence/notifications" },
     
     // ─── ADMIN ───
     { label: "Équipe", icon: <Users className="w-5 h-5" />, href: "/agence/equipe", section: "ADMIN" },
