@@ -44,6 +44,11 @@ import {
   Wifi,
   WifiOff,
   Loader2,
+  AlarmClock,
+  CloudRain,
+  PartyPopper,
+  Clock,
+  Save,
 } from 'lucide-react';
 import {
   addToQueue,
@@ -323,6 +328,45 @@ export default function NotificationsPage() {
   const socketRef = useRef<Socket | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
+
+  // ── Reminder Manager state ──
+  const [reminders, setReminders] = useState<Record<string, { enabled: boolean; intervalMinutes: number }>>({
+    BAGAGES: { enabled: true, intervalMinutes: 45 },
+    VALEURS: { enabled: true, intervalMinutes: 90 },
+    CLOTURE_BILLETTERIE: { enabled: true, intervalMinutes: 0 },
+    PLUIE: { enabled: false, intervalMinutes: 30 },
+    FESTIVE: { enabled: false, intervalMinutes: 30 },
+  });
+  const [closingTime, setClosingTime] = useState('20:00');
+  const [isRaining, setIsRaining] = useState(false);
+  const [isHolidayMode, setIsHolidayMode] = useState(false);
+  const [holidayStartDate, setHolidayStartDate] = useState('');
+  const [holidayEndDate, setHolidayEndDate] = useState('');
+  const [savingReminder, setSavingReminder] = useState(false);
+
+  // ── Fetch reminder config on mount ──
+  useEffect(() => {
+    fetch('/api/kiosk/reminder-config')
+      .then(res => res.ok ? res.json() : null)
+      .then(config => {
+        if (config) {
+          if (config.reminders) setReminders(config.reminders);
+          if (config.closingTime) setClosingTime(config.closingTime);
+          if (typeof config.isRaining === 'boolean') setIsRaining(config.isRaining);
+          if (typeof config.isHolidayMode === 'boolean') setIsHolidayMode(config.isHolidayMode);
+          if (config.holidayStartDate) setHolidayStartDate(config.holidayStartDate);
+          if (config.holidayEndDate) setHolidayEndDate(config.holidayEndDate);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Broadcast reminder config to kiosks ──
+  const broadcastReminderConfig = useCallback((payload: Record<string, unknown>) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('kiosk:reminderConfig', { ...payload, stationSlug: '*' });
+    }
+  }, []);
 
   // ── Connect to kiosk-service ──
   const connectSocket = useCallback(() => {
@@ -633,6 +677,33 @@ export default function NotificationsPage() {
   // ── Modal field definitions for current template ──────
   const modalFields = sendModal.template ? (TYPE_FIELDS[sendModal.template.type] || []) : [];
 
+  // ── Save reminder config to API + broadcast ──
+  const handleSaveReminder = useCallback(async () => {
+    setSavingReminder(true);
+    try {
+      const config = { reminders, closingTime, isRaining, isHolidayMode, holidayStartDate: holidayStartDate || null, holidayEndDate: holidayEndDate || null };
+      const res = await fetch('/api/kiosk/reminder-config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
+      if (res.ok) {
+        broadcastReminderConfig(config);
+        toast.success('Configuration des rappels sauvegardée et diffusée aux kiosques');
+      } else {
+        toast.error('Erreur lors de la sauvegarde');
+      }
+    } catch {
+      toast.error('Erreur réseau');
+    } finally {
+      setSavingReminder(false);
+    }
+  }, [reminders, closingTime, isRaining, isHolidayMode, holidayStartDate, holidayEndDate, broadcastReminderConfig]);
+
+  // ── Toggle reminder handler ──
+  const toggleReminder = useCallback((key: string) => {
+    setReminders(prev => ({
+      ...prev,
+      [key]: { ...prev[key], enabled: !prev[key]?.enabled },
+    }));
+  }, []);
+
   // ── Render ────────────────────────────────────────────
   return (
     <AdminLayout
@@ -879,6 +950,138 @@ export default function NotificationsPage() {
           <p className="text-xs text-slate-400">
             Utilisez ces variables dans le texte des modèles. Elles seront remplacées lors de la diffusion.
           </p>
+        </div>
+
+        {/* ════════════════════════════════════════════════════ */}
+        {/* REMINDER MANAGER — Rappels automatiques Kiosk        */}
+        {/* ════════════════════════════════════════════════════ */}
+        <div className="rounded-xl border bg-amber-50/50 border-amber-200 p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <AlarmClock className="w-5 h-5 text-amber-600" />
+              <h4 className="text-sm font-bold text-amber-800">Rappels automatiques Kiosk</h4>
+              <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">P6 — Basse priorité</Badge>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSaveReminder}
+              disabled={savingReminder}
+              className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl gap-1.5"
+            >
+              {savingReminder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {savingReminder ? 'Enregistrement...' : 'Sauvegarder & Diffuser'}
+            </Button>
+          </div>
+
+          <p className="text-xs text-amber-700/70">
+            Les rappels sont diffusés automatiquement sur les kiosques avec la priorité la plus basse (P6).
+            Ils ne gênent jamais les annonces de départs/arrivées. Silence entre 22h et 6h.
+          </p>
+
+          {/* Reminder toggles */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Bagages */}
+            <div className="bg-white rounded-lg border p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600 text-lg shrink-0">💼</div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">Bagages</p>
+                  <p className="text-xs text-slate-400">Toutes les {reminders.BAGAGES?.intervalMinutes || 45} min · Bandeau jaune</p>
+                </div>
+              </div>
+              <button type="button" role="switch" aria-checked={reminders.BAGAGES?.enabled || false} onClick={() => toggleReminder('BAGAGES')}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${reminders.BAGAGES?.enabled ? 'bg-amber-500' : 'bg-muted'}`}>
+                <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${reminders.BAGAGES?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Valeurs */}
+            <div className="bg-white rounded-lg border p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 text-lg shrink-0">📱</div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">Effets personnels</p>
+                  <p className="text-xs text-slate-400">Toutes les {reminders.VALEURS?.intervalMinutes || 90} min · Audio uniquement</p>
+                </div>
+              </div>
+              <button type="button" role="switch" aria-checked={reminders.VALEURS?.enabled || false} onClick={() => toggleReminder('VALEURS')}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${reminders.VALEURS?.enabled ? 'bg-purple-500' : 'bg-muted'}`}>
+                <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${reminders.VALEURS?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Clôture billetterie */}
+            <div className="bg-white rounded-lg border p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">🕐</div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">Clôture billetterie</p>
+                  <p className="text-xs text-slate-400">H-15 min · Bandeau orange 2 min</p>
+                </div>
+              </div>
+              <button type="button" role="switch" aria-checked={reminders.CLOTURE_BILLETTERIE?.enabled || false} onClick={() => toggleReminder('CLOTURE_BILLETTERIE')}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${reminders.CLOTURE_BILLETTERIE?.enabled ? 'bg-orange-500' : 'bg-muted'}`}>
+                <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${reminders.CLOTURE_BILLETTERIE?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Pluie (conditional) */}
+            <div className={`bg-white rounded-lg border p-3 flex items-center justify-between ${isRaining ? 'border-blue-300 bg-blue-50/30' : ''}`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg shrink-0 ${isRaining ? 'bg-blue-200 text-blue-700' : 'bg-blue-100 text-blue-600'}`}>🌧️</div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">Mode Pluie <span className="text-xs text-slate-400 font-normal">(conditionnel)</span></p>
+                  <p className="text-xs text-slate-400">Bandeau bleu persistant · Quais glissants</p>
+                </div>
+              </div>
+              <button type="button" role="switch" aria-checked={isRaining} onClick={() => setIsRaining(prev => !prev)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isRaining ? 'bg-blue-500' : 'bg-muted'}`}>
+                <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isRaining ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Festif (conditional) */}
+            <div className={`bg-white rounded-lg border p-3 flex items-center justify-between ${isHolidayMode ? 'border-rose-300 bg-rose-50/30' : ''}`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg shrink-0 ${isHolidayMode ? 'bg-rose-200 text-rose-700' : 'bg-rose-100 text-rose-600'}`}>🎄</div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">Mode Festif <span className="text-xs text-slate-400 font-normal">(conditionnel)</span></p>
+                  <p className="text-xs text-slate-400">Audio uniquement · Files d'attente</p>
+                </div>
+              </div>
+              <button type="button" role="switch" aria-checked={isHolidayMode} onClick={() => setIsHolidayMode(prev => !prev)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 ${isHolidayMode ? 'bg-rose-500' : 'bg-muted'}`}>
+                <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isHolidayMode ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Closing time input */}
+            <div className="bg-white rounded-lg border p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 shrink-0"><Clock className="w-4 h-4" /></div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">Heure de fermeture</p>
+                  <p className="text-xs text-slate-400">Alerte clôture H-15 min</p>
+                </div>
+              </div>
+              <Input type="time" value={closingTime} onChange={(e) => setClosingTime(e.target.value)} className="w-28 h-8 text-sm" />
+            </div>
+          </div>
+
+          {/* Holiday dates */}
+          {isHolidayMode && (
+            <div className="bg-white rounded-lg border border-rose-200 p-3 flex flex-wrap gap-4 items-center">
+              <PartyPopper className="w-4 h-4 text-rose-500" />
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-slate-600 whitespace-nowrap">Début période :</Label>
+                <Input type="date" value={holidayStartDate} onChange={(e) => setHolidayStartDate(e.target.value)} className="h-8 text-xs" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-slate-600 whitespace-nowrap">Fin période :</Label>
+                <Input type="date" value={holidayEndDate} onChange={(e) => setHolidayEndDate(e.target.value)} className="h-8 text-xs" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ════════════════════════════════════════════════════ */}

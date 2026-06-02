@@ -434,6 +434,30 @@ io.on('connection', (socket: Socket) => {
     },
   );
 
+  // ----- kiosk:reminderConfig (Admin → Kiosk: reminder system config) --------
+  socket.on(
+    'kiosk:reminderConfig',
+    (payload: {
+      reminders?: Record<string, unknown>;
+      closingTime?: string;
+      isRaining?: boolean;
+      isHolidayMode?: boolean;
+      holidayStartDate?: string;
+      holidayEndDate?: string;
+      stationSlug?: string;
+    }) => {
+      const data: Record<string, unknown> = { timestamp: Date.now() };
+      if (payload.reminders !== undefined) data.reminders = payload.reminders;
+      if (payload.closingTime !== undefined) data.closingTime = payload.closingTime;
+      if (payload.isRaining !== undefined) data.isRaining = payload.isRaining;
+      if (payload.isHolidayMode !== undefined) data.isHolidayMode = payload.isHolidayMode;
+      if (payload.holidayStartDate !== undefined) data.holidayStartDate = payload.holidayStartDate;
+      if (payload.holidayEndDate !== undefined) data.holidayEndDate = payload.holidayEndDate;
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:reminderConfig', data);
+      console.log(`[KioskService] 📢 ${ts()} | Reminder config update → raining=${payload.isRaining}, holiday=${payload.isHolidayMode}`);
+    },
+  );
+
   // ----- disconnect ---------------------------------------------------------
   socket.on('disconnect', (reason) => {
     console.log(

@@ -33,8 +33,11 @@
  * P2 = HIGH   (8)  — manual calls (client, driver)
  * P3 = NORMAL (5)  — automatic (boarding, delay, imminent)
  * P4 = LOW    (1)  — general messages
+ * P6 = REMINDER (-1) — automatic reminders (bagages, sécurité, festive)
  */
 export enum AnnouncementPriority {
+  /** P6 — Automatic reminders, lowest priority, waits for queue to empty */
+  REMINDER = -1,
   /** P4 — General messages, never cuts urgent announcements */
   LOW = 1,
   /** P3 — Automatic announcements: boarding, delay, imminent */

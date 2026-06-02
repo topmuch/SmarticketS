@@ -20,6 +20,14 @@ import {
   buildArrivalCancelledText,
   buildArrivalDelayRepeatText,
 } from '@/lib/audioSystem';
+import {
+  initReminderManager,
+  startReminderManager,
+  stopReminderManager,
+  updateReminderConfig,
+  onBannerChange,
+  ReminderBanner as ReminderBannerType,
+} from '@/lib/reminderManager';
 
 /* ══════════════════════════════════════════════════════════════════════════
    Signage Ad Type
@@ -395,10 +403,36 @@ export default function SignageSlugPage() {
     return () => document.removeEventListener('keydown', handleKey);
   }, [switchMode]);
 
+  /* ─── Reminder Banner state ────────────────────────── */
+  const [reminderBanner, setReminderBanner] = useState<ReminderBannerType | null>(null);
+
+  /* ─── Init & Start ReminderManager ────────────── */
+  useEffect(() => {
+    // Fetch reminder config from API
+    fetch('/api/kiosk/reminder-config')
+      .then(res => res.ok ? res.json() : null)
+      .then(config => {
+        if (config) initReminderManager(config);
+      })
+      .catch(() => {});
+
+    // Subscribe to banner changes for React state
+    onBannerChange((banner) => setReminderBanner(banner));
+
+    // Start the reminder check loop
+    startReminderManager();
+
+    return () => {
+      stopReminderManager();
+      onBannerChange(null);
+    };
+  }, []);
+
   /* ─── Cleanup audio on unmount ────────────────────── */
   useEffect(() => {
     return () => {
       cancelAll();
+      stopReminderManager();
       if (generalMessageCleanupRef.current) {
         generalMessageCleanupRef.current();
       }
@@ -990,6 +1024,18 @@ export default function SignageSlugPage() {
       });
     });
 
+    // ── Reminder config from Admin ──
+    socket.on('kiosk:reminderConfig', (payload: {
+      reminders?: Record<string, unknown>;
+      closingTime?: string;
+      isRaining?: boolean;
+      isHolidayMode?: boolean;
+      holidayStartDate?: string;
+      holidayEndDate?: string;
+    }) => {
+      updateReminderConfig(payload);
+    });
+
     socket.on('disconnect', () => {
       // silently disconnect
     });
@@ -1171,6 +1217,35 @@ export default function SignageSlugPage() {
           </div>
         )}
 
+        {/* ─── REMINDER BANNER (Rain = blue top, Closure = orange top, Bagages = yellow bottom) ─── */}
+        {reminderBanner && reminderBanner.color === 'orange' && (
+          <div style={{
+            background: 'linear-gradient(90deg, #f97316, #ea580c)',
+            color: '#fff',
+            padding: '8px 20px',
+            fontSize: '14px',
+            fontWeight: 600,
+            textAlign: 'center',
+            letterSpacing: '0.5px',
+            animation: 'blink-slow 2s ease-in-out infinite',
+          }}>
+            ⏰ {reminderBanner.text}
+          </div>
+        )}
+        {reminderBanner && reminderBanner.color === 'blue' && (
+          <div style={{
+            background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
+            color: '#fff',
+            padding: '8px 20px',
+            fontSize: '14px',
+            fontWeight: 600,
+            textAlign: 'center',
+            letterSpacing: '0.5px',
+          }}>
+            🌧️ {reminderBanner.text}
+          </div>
+        )}
+
         {/* ─── HEADER ──────────────────────────────────── */}
         <div className={`header ${headerModeClass}`}>
           <div className="header-icon">
@@ -1226,6 +1301,22 @@ export default function SignageSlugPage() {
             <AnalogClock date={now} />
           </div>
         </div>
+
+        {/* ─── REMINDER BANNER BOTTOM (Bagages = yellow, discreet) ─── */}
+        {reminderBanner && reminderBanner.color === 'yellow' && (
+          <div style={{
+            background: 'linear-gradient(90deg, #eab308, #ca8a04)',
+            color: '#1a1a1a',
+            padding: '6px 20px',
+            fontSize: '12px',
+            fontWeight: 600,
+            textAlign: 'center',
+            letterSpacing: '0.3px',
+            opacity: 0.85,
+          }}>
+            💼 {reminderBanner.text}
+          </div>
+        )}
       </div>
 
       {/* ─── PROGRESS BAR ────────────────────────────── */}
