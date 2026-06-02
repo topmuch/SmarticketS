@@ -1,0 +1,13 @@
+[kiosk-service] Installing dependencies...
+bun install v1.3.14 (0d9b296a)
+
++ socket.io@4.8.3
+
+22 packages installed [166.00ms]
+[kiosk-service] Running bun run dev...
+$ bun --hot index.ts
+
+[KioskService] 🟢 2026-06-02T10:23:24.716Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-02T10:23:24.716Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-02T10:23:24.716Z | CORS: all origins (gateway proxy mode)
+

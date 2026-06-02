@@ -1,0 +1,21 @@
+[alert-service] Installing dependencies...
+bun install v1.3.14 (0d9b296a)
+
++ @types/bun@1.3.14
++ prisma@6.19.3
++ @prisma/client@6.19.3
++ socket.io@4.8.3
++ zod@4.4.3
+
+60 packages installed [4.38s]
+[alert-service] Running bun run dev...
+$ bun --hot index.ts
+[AlertEngine/Cron] Scheduler started (interval: 60s)
+[AlertEngine] WebSocket + HTTP server running on port 3003
+[AlertEngine] Health: http://localhost:3003/api/internal/health
+[AlertEngine] Evaluate: POST http://localhost:3003/api/internal/evaluate
+[AlertEngine] Socket.io: ws://localhost:3003
+[AlertEngine/Cron] Running initial evaluation...
+[AlertEngine/Cron] No active agencies found
+[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
+[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
