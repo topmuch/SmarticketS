@@ -289,7 +289,6 @@ export default function PublicitesPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          id: ad.id,
           ...ad,
           status: newStatus
         })

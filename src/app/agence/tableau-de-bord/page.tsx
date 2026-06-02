@@ -1320,44 +1320,44 @@ export default function AgencyDashboardPage() {
               </div>
 
               {/* Colis Logistics Information */}
-              {(selectedBaggage as Record<string, unknown>).receiverName || (selectedBaggage as Record<string, unknown>).deliveredAt || (selectedBaggage as Record<string, unknown>).transportMode || (selectedBaggage as Record<string, unknown>).departureCity ? (
+              {(selectedBaggage as unknown as Record<string, unknown>).receiverName || (selectedBaggage as unknown as Record<string, unknown>).deliveredAt || (selectedBaggage as unknown as Record<string, unknown>).transportMode || (selectedBaggage as unknown as Record<string, unknown>).departureCity ? (
                 <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
                   <p className="text-blue-700 dark:text-blue-400 font-medium text-sm mb-3 flex items-center gap-2">
                     <Package className="w-4 h-4" />
                     Informations logistique
                   </p>
                   <div className="space-y-2">
-                    {(selectedBaggage as Record<string, unknown>).receiverName && (
+                    {(selectedBaggage as any).receiverName && (
                       <div className="flex justify-between">
                         <p className="text-slate-500 dark:text-slate-400 text-sm">Destinataire</p>
                         <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.receiverName)}</p>
                       </div>
                     )}
-                    {(selectedBaggage as Record<string, unknown>).receiverWhatsapp && (
+                    {(selectedBaggage as any).receiverWhatsapp && (
                       <div className="flex justify-between">
                         <p className="text-slate-500 dark:text-slate-400 text-sm">WhatsApp destinataire</p>
                         <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.receiverWhatsapp)}</p>
                       </div>
                     )}
-                    {(selectedBaggage as Record<string, unknown>).transportMode && (
+                    {(selectedBaggage as any).transportMode && (
                       <div className="flex justify-between">
                         <p className="text-slate-500 dark:text-slate-400 text-sm">Mode de transport</p>
                         <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.transportMode)}</p>
                       </div>
                     )}
-                    {(selectedBaggage as Record<string, unknown>).departureCity && (
+                    {(selectedBaggage as any).departureCity && (
                       <div className="flex justify-between">
                         <p className="text-slate-500 dark:text-slate-400 text-sm">Ville de départ</p>
                         <p className="text-slate-800 dark:text-white font-medium">{String(selectedBaggage.departureCity)}</p>
                       </div>
                     )}
-                    {(selectedBaggage as Record<string, unknown>).departureDate && (
+                    {(selectedBaggage as any).departureDate && (
                       <div className="flex justify-between">
                         <p className="text-slate-500 dark:text-slate-400 text-sm">Date de départ</p>
                         <p className="text-slate-800 dark:text-white font-medium">{formatDate(String(selectedBaggage.departureDate))}</p>
                       </div>
                     )}
-                    {(selectedBaggage as Record<string, unknown>).deliveredAt && (
+                    {(selectedBaggage as any).deliveredAt && (
                       <div className="flex justify-between">
                         <p className="text-slate-500 dark:text-slate-400 text-sm">Date de livraison</p>
                         <p className="text-emerald-600 dark:text-emerald-400 font-medium">{formatDateTime(String(selectedBaggage.deliveredAt))}</p>

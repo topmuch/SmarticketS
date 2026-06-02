@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             slug: true,
-            logo: true,
             plan: true,
             isActive: true,
             allowSelfTicketGeneration: true,

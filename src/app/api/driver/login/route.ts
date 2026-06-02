@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting: 5 attempts per 15 min per email
-    if (rateLimit(`driver:login:${email.toLowerCase()}`, { windowMs: 900000, maxRequests: 5 })) {
+    if (!rateLimit(`driver:login:${email.toLowerCase()}`, { windowMs: 900000, maxRequests: 5 }).allowed) {
       return NextResponse.json(
         { error: 'Trop de tentatives. Réessayez dans 15 minutes.' },
         { status: 429 },

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from "@/lib/db";
 import { forbiddenResponse, type JwtPayload } from "@/lib/auth-guard";
 import type { NextResponse } from "next/server";

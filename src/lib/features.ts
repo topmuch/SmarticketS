@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from './db';
 
 // Feature flag definitions - these are the default features

@@ -68,24 +68,6 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-            },
-          },
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-        },
       }),
       db.auditLog.count({ where }),
     ]);

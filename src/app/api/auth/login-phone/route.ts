@@ -59,6 +59,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!user.password) {
+      return NextResponse.json(
+        { error: "Numéro ou code d'accès incorrect" },
+        { status: 401 }
+      );
+    }
+
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
       return NextResponse.json(
@@ -91,7 +98,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       tenantId: user.tenantId,
       request,
-      details: JSON.stringify({ method: "phone" }),
+      details: { method: "phone" },
     });
 
     return NextResponse.json({

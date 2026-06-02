@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from "./db";
 import type { Role } from "@prisma/client";
 

@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (error && typeof error === 'object' && 'issues' in error) {
       const zodError = error as z.ZodError;
       return NextResponse.json(
-        { error: 'Validation error', details: zodError.issues || zodError.errors },
+        { error: 'Validation error', details: zodError.issues },
         { status: 400 }
       );
     }

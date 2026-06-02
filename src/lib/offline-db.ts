@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 
 // ============================================

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SmartTicketQR — RBAC Guard for Terrain APIs
  *

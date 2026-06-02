@@ -15,11 +15,18 @@ model User {
   id              String        @id @default(cuid())
   email           String        @unique
   name            String?
+  firstName       String?
+  lastName        String?
+  phone           String?
   password        String?
   emailVerified   DateTime?     // Timestamp when email was verified
   role            String        @default("agency") // "superadmin" | "admin" | "agent" | "agency"
+  isActive        Boolean       @default(true)
   agencyId        String?
   agency          Agency?       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  tenantId        String?
+  tenant          Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  lastLogin       DateTime?
   sessions        Session[]
   loginLogs       LoginLog[]
   assignedLeads   Lead[]        @relation("AssignedLeads")
@@ -28,6 +35,11 @@ model User {
   blogPosts       BlogPost[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+  @@index([phone])
+  @@index([isActive])
 }
 
 // Session model - secure HTTP-only cookie based sessions
@@ -758,6 +770,21 @@ model Departure {
   @@index([routeId])
   @@index([originStationId])
   @@index([destinationStationId])
+}
+
+// Tenant model - multi-tenant support for transport companies
+model Tenant {
+  id                          String   @id @default(cuid())
+  name                        String
+  slug                        String   @unique
+  plan                        String   @default("starter") // "starter" | "pro" | "enterprise"
+  isActive                    Boolean  @default(true)
+  allowSelfTicketGeneration   Boolean  @default(false)
+  allowSelfParcelGeneration   Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  users    User[]
 }
 
 // AuditLog model - general-purpose audit trail (for multi-tenant routes compatibility)

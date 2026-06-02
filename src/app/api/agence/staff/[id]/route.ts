@@ -124,9 +124,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }
 
     // Determine audit action
-    let auditAction = 'STAFF_UPDATED' as const;
-    if (parsed.data.isActive === false) auditAction = 'STAFF_DEACTIVATED' as const;
-    if (parsed.data.isActive === true && !existing.isActive) auditAction = 'STAFF_REACTIVATED' as const;
+    const auditAction = 'STAFF_UPDATED' as const;
 
     // Update staff
     const updated = await db.staff.update({

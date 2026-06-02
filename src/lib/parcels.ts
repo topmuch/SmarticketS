@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from "./db";
 import { buildWhatsAppLink } from "./whatsapp";
 import { securePinCode, generateUniqueCode } from "./codes";

@@ -237,7 +237,6 @@ export default function BlogAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          id: post.id,
           ...post,
           status: newStatus
         })

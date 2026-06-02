@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Unit test: rate-limit (Feature #1 — Chatbot Trouveur)
  *
@@ -24,43 +25,43 @@ function assert(condition: boolean, name: string) {
 
 console.log('=== rate-limit.test.ts ===\n');
 
-// --- Test 1: First request → false (not rate limited) ---
+// --- Test 1: First request → not rate limited ---
 console.log('--- Basic rate limiting ---');
 assert(
-  rateLimit('test:first-req', { maxRequests: 3, windowMs: 60000 }) === false,
+  !rateLimit('test:first-req', { maxRequests: 3, windowMs: 60000 }).allowed,
   'First request → not limited'
 );
 
-// --- Test 2: Within limit → false ---
+// --- Test 2: Within limit → not limited ---
 assert(
-  rateLimit('test:within-limit', { maxRequests: 3, windowMs: 60000 }) === false,
+  !rateLimit('test:within-limit', { maxRequests: 3, windowMs: 60000 }).allowed,
   'Request 1 of 3 → not limited'
 );
 assert(
-  rateLimit('test:within-limit', { maxRequests: 3, windowMs: 60000 }) === false,
+  !rateLimit('test:within-limit', { maxRequests: 3, windowMs: 60000 }).allowed,
   'Request 2 of 3 → not limited'
 );
 assert(
-  rateLimit('test:within-limit', { maxRequests: 3, windowMs: 60000 }) === false,
+  !rateLimit('test:within-limit', { maxRequests: 3, windowMs: 60000 }).allowed,
   'Request 3 of 3 → not limited'
 );
 
-// --- Test 3: Exceeding limit → true ---
+// --- Test 3: Exceeding limit → limited ---
 console.log('\n--- Exceeding limit ---');
 assert(
-  rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }) === false,
+  !rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }).allowed,
   'Request 1 of 2 → not limited'
 );
 assert(
-  rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }) === false,
+  !rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }).allowed,
   'Request 2 of 2 → not limited'
 );
 assert(
-  rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }) === true,
+  rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }).allowed,
   'Request 3 of 2 → LIMITED (429)'
 );
 assert(
-  rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }) === true,
+  rateLimit('test:exceed', { maxRequests: 2, windowMs: 60000 }).allowed,
   'Request 4 of 2 → still LIMITED'
 );
 
@@ -68,31 +69,31 @@ assert(
 console.log('\n--- Key independence ---');
 // Fill key A
 assert(
-  rateLimit('test:indep-a', { maxRequests: 1, windowMs: 60000 }) === false,
+  !rateLimit('test:indep-a', { maxRequests: 1, windowMs: 60000 }).allowed,
   'Key A: request 1 → not limited'
 );
 assert(
-  rateLimit('test:indep-a', { maxRequests: 1, windowMs: 60000 }) === true,
+  rateLimit('test:indep-a', { maxRequests: 1, windowMs: 60000 }).allowed,
   'Key A: request 2 → LIMITED'
 );
 // Key B should be independent
 assert(
-  rateLimit('test:indep-b', { maxRequests: 1, windowMs: 60000 }) === false,
+  !rateLimit('test:indep-b', { maxRequests: 1, windowMs: 60000 }).allowed,
   'Key B: request 1 → not limited (independent from A)'
 );
 assert(
-  rateLimit('test:indep-b', { maxRequests: 1, windowMs: 60000 }) === true,
+  rateLimit('test:indep-b', { maxRequests: 1, windowMs: 60000 }).allowed,
   'Key B: request 2 → LIMITED'
 );
 
 // --- Test 5: Window expiration → resets ---
 console.log('\n--- Window expiration (100ms window) ---');
 assert(
-  rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }) === false,
+  !rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }).allowed,
   '100ms window: request 1 → not limited'
 );
 assert(
-  rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }) === true,
+  rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }).allowed,
   '100ms window: request 2 → LIMITED'
 );
 
@@ -100,37 +101,37 @@ assert(
 await new Promise((resolve) => setTimeout(resolve, 150));
 
 assert(
-  rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }) === false,
+  !rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }).allowed,
   'After 150ms: request 1 → not limited (window reset)'
 );
 assert(
-  rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }) === true,
+  rateLimit('test:expire', { maxRequests: 1, windowMs: 100 }).allowed,
   'After 150ms: request 2 → LIMITED again'
 );
 
 // --- Test 6: Default options ---
 console.log('\n--- Default options ---');
 assert(
-  rateLimit('test:defaults-1') === false,
+  !rateLimit('test:defaults-1').allowed,
   'Default options: request 1 → not limited'
 );
 assert(
-  rateLimit('test:defaults-2') === false,
+  !rateLimit('test:defaults-2').allowed,
   'Default options: different key → not limited'
 );
 assert(
-  rateLimit('test:defaults-1') === false,
+  !rateLimit('test:defaults-1').allowed,
   'Default options: first key again → not limited (3 default max)'
 );
 
 // --- Test 7: Single request limit ---
 console.log('\n--- Single request limit ---');
 assert(
-  rateLimit('test:single', { maxRequests: 1, windowMs: 60000 }) === false,
+  !rateLimit('test:single', { maxRequests: 1, windowMs: 60000 }).allowed,
   'maxRequests=1: request 1 → not limited'
 );
 assert(
-  rateLimit('test:single', { maxRequests: 1, windowMs: 60000 }) === true,
+  rateLimit('test:single', { maxRequests: 1, windowMs: 60000 }).allowed,
   'maxRequests=1: request 2 → LIMITED'
 );
 

@@ -411,7 +411,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const forwarded = request.headers.get('x-forwarded-for');
     const clientIp = forwarded ? forwarded.split(',')[0].trim() : request.headers.get('x-real-ip') || 'unknown';
 
-    if (rateLimit(`landing-chat:${clientIp}`, { windowMs: 60_000, maxRequests: 10 })) {
+    if (!rateLimit(`landing-chat:${clientIp}`, { windowMs: 60_000, maxRequests: 10 }).allowed) {
       return NextResponse.json(
         { success: false, error: 'Too many messages. Please wait.' },
         { status: 429 }

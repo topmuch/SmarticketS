@@ -145,7 +145,7 @@ export async function POST(
     const reference = (id || '').toUpperCase().trim();
 
     // Find colis
-    const colis = await db.baggage.findUnique({ where: { reference } });
+    const colis = await db.baggage.findUnique({ where: { reference }, include: { agency: true } });
 
     if (!colis) {
       return NextResponse.json(

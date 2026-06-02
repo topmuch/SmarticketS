@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }
@@ -136,7 +136,7 @@ export async function PUT(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Validation error', details: parsed.error.errors },
+        { error: 'Validation error', details: parsed.error.issues },
         { status: 400 }
       );
     }
@@ -173,7 +173,7 @@ export async function PUT(request: NextRequest) {
     console.error('Update user error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

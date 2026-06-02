@@ -174,7 +174,7 @@ export default function EquipePage() {
           <Card key={s.key} className="p-4 hover:shadow-md transition-shadow">
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{s.label}</p>
             <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.key === 'total' ? staff.length : byRole(ROLES[s.key.toUpperCase() as keyof typeof ROLES])}</p>
-            {s.hasSub && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{activeCount} actifs</p>}
+            {'hasSub' in s && s.hasSub && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{activeCount} actifs</p>}
           </Card>
         ))}
       </div>

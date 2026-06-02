@@ -45,6 +45,14 @@ export const BRAND = {
     defaultParcelPrice: 2000,  // FCFA default parcel price when no rate exists
   },
 
+  // Company info for legal pages
+  company: {
+    name: "SmarticketS",
+    legalForm: "SARL",
+    address: "Dakar, Sénégal",
+    email: "contact@smartickets.com",
+  },
+
   // Offline sync fallback values
   offline: {
     placeholderName: "HORS-LIGNE",

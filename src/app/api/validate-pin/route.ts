@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const reference = data.reference.toUpperCase().trim();
 
     // Rate limiting: max 10 PIN validations per 60s per session
-    if (rateLimit(`pin:${session.id}`, { windowMs: 60000, maxRequests: 10 })) {
+    if (!rateLimit(`pin:${session.id}`, { windowMs: 60000, maxRequests: 10 }).allowed) {
       return NextResponse.json({ error: 'rate_limited', message: 'Trop de tentatives. Réessayez dans une minute.' }, { status: 429 });
     }
 

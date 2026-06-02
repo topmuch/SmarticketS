@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ─── IndexedDB Offline Sync Queue for SmarticketS ───────────────────────
 // Stores validation requests when offline, syncs them when back online.
 

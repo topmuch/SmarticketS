@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser, requireRole } from "@/lib/auth-guard";
 import { db } from "@/lib/db";

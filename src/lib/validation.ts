@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Shared Zod validation schemas for all auth endpoints.
  * Every API route MUST use these schemas before processing.

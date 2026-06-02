@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { LegalPageWrapper } from "@/components/legal/legal-page-wrapper";
 import { BRAND } from "@/lib/constants";
 

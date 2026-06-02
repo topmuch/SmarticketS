@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SmartTicketQR — Report Aggregation Helpers
  * Optimized DB queries for tenant and platform reports

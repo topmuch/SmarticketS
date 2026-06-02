@@ -190,14 +190,15 @@ export async function GET(request: NextRequest) {
     ]);
 
     // ── Format: Sales Over Time (for Line Chart) ────────────────────────────
-    const salesMap = new Map<string, Record<string, number>>();
+    interface SalesDayEntry { parcel: number; ticket: number; hajj: number; total: number }
+    const salesMap = new Map<string, SalesDayEntry>();
     for (const item of salesByDayData) {
       const dayKey = item.day;
       if (!salesMap.has(dayKey)) {
         salesMap.set(dayKey, { parcel: 0, ticket: 0, hajj: 0, total: 0 });
       }
       const entry = salesMap.get(dayKey)!;
-      entry[item.category] = (entry[item.category] || 0) + item.count;
+      entry[item.category as keyof SalesDayEntry] = (entry[item.category as keyof SalesDayEntry] || 0) + item.count;
       entry.total += item.count;
     }
     const salesOverTime = Array.from(salesMap.entries())

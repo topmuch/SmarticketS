@@ -2,12 +2,18 @@
  * Rate limiter in-memory pour protéger les routes publiques.
  *
  * Usage:
- *   if (rateLimit('notify:VOL26-ABC', { windowMs: 60000, maxRequests: 2 })) {
+ *   const rl = rateLimit('notify:VOL26-ABC', { windowMs: 60000, maxRequests: 2 });
+ *   if (!rl.allowed) {
  *     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
  *   }
  *
  * Nettoyage automatique des entrées expirées toutes les 5 minutes.
  */
+
+export interface RateLimitResult {
+  allowed: boolean;
+  resetInMs: number;
+}
 
 interface RateLimitEntry {
   count: number;
@@ -53,9 +59,9 @@ function startCleanup(): void {
  *
  * @param key - Clé unique (ex: `notify:VOL26-ABC123`)
  * @param options - Fenêtre et max requêtes
- * @returns `true` si la requête doit être rejetée (429), `false` sinon
+ * @returns `RateLimitResult` — `allowed: false` if rate limited, `true` otherwise
  */
-export function rateLimit(key: string, options?: RateLimitOptions): boolean {
+export function rateLimit(key: string, options?: RateLimitOptions): RateLimitResult {
   const windowMs = options?.windowMs ?? DEFAULT_WINDOW_MS;
   const maxRequests = options?.maxRequests ?? DEFAULT_MAX_REQUESTS;
 
@@ -66,8 +72,9 @@ export function rateLimit(key: string, options?: RateLimitOptions): boolean {
 
   // Pas d'entrée ou fenêtre expirée → premier hit
   if (!entry || entry.resetAt <= now) {
-    store.set(key, { count: 1, resetAt: now + windowMs });
-    return false;
+    const resetAt = now + windowMs;
+    store.set(key, { count: 1, resetAt });
+    return { allowed: true, resetInMs: windowMs };
   }
 
   // Dans la fenêtre → incrémenter
@@ -75,40 +82,40 @@ export function rateLimit(key: string, options?: RateLimitOptions): boolean {
 
   // Dépassement → reject
   if (entry.count > maxRequests) {
-    return true;
+    return { allowed: false, resetInMs: entry.resetAt - now };
   }
 
-  return false;
+  return { allowed: true, resetInMs: entry.resetAt - now };
 }
 
 // ─── Predefined Limits ────────────────────────────────────────────
 
 /** Login attempts: 5 per 15 minutes per email */
-export function checkLoginRateLimit(email: string) {
+export function checkLoginRateLimit(email: string): RateLimitResult {
   return rateLimit(`login:${email}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
 }
 
 /** Forgot password: 3 per hour per email */
-export function checkForgotPasswordRateLimit(email: string) {
+export function checkForgotPasswordRateLimit(email: string): RateLimitResult {
   return rateLimit(`forgot:${email}`, { maxRequests: 3, windowMs: 60 * 60 * 1000 });
 }
 
 /** Verify email code: 5 per 15 minutes per email */
-export function checkVerifyEmailRateLimit(email: string) {
+export function checkVerifyEmailRateLimit(email: string): RateLimitResult {
   return rateLimit(`verify:${email}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
 }
 
 /** Reset password: 3 per hour per email */
-export function checkResetPasswordRateLimit(email: string) {
+export function checkResetPasswordRateLimit(email: string): RateLimitResult {
   return rateLimit(`reset:${email}`, { maxRequests: 3, windowMs: 60 * 60 * 1000 });
 }
 
 /** Staff login: 5 per 15 minutes per phone */
-export function checkStaffLoginRateLimit(phone: string) {
+export function checkStaffLoginRateLimit(phone: string): RateLimitResult {
   return rateLimit(`staff-login:${phone}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
 }
 
 /** Generic IP-based rate limit: 20 per minute */
-export function checkIpRateLimit(ip: string) {
+export function checkIpRateLimit(ip: string): RateLimitResult {
   return rateLimit(`ip:${ip}`, { maxRequests: 20, windowMs: 60 * 1000 });
 }

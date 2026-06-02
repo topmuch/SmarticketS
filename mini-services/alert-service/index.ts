@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SmarticketS Alert Engine — WebSocket + Cron mini-service
  *

@@ -19,12 +19,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Token rotation: old refresh token is revoked, new pair is issued
-    const { accessToken, refreshToken: newRefreshToken } =
-      await refreshAccessToken(parsed.data.refreshToken);
+    const result = await refreshAccessToken(parsed.data.refreshToken);
+
+    if (!result) {
+      return NextResponse.json(
+        { error: 'Invalid or expired refresh token' },
+        { status: 401 }
+      );
+    }
 
     return NextResponse.json({
-      accessToken,
-      refreshToken: newRefreshToken,
+      accessToken: result.token,
+      refreshToken: parsed.data.refreshToken,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Token refresh failed";

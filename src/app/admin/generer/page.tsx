@@ -64,7 +64,7 @@ export default function GenererQRPage() {
 
   // Agency form
   const [agencyForm, setAgencyForm] = useState({
-    type: 'voyageur' as 'voyageur',
+    type: 'voyageur' as string,
     agencyId: '',
     travelerCount: 1,
     baggagePerTraveler: 3 as 1 | 3,
@@ -72,7 +72,7 @@ export default function GenererQRPage() {
 
   // Bulk form
   const [bulkForm, setBulkForm] = useState({
-    type: 'voyageur' as 'voyageur',
+    type: 'voyageur' as string,
     agencyId: 'none',
     totalQrCount: 200,
   });

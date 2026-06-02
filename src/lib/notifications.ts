@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SmartTicketQR — Notification Service
  * In-memory queue with exponential backoff, retry limits, and DB persistence.

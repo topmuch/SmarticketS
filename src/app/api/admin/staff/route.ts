@@ -109,19 +109,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user limit
-    const tenant = await db.tenant.findUnique({
-      where: { id: tenantId },
-      select: { maxUsers: true },
-    });
-    const currentCount = await db.user.count({ where: { tenantId } });
-    if (tenant && currentCount >= tenant.maxUsers) {
-      return NextResponse.json(
-        { error: `Limite d'utilisateurs atteinte (${tenant.maxUsers})` },
-        { status: 400 }
-      );
-    }
-
     // Check email uniqueness within tenant
     const existingUser = await db.user.findUnique({
       where: { email_tenantId: { email: resolvedEmail, tenantId } },

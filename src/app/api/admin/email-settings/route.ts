@@ -86,7 +86,7 @@ export async function PUT(request: NextRequest) {
 
     let savedSettings;
     try {
-      savedSettings = await saveEmailSettings(settingsData);
+      savedSettings = await saveEmailSettings(settingsData as Parameters<typeof saveEmailSettings>[0]);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('❌ saveEmailSettings threw:', message);
