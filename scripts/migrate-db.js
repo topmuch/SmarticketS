@@ -8,6 +8,7 @@
  * Must be run from /app directory where full node_modules is available.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { PrismaClient } = require('@prisma/client');
 
 const MIGRATIONS = [
