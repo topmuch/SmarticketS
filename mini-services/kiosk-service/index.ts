@@ -334,6 +334,86 @@ io.on('connection', (socket: Socket) => {
     },
   );
 
+  // ----- kiosk:arrivalArrived (Admin confirms bus arrived at quay) ------------
+  socket.on(
+    'kiosk:arrivalArrived',
+    (payload: {
+      arrivalId: string;
+      origin: string;
+      platform: string | null;
+      stationSlug?: string;
+      timestamp?: number;
+    }) => {
+      const data = {
+        arrivalId: payload.arrivalId,
+        origin: payload.origin,
+        platform: payload.platform,
+        timestamp: payload.timestamp ?? Date.now(),
+      };
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:arrivalArrived', data);
+    },
+  );
+
+  // ----- kiosk:arrivalDelayed (Admin reports arrival delay) -----------------
+  socket.on(
+    'kiosk:arrivalDelayed',
+    (payload: {
+      arrivalId: string;
+      origin: string;
+      minutes: number;
+      stationSlug?: string;
+      timestamp?: number;
+    }) => {
+      const data = {
+        arrivalId: payload.arrivalId,
+        origin: payload.origin,
+        minutes: payload.minutes,
+        timestamp: payload.timestamp ?? Date.now(),
+      };
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:arrivalDelayed', data);
+    },
+  );
+
+  // ----- kiosk:arrivalCancelled (Admin cancels an arrival) ------------------
+  socket.on(
+    'kiosk:arrivalCancelled',
+    (payload: {
+      arrivalId: string;
+      origin: string;
+      scheduledTime: string;
+      stationSlug?: string;
+      timestamp?: number;
+    }) => {
+      const data = {
+        arrivalId: payload.arrivalId,
+        origin: payload.origin,
+        scheduledTime: payload.scheduledTime,
+        timestamp: payload.timestamp ?? Date.now(),
+      };
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:arrivalCancelled', data);
+    },
+  );
+
+  // ----- kiosk:arrivalIncoming (H-10min auto trigger) ----------------------
+  socket.on(
+    'kiosk:arrivalIncoming',
+    (payload: {
+      arrivalId: string;
+      origin: string;
+      platform: string | null;
+      stationSlug?: string;
+      timestamp?: number;
+    }) => {
+      const data = {
+        arrivalId: payload.arrivalId,
+        origin: payload.origin,
+        platform: payload.platform,
+        timestamp: payload.timestamp ?? Date.now(),
+      };
+      broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:arrivalIncoming', data);
+    },
+  );
+
   // ----- kiosk:updateTrip (new: generic trip update from admin) -------------
   socket.on(
     'kiosk:updateTrip',

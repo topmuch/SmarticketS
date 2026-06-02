@@ -29,3 +29,4 @@ $ bun --hot index.ts
 [KioskService] 🟢 2026-06-02T19:36:44.541Z | REST endpoint: POST /api/push/:slug
 [KioskService] 🟢 2026-06-02T19:36:44.541Z | CORS: all origins (gateway proxy mode)
 
+error: script "dev" was terminated by signal SIGKILL (Forced quit)

@@ -1,9 +1,6 @@
-46 |     }
-47 |   }
-48 |   let er;
-49 |   if (args.length > 0)
-50 |     er = args[0];
-51 |     throw er;
-                 ^
-error: Failed to start server. Is port 3004 in use?
-      at emitError (node:events:51:13)
+
+[KioskService] 🟢 2026-06-02T21:02:37.355Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-02T21:02:37.355Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-02T21:02:37.355Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-02T21:02:37.355Z | CORS: all origins (gateway proxy mode)
+
