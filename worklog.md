@@ -1416,3 +1416,33 @@ Stage Summary:
 - WebSocket: Services running on ports 3003/3004 with proper startup script
 - ReminderManager: Already fully implemented and integrated in kiosk display
 - All code uses real DB queries, real WebSocket events, real API routes
+---
+Task ID: 11
+Agent: Main Agent
+Task: Fix Docker build error + 3 bugs (TTS hang, validate-pin null PIN, WebSocket 404)
+
+Work Log:
+- **Docker build error (ecrans-affichage/page.tsx)**:
+  - Root cause: `ease: [0.22, 1, 0.36, 1]` in cardVariants is typed as `number[]` but framer-motion expects `Easing` type
+  - Fix: Added `as const` assertion: `ease: [0.22, 1, 0.36, 1] as const`
+  - Verified: `npx tsc --noEmit` returns 0 errors, `bun run lint` returns 0 errors
+- **Bug 1 — TTS infinite hang (audioSystem.ts)**:
+  - Root cause: Chrome speechSynthesis bug causes `onend` to never fire after ~15s of speech, leaving `speakFrench()` promise hanging forever
+  - Fix: Added safety timeout (`Math.max(text.length * 50, 30000)` ms) with `settled` guard pattern to prevent double-resolve
+  - On timeout: calls `speechSynthesis.cancel()` and resolves `false`
+- **Bug 2 — validate-pin null retrievalPin**:
+  - Root cause: If `colis.retrievalPin` is null (no PIN generated), `data.pin !== null` always returns `true` (incorrect), then `null !== undefined` returns `true` (wrong type comparison)
+  - Actually the issue is simpler: if `retrievalPin` is null, `data.pin !== colis.retrievalPin` returns true (which means it looks like a mismatch), but the real issue is the backend doesn't check if retrievalPin exists at all
+  - Fix: Added explicit null check for `retrievalPin` — returns descriptive error "Aucun code de retrait n'a été généré"
+  - Also added `message` field to the error response so the frontend displays proper error text
+- **Bug 3 — WebSocket 404**:
+  - Root cause: kiosk-service on port 3004 was not running (process died)
+  - Fix: Verified it's already running (PID 3126) — the service was restarted from a previous session
+
+Stage Summary:
+- Docker build error fixed: `as const` assertion on framer-motion ease tuple
+- TTS hang fixed: safety timeout prevents infinite promise hang on Chrome speechSynthesis bug
+- validate-pin fixed: null retrievalPin now returns clear error instead of confusing mismatch
+- kiosk-service confirmed running on port 3004
+- TypeScript type-check passes with 0 errors
+- ESLint passes with 0 new errors
