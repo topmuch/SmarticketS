@@ -69,10 +69,10 @@ const NAV_LINKS = [
 ];
 
 const STATS = [
-  { value: '50+', label: 'Partenaires de transport', icon: Building2 },
-  { value: '10K+', label: 'Tickets émis', icon: TicketCheck },
-  { value: '5K+', label: 'Colis tracés', icon: Package },
-  { value: '100%', label: 'Couverture Sénégal', icon: Globe },
+  { value: '50+', label: 'Partenaires de transport', icon: Building2, gradient: 'from-[#0EA5E9] to-[#06B6D4]', ring: 'ring-sky-200/50', glow: 'shadow-sky-500/25' },
+  { value: '10K+', label: 'Tickets émis', icon: TicketCheck, gradient: 'from-[#F59E0B] to-[#F97316]', ring: 'ring-amber-200/50', glow: 'shadow-amber-500/25' },
+  { value: '5K+', label: 'Colis tracés', icon: Package, gradient: 'from-[#10B981] to-[#059669]', ring: 'ring-emerald-200/50', glow: 'shadow-emerald-500/25' },
+  { value: '100%', label: 'Couverture Sénégal', icon: Globe, gradient: 'from-[#8B5CF6] to-[#A855F7]', ring: 'ring-violet-200/50', glow: 'shadow-violet-500/25' },
 ];
 
 const SERVICES = [
@@ -624,30 +624,41 @@ function HeroSection() {
    ============================================================ */
 
 function StatsSection() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+
   return (
     <section className="relative -mt-16 z-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
-        <FadeIn>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {STATS.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                whileHover={{ y: -4 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Card className="bg-white border-slate-200/80 shadow-lg shadow-slate-900/5 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 rounded-2xl">
-                  <CardContent className="p-5 sm:p-6 text-center">
-                    <div className="w-12 h-12 mx-auto rounded-xl bg-blue-50 flex items-center justify-center mb-3">
-                      <stat.icon className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-1">{stat.value}</div>
-                    <div className="text-xs sm:text-sm text-slate-500 font-medium">{stat.label}</div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </FadeIn>
+        <div ref={ref} className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+          {STATS.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              whileHover={{ y: -6 }}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={inView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.95 }}
+              transition={{ duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+              className={`relative group overflow-hidden rounded-2xl bg-gradient-to-br ${stat.gradient} shadow-xl ${stat.glow} hover:shadow-2xl transition-all duration-300 ring-1 ${stat.ring}`}
+            >
+              {/* Light overlay for depth */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+              {/* Decorative circle */}
+              <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/5 pointer-events-none" />
+
+              <div className="relative z-10 p-5 sm:p-6 lg:p-7">
+                {/* Icon */}
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <stat.icon className="w-6 h-6 text-white" />
+                </div>
+                {/* Value */}
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-1 tracking-tight">{stat.value}</div>
+                {/* Label */}
+                <div className="text-xs sm:text-sm text-white/80 font-medium">{stat.label}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );
