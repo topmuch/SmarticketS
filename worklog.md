@@ -1377,3 +1377,42 @@ Stage Summary:
 - 2 issues fixed: CRITICAL hardcoded secret, HIGH ghost parameter
 - Remaining known issues: @ts-nocheck on 37 API routes (HIGH, future work), console.log in some API routes (MEDIUM), dead components (LOW)
 - No mock/ghost code in production API routes — all use real Prisma DB queries
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: Fix all bugs — TTS infinite loop, verification code "code invalide", WebSocket 404, ReminderManager verification
+
+Work Log:
+- **Bug 1: TTS infinite loop** (src/lib/audioSystem.ts):
+  - Root cause: Chrome has a known bug where `speechSynthesis.speak()` fires `onend` immediately for long text, causing `speakWithRetry` to loop rapidly (cancel→speak→onend→retry...)
+  - Fix: Added duration guard in `speakFrench()` — tracks `speakStartMs` timestamp, calculates `minDurationMs = max(text.length * 30, 500)`, if `onend` fires before minimum expected duration, resolve(false) instead of true
+  - Removed all console.error/console.warn calls from speakFrench error handlers (cleaner production code)
+- **Bug 2: Verification code "code invalide"** (src/lib/email.ts):
+  - Root cause: Email case-sensitivity mismatch. `createEmailToken()` stores email as-is (e.g., "User@Example.com"), but the Zod schema in verify-email route lowercases email via `.toLowerCase()`. The DB query in `verifyEmailCode()` compares exact string, so "user@example.com" != "User@Example.com" → token not found
+  - Fix: Added `email.toLowerCase()` normalization in both `createEmailToken()` and `verifyEmailCode()`. Now email is always stored and compared as lowercase.
+- **Bug 3: WebSocket 404** (mini-services):
+  - Root cause: Mini-services (alert-service port 3003, kiosk-service port 3004) were not running
+  - Fix: Created `start-services.sh` script with setsid to properly background both services. Verified both services start and listen on their respective ports.
+- **Verification: ReminderManager**:
+  - Confirmed `src/lib/reminderManager.ts` already exists with complete implementation:
+    - 5 reminder types: BAGAGES, VALEURS, CLOTURE_BILLETTERIE, PLUIE, FESTIVE
+    - P6 priority (REMINDER = -1, lowest)
+    - 2-minute anti-spam gap (MIN_REMINDER_GAP_MS)
+    - Silence hours 22h-06h
+    - Cyclic rotation with per-reminder interval tracking
+    - Visual banners (yellow/orange/blue) with auto-dismiss
+    - Admin WebSocket config updates
+  - Confirmed `src/app/api/kiosk/reminder-config/route.ts` exists with GET (default config) and PUT (authenticated update)
+  - Confirmed kiosk display page already imports and initializes ReminderManager
+- Lint: 0 errors
+- Dev server: Compiling, no errors in log
+- Mini-services: alert-service (3003) + kiosk-service (3004) running
+
+Stage Summary:
+- 3 bugs fixed with real production code (no mock, no ghost code)
+- TTS: Chrome bug guard prevents infinite retry loops
+- Email: Case-insensitive matching prevents "code invalide" errors
+- WebSocket: Services running on ports 3003/3004 with proper startup script
+- ReminderManager: Already fully implemented and integrated in kiosk display
+- All code uses real DB queries, real WebSocket events, real API routes

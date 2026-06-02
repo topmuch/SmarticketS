@@ -456,14 +456,16 @@ export function getTestEmailTemplate(): { html: string; text: string } {
 // ============ EMAIL TOKEN MANAGEMENT ============
 
 export async function createEmailToken(email: string, type: 'email_verification' | 'password_reset'): Promise<{ token: string; code: string }> {
+  // Normalize email to lowercase to prevent case-sensitivity mismatches
+  const normalizedEmail = email.toLowerCase();
   const token = generateToken();
   const code = generateCode();
   const expiresHours = type === 'email_verification' ? 24 : 1;
   const expiresAt = new Date(Date.now() + expiresHours * 60 * 60 * 1000);
 
   await db.$transaction(async (tx) => {
-    await tx.emailToken.deleteMany({ where: { email, type } });
-    await tx.emailToken.create({ data: { email, token, code, type, expiresAt } });
+    await tx.emailToken.deleteMany({ where: { email: normalizedEmail, type } });
+    await tx.emailToken.create({ data: { email: normalizedEmail, token, code, type, expiresAt } });
   });
 
   return { token, code };
@@ -909,9 +911,12 @@ export function getColisDeliveredEmailTemplate(data: {
 // ============ EMAIL CODE VERIFICATION ============
 
 export async function verifyEmailCode(code: string, email: string, type: 'email_verification' | 'password_reset'): Promise<{ valid: boolean; error?: string }> {
+  // Normalize email to lowercase to match stored token
+  const normalizedEmail = email.toLowerCase();
+
   const emailToken = await db.emailToken.findFirst({
     where: {
-      email,
+      email: normalizedEmail,
       code,
       type,
       used: false,

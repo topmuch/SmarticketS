@@ -950,7 +950,6 @@ export function startGeneralMessageInterval(
 export function speakFrench(text: string): Promise<boolean> {
   return new Promise((resolve) => {
     if (!hasSpeechSynthesis) {
-      console.error('[AudioSystem] speechSynthesis not supported');
       resolve(false);
       return;
     }
@@ -962,7 +961,6 @@ export function speakFrench(text: string): Promise<boolean> {
 
     const voices = window!.speechSynthesis.getVoices();
     if (voices.length === 0) {
-      console.warn('[AudioSystem] No voices available yet');
       resolve(false);
       return;
     }
@@ -981,27 +979,34 @@ export function speakFrench(text: string): Promise<boolean> {
       utterance.voice = voice;
     }
 
+    // Chrome bug guard: track when speak() was called to detect
+    // the Chrome bug where onend fires immediately for long text.
+    const speakStartMs = Date.now();
+    // Minimum expected duration: ~30ms per character (conservative estimate)
+    const minDurationMs = Math.max(text.length * 30, 500);
+
     // Event handlers
     utterance.onstart = () => {
       // TTS started
     };
 
     utterance.onend = () => {
+      const elapsed = Date.now() - speakStartMs;
+      // If onend fires too quickly, this is the Chrome bug — reject
+      if (elapsed < minDurationMs) {
+        resolve(false);
+        return;
+      }
       resolve(true);
     };
 
     utterance.onerror = (event) => {
-      console.error('[AudioSystem] TTS error:', event.error);
-      if (event.error === 'not-allowed') {
-        console.error('[AudioSystem] Audio permission denied — user interaction required');
-      }
       resolve(false);
     };
 
     try {
       window!.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.error('[AudioSystem] speak() threw:', err);
+    } catch {
       resolve(false);
     }
   });
