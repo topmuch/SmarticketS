@@ -233,7 +233,6 @@ function selectFrenchVoice(): SpeechSynthesisVoice | null {
   for (const prefName of FRENCH_FEMALE_PREFERENCES) {
     const match = frenchVoices.find((v) => v.name.includes(prefName));
     if (match) {
-      console.log(`[AudioSystem] Selected preferred voice: ${match.name} (${match.lang})`);
       return match;
     }
   }
@@ -246,13 +245,11 @@ function selectFrenchVoice(): SpeechSynthesisVoice | null {
       v.name.includes('Apple'),
   );
   if (engineVoice) {
-    console.log(`[AudioSystem] Selected engine voice: ${engineVoice.name} (${engineVoice.lang})`);
     return engineVoice;
   }
 
   // 4. First French voice
   const first = frenchVoices[0];
-  console.log(`[AudioSystem] Selected first French voice: ${first.name} (${first.lang})`);
   return first;
 }
 
@@ -273,7 +270,6 @@ function selectFrenchVoice(): SpeechSynthesisVoice | null {
  */
 export function playDingDong(): void {
   if (_isMuted) {
-    console.log('[AudioSystem] Ding-Dong skipped (muted)');
     return;
   }
 
@@ -290,9 +286,8 @@ export function playDingDong(): void {
     // Dong — lower E5 tone (2.0 s decay), starts after 600ms
     playTone(ctx, 660, 2.0, 'sine', now + 0.6, vol);
 
-    console.log('[AudioSystem] Ding-Dong played');
   } catch (err) {
-    console.warn('[AudioSystem] Failed to play ding-dong:', err);
+    console.error('[AudioSystem] Failed to play ding-dong:', err);
   }
 }
 
@@ -343,8 +338,6 @@ export async function speakAnnouncement(
   customAudioUrl?: string,
   repeatCount: number = 2,
 ): Promise<void> {
-  console.log('[AudioSystem] speakAnnouncement() called:', text.substring(0, 60));
-
   // 1. Play ding-dong chime
   playDingDong();
 
@@ -354,7 +347,6 @@ export async function speakAnnouncement(
   // 3. Speak TTS or play custom audio — repeated 2× with 5s gap
   for (let i = 0; i < repeatCount; i++) {
     if (_isMuted) {
-      console.log('[AudioSystem] TTS skipped (muted)');
       return;
     }
 
@@ -376,7 +368,6 @@ export async function speakAnnouncement(
     }
   }
 
-  console.log('[AudioSystem] Announcement complete (repeated)', repeatCount, 'time(s)');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -392,12 +383,10 @@ export async function speakAnnouncement(
  */
 export async function processQueue(): Promise<void> {
   if (isProcessing) {
-    console.log('[AudioSystem] Queue processor already running — skipping');
     return;
   }
 
   isProcessing = true;
-  console.log('[AudioSystem] Queue processor started');
 
   while (announcementQueue.length > 0) {
     // Sort by priority descending (URGENT first), then by insertion order (FIFO)
@@ -412,11 +401,6 @@ export async function processQueue(): Promise<void> {
     // Take the highest-priority item
     const item = announcementQueue.shift()!;
 
-    console.log(
-      `[AudioSystem] Processing announcement [${AnnouncementPriority[item.priority]}] (id=${item.id}):`,
-      item.text.substring(0, 60),
-    );
-
     try {
       await speakAnnouncement(item.text, item.customAudioUrl);
     } catch (err) {
@@ -430,7 +414,6 @@ export async function processQueue(): Promise<void> {
   }
 
   isProcessing = false;
-  console.log('[AudioSystem] Queue processor stopped (queue empty)');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -456,7 +439,6 @@ export function isAlreadyAnnounced(departureKey: string): boolean {
  */
 export function clearAnnouncedSet(): void {
   announcedSet.clear();
-  console.log('[AudioSystem] Announced set cleared');
 }
 
 /**
@@ -496,19 +478,12 @@ export function addToQueue(
   // Dedup check
   if (departureKey) {
     if (announcedSet.has(departureKey)) {
-      console.log('[AudioSystem] Announcement deduped:', departureKey);
       return '';
     }
     announcedSet.add(departureKey);
   }
 
   announcementQueue.push(item);
-
-  console.log(
-    `[AudioSystem] Added to queue [${AnnouncementPriority[priority]}] (id=${id}):`,
-    text.substring(0, 60),
-    `(${announcementQueue.length} items in queue)`,
-  );
 
   // Sort by priority
   announcementQueue.sort((a, b) => {
@@ -553,7 +528,6 @@ export function addToQueue(
 async function handleP1Interrupt(p1Item: QueuedAnnouncement): Promise<void> {
   // Prevent re-entrant interrupts
   if (isInterrupting) {
-    console.log('[AudioSystem] P1 interrupt already in progress — queueing');
     // If queue processor isn't running, start it (the P1 item is already in queue)
     if (!isProcessing) {
       void processQueue();
@@ -562,7 +536,6 @@ async function handleP1Interrupt(p1Item: QueuedAnnouncement): Promise<void> {
   }
 
   isInterrupting = true;
-  console.log('[AudioSystem] P1 URGENT interrupt triggered:', p1Item.text.substring(0, 60));
 
   try {
     // 1. Remove the P1 item from the queue (we'll handle it directly)
@@ -586,21 +559,19 @@ async function handleP1Interrupt(p1Item: QueuedAnnouncement): Promise<void> {
     await delay(3000);
 
     // 6. Speak the P1 message
-    console.log('[AudioSystem] Speaking P1 message:', p1Item.text.substring(0, 60));
-    if (_isMuted) {
-      console.log('[AudioSystem] P1 TTS skipped (muted)');
-    } else if (p1Item.customAudioUrl) {
-      try {
-        await playCustomAudio(p1Item.customAudioUrl);
-      } catch {
-        console.warn('[AudioSystem] P1 custom audio failed, falling back to TTS');
+    if (!_isMuted) {
+      if (p1Item.customAudioUrl) {
+        try {
+          await playCustomAudio(p1Item.customAudioUrl);
+        } catch {
+          console.warn('[AudioSystem] P1 custom audio failed, falling back to TTS');
+          await speakWithRetry(p1Item.text);
+        }
+      } else {
         await speakWithRetry(p1Item.text);
       }
-    } else {
-      await speakWithRetry(p1Item.text);
     }
 
-    console.log('[AudioSystem] P1 interrupt complete — resuming queue');
   } catch (err) {
     console.error('[AudioSystem] Error during P1 interrupt:', err);
   } finally {
@@ -696,7 +667,6 @@ export function toggleMute(): boolean {
   loadPersistentState();
   _isMuted = !_isMuted;
   saveMuteState();
-  console.log('[AudioSystem] Mute toggled:', _isMuted);
 
   // If un-muted while speech is ongoing, nothing special needed
   // If muted, cancel any in-progress speech
@@ -722,7 +692,6 @@ export function setVolume(v: number): void {
 
   _currentVolume = v;
   saveVolumeState();
-  console.log('[AudioSystem] Volume set:', _currentVolume);
 }
 
 /**
@@ -755,7 +724,6 @@ export function installKeyboardShortcut(): void {
   };
 
   window.addEventListener('keydown', keydownHandler);
-  console.log('[AudioSystem] Keyboard shortcut installed: M = toggle mute');
 }
 
 /**
@@ -766,7 +734,6 @@ export function removeKeyboardShortcut(): void {
 
   window.removeEventListener('keydown', keydownHandler);
   keydownHandler = null;
-  console.log('[AudioSystem] Keyboard shortcut removed');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -792,7 +759,6 @@ export function preloadVoices(): void {
     const voices = window!.speechSynthesis.getVoices();
     if (voices.length > 0 && !voicesLoaded) {
       voicesLoaded = true;
-      console.log(`[AudioSystem] ${voices.length} voice(s) loaded`);
     }
   }
 
@@ -821,8 +787,6 @@ export function preloadVoices(): void {
  * This is the "emergency stop" for the audio system.
  */
 export function cancelAll(): void {
-  console.log('[AudioSystem] Cancelling all audio operations');
-
   // Clear all pending timeouts
   for (const id of pendingTimers) {
     clearTimeout(id);
@@ -851,8 +815,6 @@ export function cancelAll(): void {
 
   // Reset interrupt state
   isInterrupting = false;
-
-  console.log('[AudioSystem] All audio operations cancelled');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -877,7 +839,6 @@ export function playCustomAudio(url: string): Promise<void> {
     }
 
     if (_isMuted) {
-      console.log('[AudioSystem] Custom audio skipped (muted)');
       resolve();
       return;
     }
@@ -888,7 +849,6 @@ export function playCustomAudio(url: string): Promise<void> {
     audio.preload = 'auto';
 
     audio.onended = () => {
-      console.log('[AudioSystem] Custom audio finished:', url);
       resolve();
     };
 
@@ -926,10 +886,6 @@ export function startGeneralMessageInterval(
 ): () => void {
   const frequencyMs = frequencyMinutes * 60 * 1000;
 
-  console.log(
-    `[AudioSystem] General message timer started: every ${frequencyMinutes}min — "${text.substring(0, 50)}"`,
-  );
-
   // Broadcast immediately on start
   addToQueue(text, AnnouncementPriority.LOW, customAudioUrl);
 
@@ -947,7 +903,6 @@ export function startGeneralMessageInterval(
     if (idx >= 0) {
       pendingIntervals.splice(idx, 1);
     }
-    console.log('[AudioSystem] General message timer stopped');
   };
 }
 
@@ -976,7 +931,6 @@ export function speakFrench(text: string): Promise<boolean> {
     }
 
     if (_isMuted) {
-      console.log('[AudioSystem] TTS skipped (muted)');
       resolve(false);
       return;
     }
@@ -1004,11 +958,10 @@ export function speakFrench(text: string): Promise<boolean> {
 
     // Event handlers
     utterance.onstart = () => {
-      console.log('[AudioSystem] TTS started');
+      // TTS started
     };
 
     utterance.onend = () => {
-      console.log('[AudioSystem] TTS finished');
       resolve(true);
     };
 
@@ -1022,7 +975,6 @@ export function speakFrench(text: string): Promise<boolean> {
 
     try {
       window!.speechSynthesis.speak(utterance);
-      console.log('[AudioSystem] speak() called successfully');
     } catch (err) {
       console.error('[AudioSystem] speak() threw:', err);
       resolve(false);
@@ -1084,7 +1036,6 @@ export async function speak(
   customAudioUrl?: string,
 ): Promise<void> {
   if (_isMuted) {
-    console.log('[AudioSystem] speak() skipped (muted)');
     return;
   }
 
@@ -1317,7 +1268,6 @@ export class VocalManager {
     if (hasSpeechSynthesis) {
       window.speechSynthesis.cancel();
     }
-    console.log('[AudioSystem] Current speech interrupted');
   }
 
   /**

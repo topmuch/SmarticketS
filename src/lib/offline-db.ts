@@ -80,7 +80,6 @@ export async function addToQueue(
     retryCount: 0,
     status: 'pending',
   });
-  console.log(`[OFFLINE] ${type} ajouté à la file d'attente (id: ${id})`);
   return id as number;
 }
 
@@ -167,7 +166,6 @@ export async function cacheData(key: string, data: unknown): Promise<void> {
     data,
     updatedAt: Date.now(),
   });
-  console.log(`[CACHE] ${key} mis en cache`);
 }
 
 export async function getCachedData<T = unknown>(key: string): Promise<T | null> {

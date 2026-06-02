@@ -10,17 +10,11 @@ interface MetricOptions {
 }
 
 export function logMetric(
-  service: 'groq' | 'wakit' | 'whatsapp' | 'suivi',
-  action: string,
-  latencyMs: number,
-  success: boolean,
-  options?: MetricOptions
+  _service: 'groq' | 'wakit' | 'whatsapp' | 'suivi',
+  _action: string,
+  _latencyMs: number,
+  _success: boolean,
+  _options?: MetricOptions
 ): void {
-  const icon = success ? '✅' : '❌';
-  const keyPart = options?.key ? ` [key=${options.key}]` : '';
-  const detailsPart = options?.details ? ` [${options.details}]` : '';
-
-  console.log(
-    `[${service}/${action}] ${icon} ${latencyMs}ms${keyPart}${detailsPart}`
-  );
+  // No-op in production: metrics logging removed
 }

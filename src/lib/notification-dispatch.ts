@@ -163,11 +163,6 @@ export async function dispatchNotification(params: DispatchParams) {
     maxAttempts: 3,
   });
 
-  console.log(
-    `[NotificationDispatch] Dispatched ${type} to ${recipientPhone} ref=${reference} ` +
-    `eventId=${colisEvent.id} queueId=${queuedNotification.id}`
-  );
-
   return {
     colisEvent,
     queuedNotification,
@@ -231,12 +226,7 @@ export async function dispatchAlert(alert: DispatchAlertParams) {
     clearTimeout(timeoutId);
   } catch {
     // Alert service might not be running — that's OK
-    console.log('[NotificationDispatch] Alert service unavailable, notification saved to DB only');
   }
-
-  console.log(
-    `[NotificationDispatch] Alert dispatched: type=${type} agency=${agencyId} notificationId=${notification.id}`
-  );
 
   return notification;
 }
@@ -268,10 +258,6 @@ export async function dispatchSystem(
       data: data ? JSON.stringify(data) : null,
     },
   });
-
-  console.log(
-    `[NotificationDispatch] System notification created: userId=${userId} type=${type} id=${notification.id}`
-  );
 
   return notification;
 }

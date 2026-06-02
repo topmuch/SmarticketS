@@ -1,14 +1,12 @@
-// @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Monitor,
   Clock,
   Bell,
-  MapPin,
   Volume2,
   Tv,
   Eye,
@@ -17,12 +15,12 @@ import {
   ExternalLink,
   Maximize,
   Settings,
-  Users,
   Megaphone,
   MessageSquare,
   Timer,
   CloudSun,
   AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import SecondaryPageLayout from '@/components/landing/SecondaryPageLayout';
 import FadeIn from '@/components/landing/FadeIn';
@@ -129,62 +127,72 @@ const benefits = [
   },
 ];
 
-const fakeDepartures = [
-  {
-    time: '08:00',
-    destination: 'Saint-Louis',
-    line: 'Ligne 2',
-    platform: 'Quai A',
-    seats: '12 places',
-    status: 'À l\'heure',
-    statusColor: '#22c55e',
-  },
-  {
-    time: '08:30',
-    destination: 'Thiès',
-    line: 'Ligne 5',
-    platform: 'Quai B',
-    seats: '5 places',
-    status: 'À l\'heure',
-    statusColor: '#22c55e',
-  },
-  {
-    time: '09:15',
-    destination: 'Louga',
-    line: 'Ligne 3',
-    platform: 'Quai C',
-    seats: 'Complet',
-    status: 'Complet',
-    statusColor: '#ef4444',
-  },
-];
+/* ────────────────────────────────────────────
+   TYPES
+   ──────────────────────────────────────────── */
 
-const fakeArrivals = [
-  {
-    time: '07:45',
-    origin: 'Kaolack',
-    line: 'Ligne 7',
-    platform: 'Quai D',
-    status: 'Arrivé',
-    statusColor: '#22c55e',
-  },
-  {
-    time: '08:10',
-    origin: 'Ziguinchor',
-    line: 'Ligne 1',
-    platform: 'Quai A',
-    status: 'En route',
-    statusColor: '#f59e0b',
-  },
-  {
-    time: '08:45',
-    origin: 'Tambacounda',
-    line: 'Ligne 9',
-    platform: 'Quai B',
-    status: 'En retard',
-    statusColor: '#ef4444',
-  },
-];
+interface BoardDeparture {
+  id: string;
+  scheduledTime: string;
+  destination: string;
+  lineNumber: string;
+  platform: string | null;
+  availableSeats: number;
+  totalSeats: number;
+  status: string;
+  delayMinutes: number;
+}
+
+interface BoardArrival {
+  id: string;
+  scheduledTime: string;
+  origin: string;
+  originStationName: string;
+  lineNumber: string;
+  platform: string | null;
+  status: string;
+  delayMinutes: number;
+}
+
+interface BoardData {
+  stationName: string;
+  city: string;
+  departures: BoardDeparture[];
+  arrivals: BoardArrival[];
+  tickerMessages: { id?: string; text: string; priority: string; active: boolean }[];
+}
+
+/* ────────────────────────────────────────────
+   STATUS HELPERS
+   ──────────────────────────────────────────── */
+
+function getDepartureStatusInfo(status: string, availableSeats: number, totalSeats: number): { label: string; color: string } {
+  if (status === 'BOARDING') return { label: 'Embarquement', color: '#3B82F6' };
+  if (status === 'DELAYED') return { label: 'Retardé', color: '#f59e0b' };
+  if (status === 'DEPARTED') return { label: 'Parti', color: '#64748b' };
+  if (status === 'CANCELLED') return { label: 'Annulé', color: '#ef4444' };
+  if (availableSeats === 0 && totalSeats > 0) return { label: 'Complet', color: '#ef4444' };
+  return { label: "À l'heure", color: '#22c55e' };
+}
+
+function getArrivalStatusInfo(status: string, delayMinutes: number): { label: string; color: string } {
+  if (status === 'DEPARTED') return { label: 'Arrivé', color: '#22c55e' };
+  if (status === 'CANCELLED') return { label: 'Annulé', color: '#ef4444' };
+  if (status === 'DELAYED' || delayMinutes > 0) return { label: 'En retard', color: '#ef4444' };
+  if (status === 'BOARDING') return { label: 'Arrivée imminente', color: '#3B82F6' };
+  return { label: 'En route', color: '#f59e0b' };
+}
+
+function getPlatformLabel(platform: string | null): string {
+  if (!platform) return '—';
+  return platform.startsWith('Quai') ? platform : `Quai ${platform}`;
+}
+
+function getSeatsLabel(availableSeats: number, totalSeats: number): string {
+  if (totalSeats <= 0) return '—';
+  if (availableSeats <= 0) return 'Complet';
+  return `${availableSeats} places`;
+}
 
 /* ────────────────────────────────────────────
    ANIMATION VARIANTS
@@ -239,10 +247,88 @@ function LiveClock() {
 }
 
 /* ────────────────────────────────────────────
+   LOADING SKELETON FOR BOARD
+   ──────────────────────────────────────────── */
+
+function BoardSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Station header skeleton */}
+      <div className="flex items-center gap-3 mb-6 sm:mb-8">
+        <div className="w-10 h-10 rounded-lg bg-white/10" />
+        <div className="space-y-1.5">
+          <div className="h-4 w-40 bg-white/10 rounded" />
+          <div className="h-3 w-24 bg-white/10 rounded" />
+        </div>
+      </div>
+      {/* Columns skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {[0, 1].map((col) => (
+          <div key={col}>
+            <div className="h-9 rounded-t-lg bg-white/10 mb-0" />
+            <div className="bg-[#111827] rounded-b-lg divide-y divide-white/5">
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="px-4 py-3.5 flex items-center gap-4">
+                  <div className="h-4 w-12 bg-white/10 rounded" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3.5 w-24 bg-white/10 rounded" />
+                    <div className="h-2.5 w-16 bg-white/5 rounded" />
+                  </div>
+                  <div className="h-5 w-16 bg-white/10 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Ticker skeleton */}
+      <div className="mt-4 sm:mt-6 bg-[#111827] rounded-lg px-4 py-2.5">
+        <div className="h-3 w-3/4 bg-white/5 rounded" />
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
    PAGE COMPONENT
    ──────────────────────────────────────────── */
 
+const SIGNAGE_STATION_SLUG = 'dakar-peters';
+const BOARD_REFRESH_INTERVAL = 15_000; // 15 seconds
+
 export default function EcransAffichagePage() {
+  const [boardData, setBoardData] = useState<BoardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBoard = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/signage-slug/${SIGNAGE_STATION_SLUG}`);
+      if (!res.ok) {
+        throw new Error(`Erreur ${res.status}`);
+      }
+      const data = await res.json();
+      setBoardData({
+        stationName: data.stationName || 'Gare Routière',
+        city: data.city || '',
+        departures: data.departures || [],
+        arrivals: data.arrivals || [],
+        tickerMessages: data.tickerMessages || [],
+      });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBoard();
+    const interval = setInterval(fetchBoard, BOARD_REFRESH_INTERVAL);
+    return () => clearInterval(interval);
+  }, [fetchBoard]);
+
   return (
     <SecondaryPageLayout
       title="Écrans d'Affichage"
@@ -342,120 +428,168 @@ export default function EcransAffichagePage() {
                       </div>
                       <div>
                         <h3 className="text-white font-bold text-base sm:text-lg lg:text-xl tracking-tight">
-                          GARE ROUTIÈRE PETERS
+                          {boardData ? boardData.stationName.toUpperCase() : 'GARE ROUTIÈRE'}
                         </h3>
                         <p className="text-white/40 text-xs sm:text-sm">
-                          Dakar, Sénégal
+                          {boardData ? `${boardData.city}, Sénégal` : 'Dakar, Sénégal'}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-white/60">
-                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <LiveClock />
-                    </div>
-                  </div>
-
-                  {/* Two-column board */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    {/* DEPARTURES column */}
-                    <div>
-                      <div className="bg-gradient-to-r from-[#FF6B35] to-[#e55a28] rounded-t-lg px-4 py-2 sm:py-2.5 flex items-center gap-2">
-                        <ArrowRight className="w-4 h-4 text-white" />
-                        <span className="text-white font-bold text-sm sm:text-base tracking-wide uppercase">
-                          Départs
-                        </span>
-                      </div>
-                      <div className="bg-[#111827] rounded-b-lg divide-y divide-white/5">
-                        {fakeDepartures.map((dep, i) => (
-                          <div
-                            key={i}
-                            className="px-3 sm:px-4 py-3 sm:py-3.5 flex items-center gap-3 sm:gap-4"
-                          >
-                            {/* Time */}
-                            <span className="text-white font-mono font-bold text-sm sm:text-base min-w-[3rem]">
-                              {dep.time}
-                            </span>
-                            {/* Destination + line */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white font-semibold text-xs sm:text-sm truncate">
-                                {dep.destination}
-                              </p>
-                              <p className="text-white/40 text-[10px] sm:text-xs">
-                                {dep.line}
-                              </p>
-                            </div>
-                            {/* Platform + seats */}
-                            <div className="text-right hidden sm:block">
-                              <p className="text-white/60 text-xs">
-                                {dep.platform}
-                              </p>
-                              <p className="text-white/40 text-[10px]">
-                                {dep.seats}
-                              </p>
-                            </div>
-                            {/* Status badge */}
-                            <span
-                              className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap"
-                              style={{
-                                backgroundColor: `${dep.statusColor}20`,
-                                color: dep.statusColor,
-                              }}
-                            >
-                              {dep.status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* ARRIVALS column */}
-                    <div>
-                      <div className="bg-gradient-to-r from-[#3B82F6] to-[#2563EB] rounded-t-lg px-4 py-2 sm:py-2.5 flex items-center gap-2">
-                        <ArrowRight className="w-4 h-4 text-white rotate-180" />
-                        <span className="text-white font-bold text-sm sm:text-base tracking-wide uppercase">
-                          Arrivées
-                        </span>
-                      </div>
-                      <div className="bg-[#111827] rounded-b-lg divide-y divide-white/5">
-                        {fakeArrivals.map((arr, i) => (
-                          <div
-                            key={i}
-                            className="px-3 sm:px-4 py-3 sm:py-3.5 flex items-center gap-3 sm:gap-4"
-                          >
-                            {/* Time */}
-                            <span className="text-white font-mono font-bold text-sm sm:text-base min-w-[3rem]">
-                              {arr.time}
-                            </span>
-                            {/* Origin + line */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white font-semibold text-xs sm:text-sm truncate">
-                                {arr.origin}
-                              </p>
-                              <p className="text-white/40 text-[10px] sm:text-xs">
-                                {arr.line}
-                              </p>
-                            </div>
-                            {/* Platform */}
-                            <div className="text-right hidden sm:block">
-                              <p className="text-white/60 text-xs">
-                                {arr.platform}
-                              </p>
-                            </div>
-                            {/* Status badge */}
-                            <span
-                              className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap"
-                              style={{
-                                backgroundColor: `${arr.statusColor}20`,
-                                color: arr.statusColor,
-                              }}
-                            >
-                              {arr.status}
-                            </span>
-                          </div>
-                        ))}
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <button
+                        onClick={fetchBoard}
+                        className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors"
+                        title="Actualiser"
+                        aria-label="Actualiser le tableau"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${loading && !boardData ? 'animate-spin' : ''}`} />
+                      </button>
+                      <div className="flex items-center gap-2 text-white/60">
+                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <LiveClock />
                       </div>
                     </div>
                   </div>
+
+                  {/* Loading skeleton */}
+                  {loading && !boardData && <BoardSkeleton />}
+
+                  {/* Error state */}
+                  {error && !boardData && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <AlertTriangle className="w-8 h-8 text-[#f59e0b] mb-3" />
+                      <p className="text-white/60 text-sm mb-3">
+                        Impossible de charger les données en temps réel.
+                      </p>
+                      <button
+                        onClick={fetchBoard}
+                        className="inline-flex items-center gap-2 text-[#FF6B35] text-sm font-semibold hover:text-[#e55a28] transition-colors"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Réessayer
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Real data board */}
+                  {boardData && !error && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      {/* DEPARTURES column */}
+                      <div>
+                        <div className="bg-gradient-to-r from-[#FF6B35] to-[#e55a28] rounded-t-lg px-4 py-2 sm:py-2.5 flex items-center gap-2">
+                          <ArrowRight className="w-4 h-4 text-white" />
+                          <span className="text-white font-bold text-sm sm:text-base tracking-wide uppercase">
+                            Départs
+                          </span>
+                        </div>
+                        <div className="bg-[#111827] rounded-b-lg divide-y divide-white/5">
+                          {boardData.departures.length === 0 && (
+                            <div className="px-4 py-8 text-center">
+                              <p className="text-white/30 text-sm">Aucun départ prévu aujourd&apos;hui</p>
+                            </div>
+                          )}
+                          {boardData.departures.map((dep) => {
+                            const statusInfo = getDepartureStatusInfo(dep.status, dep.availableSeats, dep.totalSeats);
+                            return (
+                              <div
+                                key={dep.id}
+                                className="px-3 sm:px-4 py-3 sm:py-3.5 flex items-center gap-3 sm:gap-4"
+                              >
+                                {/* Time */}
+                                <span className="text-white font-mono font-bold text-sm sm:text-base min-w-[3rem]">
+                                  {dep.scheduledTime}
+                                </span>
+                                {/* Destination + line */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white font-semibold text-xs sm:text-sm truncate">
+                                    {dep.destination}
+                                  </p>
+                                  <p className="text-white/40 text-[10px] sm:text-xs">
+                                    {dep.lineNumber}
+                                  </p>
+                                </div>
+                                {/* Platform + seats */}
+                                <div className="text-right hidden sm:block">
+                                  <p className="text-white/60 text-xs">
+                                    {getPlatformLabel(dep.platform)}
+                                  </p>
+                                  <p className="text-white/40 text-[10px]">
+                                    {getSeatsLabel(dep.availableSeats, dep.totalSeats)}
+                                  </p>
+                                </div>
+                                {/* Status badge */}
+                                <span
+                                  className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap"
+                                  style={{
+                                    backgroundColor: `${statusInfo.color}20`,
+                                    color: statusInfo.color,
+                                  }}
+                                >
+                                  {statusInfo.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* ARRIVALS column */}
+                      <div>
+                        <div className="bg-gradient-to-r from-[#3B82F6] to-[#2563EB] rounded-t-lg px-4 py-2 sm:py-2.5 flex items-center gap-2">
+                          <ArrowRight className="w-4 h-4 text-white rotate-180" />
+                          <span className="text-white font-bold text-sm sm:text-base tracking-wide uppercase">
+                            Arrivées
+                          </span>
+                        </div>
+                        <div className="bg-[#111827] rounded-b-lg divide-y divide-white/5">
+                          {boardData.arrivals.length === 0 && (
+                            <div className="px-4 py-8 text-center">
+                              <p className="text-white/30 text-sm">Aucune arrivée prévue aujourd&apos;hui</p>
+                            </div>
+                          )}
+                          {boardData.arrivals.map((arr) => {
+                            const statusInfo = getArrivalStatusInfo(arr.status, arr.delayMinutes);
+                            return (
+                              <div
+                                key={arr.id}
+                                className="px-3 sm:px-4 py-3 sm:py-3.5 flex items-center gap-3 sm:gap-4"
+                              >
+                                {/* Time */}
+                                <span className="text-white font-mono font-bold text-sm sm:text-base min-w-[3rem]">
+                                  {arr.scheduledTime}
+                                </span>
+                                {/* Origin + line */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white font-semibold text-xs sm:text-sm truncate">
+                                    {arr.originStationName || arr.origin}
+                                  </p>
+                                  <p className="text-white/40 text-[10px] sm:text-xs">
+                                    {arr.lineNumber}
+                                  </p>
+                                </div>
+                                {/* Platform */}
+                                <div className="text-right hidden sm:block">
+                                  <p className="text-white/60 text-xs">
+                                    {getPlatformLabel(arr.platform)}
+                                  </p>
+                                </div>
+                                {/* Status badge */}
+                                <span
+                                  className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap"
+                                  style={{
+                                    backgroundColor: `${statusInfo.color}20`,
+                                    color: statusInfo.color,
+                                  }}
+                                >
+                                  {statusInfo.label}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Ticker bar */}
                   <div className="mt-4 sm:mt-6 bg-[#111827] rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2 sm:gap-3 overflow-hidden">
@@ -464,9 +598,9 @@ export default function EcransAffichagePage() {
                     </span>
                     <div className="overflow-hidden whitespace-nowrap flex-1">
                       <p className="text-white/50 text-xs sm:text-sm animate-marquee inline-block">
-                        📢 Attention : le départ pour Tambacounda prévu à 09:15 est complet.
-                        Merci de vous diriger vers un autre trajet. — SmarticketS, la billetterie
-                        intelligente pour les gares du Sénégal.
+                        {boardData && boardData.tickerMessages.length > 0
+                          ? boardData.tickerMessages.map((m) => m.text).join(' — ')
+                          : '📢 SmarticketS — la billetterie intelligente pour les gares du Sénégal.'}
                       </p>
                     </div>
                   </div>

@@ -45,7 +45,6 @@ export async function callGroqAI(request: GroqRequest): Promise<GroqResult> {
 
   // ─── Kill switch master: GROQ_AI_ENABLED (env var) ───
   if (!GROQ_AI_ENABLED) {
-    console.log('[Groq] IA désactivée via GROQ_AI_ENABLED=false (env var) → fallback.');
     return {
       success: false,
       error: 'IA désactivée par kill switch (GROQ_AI_ENABLED).',
@@ -93,10 +92,6 @@ export async function callGroqAI(request: GroqRequest): Promise<GroqResult> {
   const model = request.model || config.modelChat;
 
   // ─── Appel API ───
-  console.log(
-    `[Groq] Appel modèle "${model}" — ${request.messages.length} message(s), temp=${request.temperature ?? 0.3}`
-  );
-
   const body: Record<string, unknown> = {
     model,
     messages: request.messages,
@@ -129,7 +124,6 @@ export async function callGroqAI(request: GroqRequest): Promise<GroqResult> {
     const content = message?.content as string | undefined;
 
     if (content) {
-      console.log(`[Groq] ✓ Réponse obtenue en ${latencyMs}ms — ${content.length} caractères`);
       return {
         success: true,
         content,
@@ -329,7 +323,6 @@ export async function generateWhatsAppMessage(
 
       // Valider la longueur
       if (cleaned.length > 0 && cleaned.length <= 350) {
-        console.log(`[Groq/WhatsApp] ✓ Message généré en ${latencyMs}ms (${cleaned.length} chars, lang=${params.language})`);
         return { message: cleaned, generated: true, latencyMs };
       }
 
@@ -490,10 +483,6 @@ export async function analyzeScanSuspicion(
           confidence: Math.min(Math.max(parsed.confidence, 0), 1),
           analyzedAt: new Date().toISOString(),
         };
-
-        console.log(
-          `[Groq/ScanGuard] ${params.reference} → ${analysis.isSuspicious ? 'FLAGGED' : 'OK'} (confidence=${analysis.confidence}, ${latencyMs}ms)`
-        );
 
         return { analyzed: true, analysis, latencyMs };
       }

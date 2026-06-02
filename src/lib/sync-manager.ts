@@ -118,11 +118,8 @@ export async function processQueue(): Promise<SyncResult> {
   }
 
   if (pending.length === 0) {
-    console.log('[SYNC] File d\'attente vide.');
     return result;
   }
-
-  console.log(`[SYNC] Début synchronisation (${pending.length} action(s))`);
 
   // Backup current queue to localStorage before processing
   backupToLocalStorage(pending);
@@ -140,7 +137,6 @@ export async function processQueue(): Promise<SyncResult> {
       const delay = RETRY_DELAY_BASE * Math.pow(2, item.retryCount - 1);
       const nextAttempt = item.lastAttempt + delay;
       if (Date.now() < nextAttempt) {
-        console.log(`[SYNC] ${item.type} en attente du backoff (${Math.ceil((nextAttempt - Date.now()) / 1000)}s restants)`);
         continue;
       }
     }
@@ -161,7 +157,6 @@ export async function processQueue(): Promise<SyncResult> {
 
       if (response.status === 409) {
         // 409 Conflict — idempotent: already processed on server
-        console.log(`[SYNC] ✅ ${item.type} déjà traité côté serveur (409)`);
         await updateQueueItem({ ...item, status: 'synced' });
         result.synced++;
         continue;
@@ -182,7 +177,6 @@ export async function processQueue(): Promise<SyncResult> {
           });
 
           if (retryResponse.ok || retryResponse.status === 409) {
-            console.log(`[SYNC] ✅ ${item.type} synchronisé (après refresh)`);
             await updateQueueItem({ ...item, status: 'synced' });
             result.synced++;
             continue;
@@ -196,7 +190,6 @@ export async function processQueue(): Promise<SyncResult> {
         throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
       }
 
-      console.log(`[SYNC] ✅ ${item.type} synchronisé avec succès`);
       await updateQueueItem({ ...item, status: 'synced' });
       result.synced++;
     } catch (error) {
@@ -225,13 +218,8 @@ export async function processQueue(): Promise<SyncResult> {
     }
   }
 
-  console.log(`[SYNC] File traitée: ${result.synced} synchronisé(s), ${result.failed} échoué(s), ${result.skipped} en attente`);
-
   // Cleanup old synced items
-  const removed = await removeSyncedItems();
-  if (removed > 0) {
-    console.log(`[SYNC] ${removed} élément(s) ancien(s) nettoyé(s)`);
-  }
+  await removeSyncedItems();
 
   result.success = result.failed === 0;
   return result;

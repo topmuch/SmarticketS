@@ -78,7 +78,6 @@ export class NotificationQueue {
     };
 
     this.queue.set(id, queued);
-    console.log(`[NotificationQueue] Enqueued notification ${id} type=${queued.type} ref=${queued.reference || 'N/A'}`);
     return queued;
   }
 
@@ -117,9 +116,7 @@ export class NotificationQueue {
         this.queue.set(id, notification);
       }
 
-      if (processed > 0) {
-        console.log(`[NotificationQueue] Processed ${processed} notifications: ${sent} sent, ${failed} failed`);
-      }
+      // Processing completed
 
       // Auto-purge completed/expired notifications after processing
       this.purge();
@@ -134,11 +131,8 @@ export class NotificationQueue {
    */
   startProcessor(intervalMs: number = 30_000): void {
     if (this.timer) {
-      console.log('[NotificationQueue] Processor already running, ignoring duplicate start');
       return;
     }
-
-    console.log(`[NotificationQueue] Starting processor (interval: ${intervalMs}ms)`);
 
     // Process immediately on start
     this.processQueue().catch((err) => {
@@ -159,7 +153,6 @@ export class NotificationQueue {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
-      console.log('[NotificationQueue] Processor stopped');
     }
   }
 
@@ -222,9 +215,6 @@ export class NotificationQueue {
         this.queue.delete(id);
         removed++;
       }
-    }
-    if (removed > 0) {
-      console.log(`[NotificationQueue] Purged ${removed} completed notifications`);
     }
     return removed;
   }

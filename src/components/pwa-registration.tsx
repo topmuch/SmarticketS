@@ -9,7 +9,6 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker
           .register('/sw.js')
           .then((registration) => {
-            console.log('SW registered:', registration.scope);
 
             // Check for updates
             registration.addEventListener('updatefound', () => {
@@ -18,23 +17,22 @@ export function ServiceWorkerRegistration() {
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     // New content available, show refresh prompt
-                    console.log('New content available, please refresh.');
                   }
                 });
               }
             });
           })
-          .catch((error) => {
-            console.log('SW registration failed:', error);
+          .catch(() => {
+            // SW registration failed
           });
       });
 
       // Handle offline/online status
       const handleOnline = () => {
-        console.log('Back online');
+        // Back online
       };
       const handleOffline = () => {
-        console.log('Gone offline');
+        // Gone offline
       };
 
       window.addEventListener('online', handleOnline);
@@ -58,7 +56,6 @@ export function usePWAInstall() {
     const isInWebAppiOS = ('standalone' in window.navigator) && (window.navigator as Navigator & { standalone: boolean }).standalone;
 
     if (isStandalone || isInWebAppiOS) {
-      console.log('App is running as PWA');
       document.body.classList.add('pwa-mode');
     }
   }, []);
@@ -72,8 +69,6 @@ export function PWAInstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault();
       deferredPrompt = e as BeforeInstallPromptEvent;
-      // Show install button or prompt
-      console.log('PWA install prompt available');
     };
 
     window.addEventListener('beforeinstallprompt', handler);

@@ -88,7 +88,6 @@ export function useOfflineSync() {
     if (mounted.current) {
       setState((prev) => ({ ...prev, isOnline: true }));
     }
-    console.log('[SYNC] ✅ Connexion rétablie — lancement de la synchronisation');
     await refreshCounts();
     await doSync();
   }, [refreshCounts, doSync]);
@@ -98,7 +97,6 @@ export function useOfflineSync() {
     if (mounted.current) {
       setState((prev) => ({ ...prev, isOnline: false }));
     }
-    console.log('[SYNC] ❌ Connexion perdue — mode hors-ligne');
   }, []);
 
   // Focus event handler (retry sync when user returns to tab)
@@ -106,7 +104,6 @@ export function useOfflineSync() {
     if (navigator.onLine && !syncInProgress.current) {
       const [pending] = await Promise.all([getPendingCount()]);
       if (pending > 0) {
-        console.log(`[SYNC] 🔄 ${pending} action(s) en attente — synchronisation au focus`);
         await refreshCounts();
         await doSync();
       }

@@ -111,9 +111,6 @@ export async function sendWakitMessage(payload: WakitPayload): Promise<WakitResu
 
   const phone = normalizePhone(payload.to);
 
-  // ─── Appel API ───
-  console.log(`[Wakit] Envoi à ${phone.substring(0, 4)}*** via template "${payload.template}"`);
-
   const url = `${config.baseUrl}/messages`;
   const body = {
     to: phone,
@@ -140,7 +137,6 @@ export async function sendWakitMessage(payload: WakitPayload): Promise<WakitResu
 
   if (result.ok) {
     const data = result.data as Record<string, unknown>;
-    console.log(`[Wakit] ✓ Message envoyé en ${latencyMs}ms — ID: ${data?.id ?? 'N/A'}`);
     return {
       success: true,
       messageId: (data?.id as string) || undefined,

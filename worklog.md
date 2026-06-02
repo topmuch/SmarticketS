@@ -964,3 +964,97 @@ Stage Summary:
 - Delayed departures auto-repeat announcement every 5 minutes until resolved
 - CSS: 3-level blinking system (slow 1.5s, medium 1s, fast 0.5s) with status-specific colors
 - Lint: 0 errors, dev server compiling, kiosk-service running on port 3004
+---
+Task ID: 6-b
+Agent: Cleanup agent
+Task: Clean console.log/warn from production lib files
+
+Work Log:
+- Read all 13 target files to inventory console.log/warn/error statements
+- Cleaned src/lib/audioSystem.ts: Removed ~35 console.log statements, converted 1 console.warn to console.error (ding-dong failure), kept 7 console.warn (genuine warnings: no French voice, audio fallback, TTS retry, no voices, muted skip) and 9 console.error (actual errors)
+- Cleaned src/lib/notification-queue.ts: Removed 5 console.log statements (enqueue, process, start, stop, purge), kept 2 console.error
+- Cleaned src/lib/sync-manager.ts: Removed 7 console.log statements (queue empty, sync start, backoff, 409 conflict, after refresh, success, cleanup), kept 4 console.warn (token missing, token expired, IndexedDB inaccessible, unknown type) and 1 console.error
+- Cleaned src/lib/offline-db.ts: Removed 2 console.log statements (queue add, cache set), kept 1 console.warn (localStorage backup failed)
+- Cleaned src/lib/notification-dispatch.ts: Removed 3 console.log statements (dispatch, alert, system), kept console.error
+- Cleaned src/lib/groq.ts: Removed 5 console.log statements (kill switch, API call, response, WhatsApp generated, ScanGuard result), kept 7 console.warn (config error, no API key, empty messages, empty response, API failure, timeout, invalid JSON)
+- Cleaned src/lib/wakit.ts: Removed 2 console.log statements (API call, success), kept 5 console.warn (config error, no API key, invalid phone, missing template, API failure)
+- Cleaned src/lib/whatsapp-message.ts: Removed 1 console.log (PreFilled message log), removed stale logging comment
+- Skipped src/lib/fetch-util.ts: All console.warn statements kept (actual error warnings)
+- Cleaned src/hooks/use-offline-sync.ts: Removed 3 console.log statements (online, offline, focus sync)
+- Cleaned src/hooks/useTranslation.ts: Removed 1 console.log (IP detection fallback)
+- Cleaned src/lib/logger-metrics.ts: Removed 1 console.log, converted entire logMetric function to no-op with underscore-prefixed params
+- Cleaned src/components/pwa-registration.tsx: Removed 7 console.log statements (SW registered, update available, SW failed, online, offline, PWA running, install prompt)
+- Cleaned src/components/smart-tickets/pwa-registry.tsx: Removed 2 console.log statements (SW registered, new version), kept 2 console.warn (SW not supported, SW registration failed)
+- Ran bun run lint — 0 errors
+
+Stage Summary:
+- 13 files cleaned, ~75 console.log statements removed total
+- 0 console.error statements removed (all preserved for actual errors)
+- console.warn preserved for genuine warnings: auth failures, fallback scenarios, missing resources
+- 1 console.warn upgraded to console.error (ding-dong playback failure in audioSystem.ts)
+- bun run lint passes with 0 new errors
+---
+Task ID: 6-a
+Agent: Full-stack dev agent
+Task: Fix fakeDepartures/fakeArrivals ghost data in ecrans-affichage page
+
+Work Log:
+- Read src/app/ecrans-affichage/page.tsx and identified fakeDepartures (3 items) and fakeArrivals (3 items) hardcoded at lines 132-187
+- Analyzed existing API routes: signage/board/[stationId], signage/[stationId]/departures, signage-slug/[slug], departures/route.ts
+- Selected `/api/signage-slug/dakar-peters` as the data source (public, no auth, returns both departures + arrivals + ticker messages + weather)
+- Removed `// @ts-nocheck` directive from the page
+- Removed fakeDepartures and fakeArrivals arrays entirely (zero fake/hardcoded data)
+- Added TypeScript interfaces: BoardDeparture, BoardArrival, BoardData
+- Added status helper functions: getDepartureStatusInfo, getArrivalStatusInfo, getPlatformLabel, getSeatsLabel
+- Added useState for boardData, loading, error
+- Added useCallback fetchBoard that calls `/api/signage-slug/dakar-peters`
+- Added useEffect with 15-second auto-refresh interval (matches the feature description)
+- Added BoardSkeleton loading component (animate-pulse skeleton matching the board layout)
+- Added error state with AlertTriangle icon and retry button
+- Added empty state messages for both departures and arrivals columns
+- Added manual refresh button (RefreshCw icon) in station header
+- Station name and city now pulled dynamically from API response
+- Ticker bar now uses real tickerMessages from API, falls back to generic message
+- Fixed literal \n escape sequences in BoardSkeleton JSX (7 instances)
+- Removed unused imports: MapPin, Users, Loader2
+- Ran bun run lint — 0 errors
+
+Stage Summary:
+- 1 file modified: src/app/ecrans-affichage/page.tsx
+- fakeDepartures and fakeArrivals completely removed (zero hardcoded data remains)
+- Real data fetched from /api/signage-slug/dakar-peters (public endpoint, no auth)
+- Auto-refresh every 15 seconds via setInterval
+- Loading skeleton, error state with retry, empty states all implemented
+- Manual refresh button added to station header
+- Status mapping: SCHEDULED→"À l'heure", BOARDING→"Embarquement", DELAYED→"Retardé", DEPARTED→"Parti", CANCELLED→"Annulé", seats=0→"Complet"
+- Lint: 0 errors, dev server compiles successfully
+
+---
+Task ID: 11
+Agent: Main Agent + 2 subagents
+Task: Full audit — ghost code, mocks, console.log cleanup, TTS verification
+
+Work Log:
+- Read worklog (10 previous tasks) and dev logs (2200+ lines)
+- Verified all 3 services running: Next.js (3000), alert-service (3003), kiosk-service (3004)
+- ESLint: 0 errors
+- Dev logs: ALL 200 responses, zero errors, zero 404s, zero 500s
+- Searched for TODO/FIXME/HACK/MOCK/PLACEHOLDER — none in production code
+- Searched for fake/dummy/stub/phantom/ghost — found CRITICAL: ecrans-affichage page
+- Fixed ecrans-affichage/page.tsx: removed fakeDepartures (3 items) and fakeArrivals (3 items), replaced with real API data from /api/signage-slug/dakar-peters
+- Cleaned ~75 console.log/warn statements from 13 files (audioSystem, notification-queue, sync-manager, offline-db, notification-dispatch, groq, wakit, whatsapp-message, use-offline-sync, useTranslation, logger-metrics, pwa-registration, pwa-registry)
+- Preserved console.error (actual errors) and console.warn (genuine warnings)
+- Analyzed TTS system for infinite loop: confirmed safe (dedup keys, fixed retry limit of 3, queue consumption via shift(), re-entrance guard)
+- Browser verified: homepage loads with all sections, no runtime errors
+- Browser verified: ecrans-affichage page fetches real API data (GET /api/signage-slug/dakar-peters 200)
+- Hydration mismatch from Math.random() in Framer Motion particles — cosmetic only, no functionality impact
+
+Stage Summary:
+- 0 ghost code remaining (fakeDepartures/fakeArrivals replaced with real API)
+- 0 mock code in production files
+- ~75 console.log statements cleaned from lib files
+- TTS system verified safe (no infinite loop risk)
+- All 3 services running and healthy
+- ESLint: 0 errors
+- Dev logs: all 200 responses
+- Browser verification passed for homepage and ecrans-affichage

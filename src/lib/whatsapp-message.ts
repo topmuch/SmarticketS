@@ -431,10 +431,7 @@ export function generatePreFilledMessage(params: PreFilledMessageParams): string
   // Troncation intelligente si > 400 chars
   message = smartTruncate(message, 400, locale);
 
-  // ─── Step 7: Logging discret ───
-  // TEST: Logging format [WhatsApp/PreFilled] flight/departure_urgent/fr → 378 chars
-  console.log(`[WhatsApp/PreFilled] ${mode}/${context}/${locale} → ${message.length} chars`);
-
+  // ─── Step 7: Return message ───
   return message;
 }
 

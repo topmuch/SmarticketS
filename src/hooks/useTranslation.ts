@@ -62,8 +62,8 @@ export function useTranslation(): UseTranslationReturn {
             return;
           }
         }
-      } catch (error) {
-        console.log('IP detection failed, falling back to browser detection');
+      } catch {
+        // IP detection failed, falling back to browser detection
       }
 
       // 4. Fallback to browser language

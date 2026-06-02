@@ -19,7 +19,6 @@ export function PwaRegistry() {
         const registration = await navigator.serviceWorker.register('/sw.js', {
           scope: '/',
         });
-        console.log('[PWA] Service Worker enregistré:', registration.scope);
 
         // Check for updates periodically
         registration.addEventListener('updatefound', () => {
@@ -31,7 +30,7 @@ export function PwaRegistry() {
               newWorker.state === 'activated' &&
               navigator.serviceWorker.controller
             ) {
-              console.log('[PWA] Nouvelle version disponible — mise à jour au prochain rechargement');
+              // New version available — will update on next reload
             }
           });
         });
