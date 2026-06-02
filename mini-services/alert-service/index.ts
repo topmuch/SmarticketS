@@ -61,16 +61,18 @@ const agencyConnectSchema = z.object({
 
 // ─── Helpers ────────────────────────────────────────────────
 
-function getAlertConfig(_agencyId: string): Record<string, number> {
-  return {
-    bus_capacity_threshold: 90,
-    revenue_drop_threshold: 60,
-    delay_critical_minutes: 15,
-    cancellations_window_days: 30,
-    cancellations_threshold: 3,
-    parcel_stagnation_hours: 48,
-  };
-}
+// Alert thresholds — shared across all agencies for now.
+// Future: read per-agency settings from DB Setting table.
+const ALERT_THRESHOLDS = {
+  bus_capacity_threshold: 90,
+  revenue_drop_threshold: 60,
+  delay_critical_minutes: 15,
+  cancellations_window_days: 30,
+  cancellations_threshold: 3,
+  parcel_stagnation_hours: 48,
+} as const;
+
+type AlertThresholdName = keyof typeof ALERT_THRESHOLDS;
 
 async function isAlertRecent(
   agencyId: string,
@@ -95,7 +97,6 @@ async function isAlertRecent(
 // ─── Rule Evaluators ────────────────────────────────────────
 
 async function checkBusCapacity(agencyId: string): Promise<AlertRule[]> {
-  const config = getAlertConfig(agencyId);
   const alerts: AlertRule[] = [];
 
   const departures = await db.departure.findMany({
@@ -109,7 +110,7 @@ async function checkBusCapacity(agencyId: string): Promise<AlertRule[]> {
   for (const dep of departures) {
     if (dep.totalSeats <= 0) continue;
     const fillRate = ((dep.totalSeats - dep.availableSeats) / dep.totalSeats) * 100;
-    const threshold = config.bus_capacity_threshold;
+    const threshold = ALERT_THRESHOLDS.bus_capacity_threshold;
 
     if (fillRate >= threshold) {
       const exists = await isAlertRecent(agencyId, 'BUS_PRESQUE_PLEIN', dep.id, undefined, 60);
@@ -161,13 +162,12 @@ async function checkBusCapacity(agencyId: string): Promise<AlertRule[]> {
 }
 
 async function checkDelays(agencyId: string): Promise<AlertRule[]> {
-  const config = getAlertConfig(agencyId);
   const alerts: AlertRule[] = [];
 
   const departures = await db.departure.findMany({
     where: {
       agencyId,
-      delayMinutes: { gt: config.delay_critical_minutes },
+      delayMinutes: { gt: ALERT_THRESHOLDS.delay_critical_minutes },
       status: { in: ['SCHEDULED', 'BOARDING', 'DELAYED'] },
       scheduledTime: { gte: new Date(Date.now() - 2 * 60 * 60_1000) },
     },
@@ -225,9 +225,8 @@ async function checkDelays(agencyId: string): Promise<AlertRule[]> {
 }
 
 async function checkStagnantParcels(agencyId: string): Promise<AlertRule[]> {
-  const config = getAlertConfig(agencyId);
   const alerts: AlertRule[] = [];
-  const cutoff = new Date(Date.now() - config.parcel_stagnation_hours * 60 * 60_1000);
+  const cutoff = new Date(Date.now() - ALERT_THRESHOLDS.parcel_stagnation_hours * 60 * 60_1000);
 
   const parcels = await db.baggage.findMany({
     where: {
@@ -313,7 +312,16 @@ async function evaluateAllRulesForAgency(agencyId: string): Promise<{
 
 const PORT = 3003;
 const startTime = Date.now();
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'smartickets-internal-secret';
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
+if (!INTERNAL_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    process.stderr.write('[AlertEngine] FATAL: INTERNAL_SECRET env var is required in production\n');
+    process.exit(1);
+  } else {
+    process.stderr.write('[AlertEngine] WARN: INTERNAL_SECRET not set — using dev fallback\n');
+  }
+}
+const effectiveInternalSecret = INTERNAL_SECRET || 'smartickets-dev-only';
 
 const httpServer = createServer((req, res) => {
   // Health check
@@ -342,7 +350,7 @@ const httpServer = createServer((req, res) => {
       try {
         // API key authentication
         const authHeader = req.headers.authorization;
-        if (!authHeader || authHeader !== `Bearer ${INTERNAL_SECRET}`) {
+        if (!authHeader || authHeader !== `Bearer ${effectiveInternalSecret}`) {
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Unauthorized' }));
           return;
