@@ -101,6 +101,9 @@ function Sidebar({
     // Messages
     { label: "Messages", icon: <MessageSquare className="w-5 h-5" />, href: "/admin/messages", badge: unreadMessages, permission: PERMISSIONS.VIEW_MESSAGES },
 
+    // Notifications — Kiosk vocal announcements
+    { label: "Notifications", icon: <Megaphone className="w-5 h-5" />, href: "/admin/notifications", permission: PERMISSIONS.VIEW_SETTINGS },
+
     // Trouvailles (Found baggages)
     { label: "Colis Livrés", icon: <Search className="w-5 h-5" />, href: "/admin/trouvailles", permission: PERMISSIONS.VIEW_TROUVAILLES },
 
