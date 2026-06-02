@@ -80,3 +80,35 @@ export function rateLimit(key: string, options?: RateLimitOptions): boolean {
 
   return false;
 }
+
+// ─── Predefined Limits ────────────────────────────────────────────
+
+/** Login attempts: 5 per 15 minutes per email */
+export function checkLoginRateLimit(email: string) {
+  return rateLimit(`login:${email}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
+}
+
+/** Forgot password: 3 per hour per email */
+export function checkForgotPasswordRateLimit(email: string) {
+  return rateLimit(`forgot:${email}`, { maxRequests: 3, windowMs: 60 * 60 * 1000 });
+}
+
+/** Verify email code: 5 per 15 minutes per email */
+export function checkVerifyEmailRateLimit(email: string) {
+  return rateLimit(`verify:${email}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
+}
+
+/** Reset password: 3 per hour per email */
+export function checkResetPasswordRateLimit(email: string) {
+  return rateLimit(`reset:${email}`, { maxRequests: 3, windowMs: 60 * 60 * 1000 });
+}
+
+/** Staff login: 5 per 15 minutes per phone */
+export function checkStaffLoginRateLimit(phone: string) {
+  return rateLimit(`staff-login:${phone}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
+}
+
+/** Generic IP-based rate limit: 20 per minute */
+export function checkIpRateLimit(ip: string) {
+  return rateLimit(`ip:${ip}`, { maxRequests: 20, windowMs: 60 * 1000 });
+}

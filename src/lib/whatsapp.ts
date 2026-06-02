@@ -164,3 +164,11 @@ export function buildOnboardingWaLink(
   });
   return buildWhatsappLink(phone, message);
 }
+
+/**
+ * Backward-compatible alias for buildWhatsappLink.
+ * Used by remote-imported routes.
+ */
+export function buildWhatsAppLink(phone: string, message: string): string {
+  return buildWhatsappLink(phone, message);
+}

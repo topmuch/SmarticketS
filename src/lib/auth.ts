@@ -2,6 +2,18 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+// ─── JWT Helper Types (for multi-tenant routes compatibility) ───
+export interface JwtPayload {
+  userId: string;
+  email: string;
+  role: string;
+  tenantId?: string | null;
+  agencyId?: string | null;
+  iat?: number;
+  exp?: number;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -78,3 +90,48 @@ export const authOptions: NextAuthOptions = {
 
 export const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
+
+// ─── JWT Helpers (for multi-tenant route compatibility) ───
+// These are used by remote-imported routes (login-phone, auth-guard, etc.)
+
+const JWT_ACCESS_SECRET = process.env.JWT_SECRET || 'smartickets-field-secret-2024';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'smartickets-staff-refresh-secret';
+
+export async function generateToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): Promise<{ token: string; expiresIn: number }> {
+  const expiresIn = 15 * 60; // 15 minutes
+  const token = jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn });
+  return { token, expiresIn };
+}
+
+export async function generateRefreshToken(payload: { userId: string }): Promise<{ token: string; expiresIn: number }> {
+  const expiresIn = 30 * 24 * 60 * 60; // 30 days
+  const token = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn });
+  return { token, expiresIn };
+}
+
+export function verifyToken(token: string): JwtPayload {
+  try {
+    return jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload;
+  } catch {
+    throw new Error('Invalid or expired token');
+  }
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+export async function refreshAccessToken(refreshToken: string): Promise<{ token: string; expiresIn: number } | null> {
+  try {
+    const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { userId: string };
+    // Re-generate access token
+    const { token, expiresIn } = await generateToken({ userId: payload.userId, email: '', role: 'user' });
+    return { token, expiresIn };
+  } catch {
+    return null;
+  }
+}

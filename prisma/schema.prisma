@@ -760,6 +760,24 @@ model Departure {
   @@index([destinationStationId])
 }
 
+// AuditLog model - general-purpose audit trail (for multi-tenant routes compatibility)
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId   String?
+  details   String?
+  userId    String?
+  tenantId   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 // Alert model - intelligent proactive alerts for agency dashboard
 model Alert {
   id          String   @id @default(cuid())
