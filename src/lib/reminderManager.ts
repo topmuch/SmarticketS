@@ -357,7 +357,6 @@ function playNextReminder(): void {
       autoDismiss: true,
     });
 
-    console.log('[ReminderManager] 📢 Closure warning played');
     return;
   }
 
@@ -400,7 +399,6 @@ function playNextReminder(): void {
       });
     }
 
-    console.log(`[ReminderManager] 📢 Played: ${reminder.type}`);
     return;
   }
 
@@ -447,7 +445,7 @@ export function initReminderManager(initialConfig?: Partial<ReminderSystemConfig
   if (initialConfig) {
     applyConfig(initialConfig);
   }
-  console.log('[ReminderManager] ✅ Initialized');
+  // ReminderManager initialized
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -477,7 +475,7 @@ export function startReminderManager(): void {
   // Run immediately
   checkLoop();
 
-  console.log('[ReminderManager] ▶️ Started');
+  // ReminderManager started
 }
 
 /**
@@ -490,7 +488,7 @@ export function stopReminderManager(): void {
     checkIntervalId = null;
   }
   setBanner(null);
-  console.log('[ReminderManager] ⏹️ Stopped');
+  // ReminderManager stopped
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -535,7 +533,7 @@ function applyConfig(update: Partial<ReminderSystemConfig>): void {
  */
 export function updateReminderConfig(update: Partial<ReminderSystemConfig>): void {
   applyConfig(update);
-  console.log('[ReminderManager] 📝 Config updated:', JSON.stringify(update).slice(0, 200));
+  // Reminder config updated
 }
 
 /**
@@ -546,7 +544,7 @@ export function setRainMode(active: boolean): void {
   if (!active && activeBanner?.type === 'PLUIE') {
     setBanner(null);
   }
-  console.log(`[ReminderManager] 🌧️ Rain mode: ${active ? 'ON' : 'OFF'}`);
+  // Rain mode toggled
 }
 
 /**
@@ -554,7 +552,7 @@ export function setRainMode(active: boolean): void {
  */
 export function setHolidayMode(active: boolean): void {
   config.isHolidayMode = active;
-  console.log(`[ReminderManager] 🎄 Holiday mode: ${active ? 'ON' : 'OFF'}`);
+  // Holiday mode toggled
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -620,7 +618,6 @@ export function playReminderNow(type: ReminderType): boolean {
   const dedupKey = `reminder_manual:${type}:${nowMs}`;
   addToQueue(reminder.text, AnnouncementPriority.REMINDER, undefined, dedupKey);
 
-  console.log(`[ReminderManager] 🔔 Manual play: ${type}`);
   return true;
 }
 

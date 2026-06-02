@@ -17,6 +17,14 @@ import {
   Mic,
   Trash2,
   Upload,
+  BellRing,
+  Clock,
+  CloudRain,
+  PartyPopper,
+  Luggage,
+  ShieldCheck,
+  Ticket,
+  Play,
 } from 'lucide-react';
 import { useAgency } from '../layout';
 import { toast } from 'sonner';
@@ -57,6 +65,23 @@ interface Station {
   isActive: boolean;
 }
 
+type ReminderType = 'BAGAGES' | 'VALEURS' | 'CLOTURE_BILLETTERIE' | 'PLUIE' | 'FESTIVE';
+
+interface ReminderItem {
+  enabled: boolean;
+  intervalMinutes: number;
+  text: string;
+}
+
+interface ReminderConfigState {
+  reminders: Record<ReminderType, ReminderItem>;
+  closingTime: string;
+  isRaining: boolean;
+  isHolidayMode: boolean;
+  holidayStartDate: string;
+  holidayEndDate: string;
+}
+
 /* ══════════════════════════════════════════════
    Main Page — Kiosk Control Panel
    ══════════════════════════════════════════════ */
@@ -88,6 +113,23 @@ export default function KioskControlPage() {
   // WebSocket
   const socketRef = useRef<Socket | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
+
+  // Reminder config
+  const [reminderConfig, setReminderConfig] = useState<ReminderConfigState>({
+    reminders: {
+      BAGAGES: { enabled: true, intervalMinutes: 45, text: '' },
+      VALEURS: { enabled: true, intervalMinutes: 90, text: '' },
+      CLOTURE_BILLETTERIE: { enabled: true, intervalMinutes: 0, text: '' },
+      PLUIE: { enabled: false, intervalMinutes: 30, text: '' },
+      FESTIVE: { enabled: false, intervalMinutes: 30, text: '' },
+    },
+    closingTime: '20:00',
+    isRaining: false,
+    isHolidayMode: false,
+    holidayStartDate: '',
+    holidayEndDate: '',
+  });
+  const [reminderSaving, setReminderSaving] = useState(false);
 
   /* ── Fetch kiosk config ── */
   const fetchConfig = useCallback(async () => {
@@ -145,10 +187,36 @@ export default function KioskControlPage() {
     }
   }, [agencyId]);
 
+  /* ── Fetch reminder config ── */
+  const fetchReminderConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/kiosk/reminder-config');
+      if (res.ok) {
+        const data = await res.json();
+        setReminderConfig(prev => ({
+          ...prev,
+          reminders: data.reminders ? {
+            BAGAGES: { ...prev.reminders.BAGAGES, ...data.reminders.BAGAGES },
+            VALEURS: { ...prev.reminders.VALEURS, ...data.reminders.VALEURS },
+            CLOTURE_BILLETTERIE: { ...prev.reminders.CLOTURE_BILLETTERIE, ...data.reminders.CLOTURE_BILLETTERIE },
+            PLUIE: { ...prev.reminders.PLUIE, ...data.reminders.PLUIE },
+            FESTIVE: { ...prev.reminders.FESTIVE, ...data.reminders.FESTIVE },
+          } : prev.reminders,
+          closingTime: data.closingTime ?? prev.closingTime,
+          isRaining: data.isRaining ?? prev.isRaining,
+          isHolidayMode: data.isHolidayMode ?? prev.isHolidayMode,
+          holidayStartDate: data.holidayStartDate ?? '',
+          holidayEndDate: data.holidayEndDate ?? '',
+        }));
+      }
+    } catch { /* silent */ }
+  }, []);
+
   useEffect(() => {
     fetchConfig();
     fetchStations();
-  }, [fetchConfig, fetchStations]);
+    fetchReminderConfig();
+  }, [fetchConfig, fetchStations, fetchReminderConfig]);
 
   /* ── WebSocket connection ── */
   useEffect(() => {
@@ -165,6 +233,94 @@ export default function KioskControlPage() {
       socketRef.current = null;
     };
   }, []);
+
+  /* ── Save reminder config ── */
+  const handleSaveReminderConfig = async () => {
+    setReminderSaving(true);
+    try {
+      const res = await fetch('/api/kiosk/reminder-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reminderConfig),
+      });
+      if (!res.ok) throw new Error('Erreur serveur');
+      toast.success('Configuration des rappels sauvegardée');
+
+      // Broadcast via WebSocket
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('kiosk:reminderConfig', {
+          stationSlug: selectedStation,
+          ...reminderConfig,
+        });
+      }
+    } catch {
+      toast.error('Erreur lors de la sauvegarde des rappels');
+    } finally {
+      setReminderSaving(false);
+    }
+  };
+
+  /* ── Toggle single reminder ── */
+  const toggleReminder = (type: ReminderType, enabled: boolean) => {
+    setReminderConfig(prev => ({
+      ...prev,
+      reminders: {
+        ...prev.reminders,
+        [type]: { ...prev.reminders[type], enabled },
+      },
+    }));
+  };
+
+  /* ── Update closing time ── */
+  const updateClosingTime = (value: string) => {
+    setReminderConfig(prev => ({ ...prev, closingTime: value }));
+  };
+
+  /* ── Toggle rain mode (instant broadcast) ── */
+  const toggleRainMode = (active: boolean) => {
+    setReminderConfig(prev => ({ ...prev, isRaining: active }));
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('kiosk:reminderConfig', {
+        stationSlug: selectedStation,
+        isRaining: active,
+      });
+    }
+    toast.success(active ? '🌧️ Mode pluie activé sur le kiosk' : '☀️ Mode pluie désactivé');
+  };
+
+  /* ── Toggle holiday mode (instant broadcast) ── */
+  const toggleHolidayMode = (active: boolean) => {
+    setReminderConfig(prev => ({ ...prev, isHolidayMode: active }));
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('kiosk:reminderConfig', {
+        stationSlug: selectedStation,
+        isHolidayMode: active,
+      });
+    }
+    toast.success(active ? '🎄 Mode festive activé' : 'Mode festive désactivé');
+  };
+
+  /* ── Test play a reminder via WebSocket ── */
+  const handleTestReminder = (type: ReminderType) => {
+    if (!socketRef.current?.connected) {
+      toast.error('WebSocket non connecté');
+      return;
+    }
+    const testTexts: Record<ReminderType, string> = {
+      BAGAGES: "Voyageurs, n'oubliez jamais vos bagages sans surveillance.",
+      VALEURS: "Attention à vos effets personnels : téléphones, portefeuilles et sacs.",
+      CLOTURE_BILLETTERIE: "La billetterie fermera ses portes dans 15 minutes.",
+      PLUIE: "En raison de fortes pluies, les quais peuvent être glissants.",
+      FESTIVE: "La gare est très fréquentée en cette période festive. Merci de patienter.",
+    };
+    socketRef.current.emit('kiosk:manualAnnounce', {
+      stationSlug: selectedStation,
+      text: testTexts[type],
+      priority: -1,
+      timestamp: Date.now(),
+    });
+    toast.success(`🔔 Rappel ${type} diffusé en test`);
+  };
 
   /* ── Save config ── */
   const handleSave = async () => {
@@ -569,6 +725,240 @@ export default function KioskControlPage() {
               </Button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ── Reminder Config Card ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <BellRing className="w-5 h-5 text-amber-500" />
+            Rappels Automatiques
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Annonces cycliques à basse priorité (P6) — ne coupent jamais les annonces de départ
+          </p>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Reminder toggles */}
+          <div className="space-y-4">
+            {/* Bagages */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center shrink-0">
+                  <Luggage className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Bagages</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Toutes les 45 min — bandeau jaune discret</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={reminderConfig.reminders.BAGAGES.enabled ? 'default' : 'secondary'}
+                  className={reminderConfig.reminders.BAGAGES.enabled
+                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800 text-[10px]'
+                    : 'text-[10px]'}>
+                  {reminderConfig.reminders.BAGAGES.intervalMinutes} min
+                </Badge>
+                <Switch
+                  checked={reminderConfig.reminders.BAGAGES.enabled}
+                  onCheckedChange={(c) => toggleReminder('BAGAGES', c)}
+                />
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Tester"
+                  onClick={() => handleTestReminder('BAGAGES')}>
+                  <Play className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Valeurs */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Effets personnels</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Toutes les 1h30 — téléphones, portefeuilles</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={reminderConfig.reminders.VALEURS.enabled ? 'default' : 'secondary'}
+                  className={reminderConfig.reminders.VALEURS.enabled
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-[10px]'
+                    : 'text-[10px]'}>
+                  {reminderConfig.reminders.VALEURS.intervalMinutes} min
+                </Badge>
+                <Switch
+                  checked={reminderConfig.reminders.VALEURS.enabled}
+                  onCheckedChange={(c) => toggleReminder('VALEURS', c)}
+                />
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Tester"
+                  onClick={() => handleTestReminder('VALEURS')}>
+                  <Play className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Clôture billetterie */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                  <Ticket className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Clôture billetterie</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">H-15 min avant fermeture — bandeau orange</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Input
+                  type="time"
+                  value={reminderConfig.closingTime}
+                  onChange={(e) => updateClosingTime(e.target.value)}
+                  className="w-28 h-8 text-xs"
+                />
+                <Switch
+                  checked={reminderConfig.reminders.CLOTURE_BILLETTERIE.enabled}
+                  onCheckedChange={(c) => toggleReminder('CLOTURE_BILLETTERIE', c)}
+                />
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Tester"
+                  onClick={() => handleTestReminder('CLOTURE_BILLETTERIE')}>
+                  <Play className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Pluie — conditional */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                  <CloudRain className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Alerte pluie</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Manuel — bandeau bleu persistant tant que actif</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={reminderConfig.isRaining ? 'default' : 'secondary'}
+                  className={reminderConfig.isRaining
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-[10px]'
+                    : 'text-[10px]'}>
+                  {reminderConfig.isRaining ? 'ACTIF' : 'Inactif'}
+                </Badge>
+                <Switch
+                  checked={reminderConfig.isRaining}
+                  onCheckedChange={toggleRainMode}
+                />
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Tester"
+                  onClick={() => handleTestReminder('PLUIE')}>
+                  <Play className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Festif — conditional */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
+                  <PartyPopper className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Période festive</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Dates configurables — affluence exceptionnelle</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={reminderConfig.isHolidayMode ? 'default' : 'secondary'}
+                  className={reminderConfig.isHolidayMode
+                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 text-[10px]'
+                    : 'text-[10px]'}>
+                  {reminderConfig.isHolidayMode ? 'ACTIF' : 'Inactif'}
+                </Badge>
+                <Switch
+                  checked={reminderConfig.isHolidayMode}
+                  onCheckedChange={toggleHolidayMode}
+                />
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Tester"
+                  onClick={() => handleTestReminder('FESTIVE')}>
+                  <Play className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Holiday date range (shown when holiday mode enabled) */}
+          {reminderConfig.isHolidayMode && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+              <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Période festive
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-purple-600 dark:text-purple-400">Date début</Label>
+                  <Input
+                    type="date"
+                    value={reminderConfig.holidayStartDate}
+                    onChange={(e) => setReminderConfig(prev => ({ ...prev, holidayStartDate: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-purple-600 dark:text-purple-400">Date fin</Label>
+                  <Input
+                    type="date"
+                    value={reminderConfig.holidayEndDate}
+                    onChange={(e) => setReminderConfig(prev => ({ ...prev, holidayEndDate: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Rules info */}
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                <p className="font-semibold">Règles des rappels automatiques</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Priorité P6 (la plus basse) — ne coupe jamais les annonces de départ</li>
+                  <li>Silence entre 22h00 et 06h00 (aucun rappel)</li>
+                  <li>Anti-spam : 2 min minimum entre deux rappels</li>
+                  <li>Intervalle propre par type (45 min, 1h30, etc.)</li>
+                  <li>Les boutons ▶ testent le rappel sur le kiosk en temps réel</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Save button */}
+          <Button
+            onClick={handleSaveReminderConfig}
+            disabled={reminderSaving}
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-xl gap-2 shadow-lg shadow-amber-500/20"
+          >
+            {reminderSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {reminderSaving ? 'Enregistrement...' : 'Sauvegarder les rappels'}
+          </Button>
         </div>
       </div>
 

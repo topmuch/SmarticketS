@@ -1311,3 +1311,44 @@ Stage Summary:
 - All 3 bugs fixed with real production code
 - Zero mock/placeholder/TODO code
 - Lint clean, dev server compiling, browser verified
+---
+Task ID: 13
+Agent: Main Agent
+Task: Add Reminder Config Admin UI to Kiosk Control Panel
+
+Work Log:
+- Discovered ReminderManager already fully implemented in src/lib/reminderManager.ts (632 lines)
+- All 5 reminder types exist: BAGAGES (45min), VALEURS (1h30), CLOTURE_BILLETTERIE (H-15min), PLUIE (manual), FESTIVE (configurable)
+- P6 priority, anti-spam 2min, silent hours 22h-06h, banner system all working
+- API endpoint /api/kiosk/reminder-config (GET/PUT) already exists
+- WebSocket event kiosk:reminderConfig already supported in kiosk-service (port 3004)
+- Kiosk display page already integrates ReminderManager (init, start, stop, banner subscription, visual banners)
+- ONLY MISSING PIECE: Admin UI for reminder config in /agence/kiosk
+
+Changes made:
+- Cleaned 9 console.log statements from src/lib/reminderManager.ts (kept error/warn only)
+- Added ReminderType, ReminderItem, ReminderConfigState interfaces to agence/kiosk/page.tsx
+- Added reminderConfig state with all 5 reminder types + closingTime + isRaining + isHolidayMode + holiday dates
+- Added fetchReminderConfig() — fetches from /api/kiosk/reminder-config on page mount
+- Added handleSaveReminderConfig() — saves to API + broadcasts via WebSocket kiosk:reminderConfig event
+- Added toggleReminder() — per-type enable/disable toggle
+- Added updateClosingTime() — time input for closure warning time
+- Added toggleRainMode() — instant WebSocket broadcast when toggled
+- Added toggleHolidayMode() — instant WebSocket broadcast when toggled
+- Added handleTestReminder() — sends French TTS text via kiosk:manualAnnounce for audio verification
+- Added full "Rappels Automatiques" UI card with:
+  - 5 reminder rows: icon + label + description + badge + toggle + test play button
+  - Color-coded icons (yellow bagages, emerald valeurs, orange billetterie, blue pluie, purple festive)
+  - Closing time picker for billetterie closure warning
+  - Holiday date range inputs (shown when festive mode enabled)
+  - Info box with rules (P6 priority, 22h-06h silence, 2min anti-spam)
+  - Save button with loading state
+- Added 8 new lucide-react icon imports: BellRing, Clock, CloudRain, PartyPopper, Luggage, ShieldCheck, Ticket, Play
+
+Stage Summary:
+- 2 files modified: reminderManager.ts (cleanup), agence/kiosk/page.tsx (reminder admin UI)
+- Full admin control panel for all 5 reminder types + rain mode + holiday mode + closing time
+- Real-time WebSocket broadcast on save + instant toggle for rain/holiday modes
+- Test play buttons for each reminder type (sends French TTS to kiosk)
+- Lint clean, dev server compiling
+
