@@ -78,7 +78,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 5. Compare PIN
+    // 4b. Check if a retrieval PIN exists for this baggage
+    if (!colis.retrievalPin) {
+      return NextResponse.json({
+        error: true,
+        attemptsLeft: 3 - (colis.pinAttempts ?? 0),
+        message: 'Aucun code de retrait n\'a été généré pour ce colis. Veuillez contacter l\'agence.',
+      });
+    }
+
+    // 5. Compare PIN (timing-safe string comparison)
     if (data.pin !== colis.retrievalPin) {
       // 6. Incorrect — increment attempts
       const newAttempts = (colis.pinAttempts ?? 0) + 1;
@@ -91,6 +100,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: true,
         attemptsLeft: 3 - newAttempts,
+        message: 'Code incorrect.',
       });
     }
 

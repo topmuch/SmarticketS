@@ -985,6 +985,26 @@ export function speakFrench(text: string): Promise<boolean> {
     // Minimum expected duration: ~30ms per character (conservative estimate)
     const minDurationMs = Math.max(text.length * 30, 500);
 
+    // Maximum timeout: 30 seconds per attempt (prevents infinite hang
+    // when Chrome speechSynthesis bug causes onend to never fire).
+    // After ~15s Chrome pauses speech internally and never resumes.
+    const timeoutMs = Math.max(text.length * 50, 30000);
+    let settled = false;
+
+    const settle = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(value);
+    };
+
+    // Safety timeout to prevent infinite hang
+    const timeoutId = setTimeout(() => {
+      console.warn('[AudioSystem] TTS timeout — speechSynthesis hung, forcing cancel');
+      try { window!.speechSynthesis.cancel(); } catch { /* ignore */ }
+      settle(false);
+    }, timeoutMs);
+
     // Event handlers
     utterance.onstart = () => {
       // TTS started
@@ -994,20 +1014,20 @@ export function speakFrench(text: string): Promise<boolean> {
       const elapsed = Date.now() - speakStartMs;
       // If onend fires too quickly, this is the Chrome bug — reject
       if (elapsed < minDurationMs) {
-        resolve(false);
+        settle(false);
         return;
       }
-      resolve(true);
+      settle(true);
     };
 
-    utterance.onerror = (event) => {
-      resolve(false);
+    utterance.onerror = () => {
+      settle(false);
     };
 
     try {
       window!.speechSynthesis.speak(utterance);
     } catch {
-      resolve(false);
+      settle(false);
     }
   });
 }
