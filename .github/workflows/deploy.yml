@@ -1,0 +1,239 @@
+name: SmartTicketQR CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "22"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ==========================================
+  # 1. Lint & Type Check
+  # ==========================================
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: bun run db:generate
+
+      - name: Run ESLint
+        run: bun run lint
+
+  # ==========================================
+  # 2. Build & Push Docker Image
+  # ==========================================
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: lint
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==========================================
+  # 3. Deploy to Production (main branch only)
+  # ==========================================
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [lint, build-and-push]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            echo "========================================="
+            echo "  SmartTicketQR — Production Deployment"
+            echo "========================================="
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Actor:  ${{ github.actor }}"
+            echo "Time:   $(date -Iseconds)"
+            echo ""
+
+            cd /opt/smartticketqr
+
+            # 1. Pull latest images from GHCR
+            echo "[1/7] Pulling latest images from GHCR..."
+            docker compose pull
+
+            # 2. Roll containers with zero-downtime
+            echo "[2/7] Rolling containers..."
+            docker compose up -d --no-deps --build app
+
+            # 3. Wait for health check
+            echo "[3/7] Waiting for health check (max 90s)..."
+            timeout=90
+            until docker compose exec -T app curl -sf http://localhost:3000/api/health > /dev/null 2>&1; do
+              echo "  Waiting..."
+              sleep 5
+              timeout=$((timeout - 5))
+              if [ $timeout -le 0 ]; then
+                echo "ERROR: App failed health check!"
+                docker compose logs app --tail=50
+                exit 1
+              fi
+            done
+            echo "  Health check passed!"
+
+            # 4. Run database migrations
+            echo "[4/7] Running database migrations..."
+            docker compose exec -T app npx prisma migrate deploy
+            echo "  Migrations applied."
+
+            # 5. Final health verification
+            echo "[5/7] Final health verification..."
+            HEALTH=$(curl -sf https://smartticketqr.com/api/health 2>/dev/null || echo "FAILED")
+            echo "  /api/health: $HEALTH"
+
+            # 6. Cleanup old images
+            echo "[6/7] Cleaning up old Docker resources..."
+            docker image prune -af --filter "until=168h" > /dev/null 2>&1 || true
+            docker system prune -af --volumes > /dev/null 2>&1 || true
+
+            echo ""
+            echo "========================================="
+            echo "  Deployment Complete!"
+            echo "========================================="
+
+  # ==========================================
+  # 4. Manual DB Backup (workflow_dispatch)
+  # ==========================================
+  backup:
+    name: Manual DB Backup
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: []
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/smartticketqr
+            echo "=== SmartTicketQR Manual DB Backup ==="
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            docker compose exec -T postgres pg_dump -U smartticketqr smartticketqr_prod -F c -b | gzip > "backups/manual_${TIMESTAMP}.dump.gz"
+            echo "Backup complete."
+            ls -lh backups/ | tail -5
+
+  # ==========================================
+  # 5. Rollback (workflow_dispatch with tag)
+  # ==========================================
+  rollback:
+    name: Rollback to Previous Version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: []
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            echo "========================================="
+            echo "  SmartTicketQR — ROLLBACK"
+            echo "========================================="
+
+            cd /opt/smartticketqr
+
+            # Get previous image SHA
+            PREVIOUS_IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}" | grep smartticketqr | head -2 | tail -1 | awk '{print $2}')
+
+            if [ -z "$PREVIOUS_IMAGE" ]; then
+              echo "ERROR: No previous image found for rollback."
+              exit 1
+            fi
+
+            echo "Rolling back to image: $PREVIOUS_IMAGE"
+
+            # Stop current app
+            echo "Stopping current app..."
+            docker compose stop app
+
+            # Remove current container
+            docker compose rm -f app
+
+            # Start with previous image
+            echo "Starting previous image..."
+            docker compose up -d app
+
+            # Wait for health
+            echo "Waiting for health check..."
+            timeout=90
+            until docker compose exec -T app curl -sf http://localhost:3000/api/health > /dev/null 2>&1; do
+              sleep 5
+              timeout=$((timeout - 5))
+              if [ $timeout -le 0 ]; then
+                echo "FATAL: Rollback health check failed!"
+                docker compose logs app --tail=50
+                exit 1
+              fi
+            done
+
+            echo ""
+            echo "========================================="
+            echo "  Rollback Complete!"
+            echo "========================================="

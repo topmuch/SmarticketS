@@ -1,0 +1,47 @@
+'use client';
+
+import { useEffect } from 'react';
+
+/**
+ * PwaRegistry — Registers the Service Worker on mount.
+ * Placed in the root layout so SW is always active.
+ */
+export function PwaRegistry() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!('serviceWorker' in navigator)) {
+      console.warn('[PWA] Service Worker non supporté sur ce navigateur');
+      return;
+    }
+
+    async function registerSW() {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+        });
+        console.log('[PWA] Service Worker enregistré:', registration.scope);
+
+        // Check for updates periodically
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener('statechange', () => {
+            if (
+              newWorker.state === 'activated' &&
+              navigator.serviceWorker.controller
+            ) {
+              console.log('[PWA] Nouvelle version disponible — mise à jour au prochain rechargement');
+            }
+          });
+        });
+      } catch (error) {
+        console.warn('[PWA] Échec de l\'enregistrement du Service Worker:', error);
+      }
+    }
+
+    registerSW();
+  }, []);
+
+  return null;
+}

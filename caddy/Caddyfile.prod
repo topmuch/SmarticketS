@@ -1,0 +1,159 @@
+# ============================================
+# SmartTicketQR — Production Caddy Configuration
+# Auto HTTPS via Let's Encrypt, HTTP/3 (QUIC), reverse proxy to Next.js
+#
+# Domains:
+#   smartticketqr.com         → Landing page
+#   api.smartticketqr.com     → API routes (same Next.js app)
+#   signage.smartticketqr.com → Digital signage displays
+# ============================================
+
+{
+    # Global options
+    admin off
+    email admin@smartticketqr.com
+    # Auto HTTPS (Let's Encrypt)
+}
+
+# --- HTTP → HTTPS redirect (all subdomains) ---
+http://smartticketqr.com,
+http://api.smartticketqr.com,
+http://signage.smartticketqr.com {
+    redir https://{host}{uri} permanent
+}
+
+# =============================================
+# Main Application — Landing Page + Admin + PWA
+# =============================================
+https://smartticketqr.com {
+    # TLS 1.3 only
+    tls {
+        protocols tls1.3
+    }
+
+    # --- Security Headers ---
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://wa.me; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://api.smartticketqr.com https://wa.me wss://smartticketqr.com; frame-ancestors 'none';"
+    }
+
+    # --- Compression ---
+    encode gzip zstd
+
+    # --- Logging ---
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+        }
+        format json
+    }
+
+    # --- Reverse Proxy → Next.js ---
+    reverse_proxy app:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+
+        # Active health check
+        health_path /api/health
+        health_interval 30s
+        health_timeout 5s
+        health_failures 3
+    }
+}
+
+# =============================================
+# API — Dedicated subdomain for API calls
+# =============================================
+https://api.smartticketqr.com {
+    tls {
+        protocols tls1.3
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # --- CORS preflight handling ---
+    @cors_preflight {
+        method OPTIONS
+    }
+    respond @cors_preflight 204 {
+        header Access-Control-Allow-Origin "*"
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        header Access-Control-Allow-Headers "Authorization, Content-Type, X-Request-ID, X-Tenant-ID"
+        header Access-Control-Max-Age 86400
+    }
+
+    encode gzip zstd
+
+    log {
+        output file /var/log/caddy/api-access.log {
+            roll_size 100mb
+            roll_keep 5
+        }
+        format json
+    }
+
+    reverse_proxy app:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+
+        health_path /api/health
+        health_interval 30s
+        health_timeout 5s
+        health_failures 3
+    }
+}
+
+# =============================================
+# Digital Signage — Kiosk displays at stations
+# =============================================
+https://signage.smartticketqr.com {
+    tls {
+        protocols tls1.3
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        # Allow signage to be embedded in iframe (for testing/preview)
+        X-Frame-Options "ALLOW-FROM https://smartticketqr.com"
+        # Minimal CSP for signage displays
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.smartticketqr.com; frame-ancestors 'self' https://smartticketqr.com;"
+    }
+
+    encode gzip zstd
+
+    log {
+        output file /var/log/caddy/signage-access.log {
+            roll_size 50mb
+            roll_keep 3
+        }
+        format json
+    }
+
+    reverse_proxy app:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+
+        health_path /api/health
+        health_interval 30s
+        health_timeout 5s
+        health_failures 3
+    }
+}
