@@ -41,7 +41,6 @@ import {
   Trash2,
   RefreshCw,
   Megaphone,
-  Volume2Off,
 } from 'lucide-react';
 import {
   addToQueue,
