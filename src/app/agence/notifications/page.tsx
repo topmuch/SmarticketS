@@ -216,7 +216,7 @@ export default function AgencyNotificationsPage() {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [newForm, setNewForm] = useState<NewTemplateForm>(emptyNewForm);
 
-  // WebSocket
+  // WebSocket + connection status
   const socketRef = useRef<Socket | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
 
@@ -226,9 +226,11 @@ export default function AgencyNotificationsPage() {
     socketRef.current = socket;
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
+    socket.on('connect_error', () => setSocketConnected(false));
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      setSocketConnected(false);
     };
   }, []);
 
@@ -248,7 +250,43 @@ export default function AgencyNotificationsPage() {
     [],
   );
 
-  // ── Handle Test (local playback) ──────────────────────
+  // ── Play announcement locally (audio feedback) ───────
+  const playLocalAnnouncement = useCallback(async (text: string) => {
+    try {
+      playDingDong();
+      await new Promise((r) => setTimeout(r, 3000));
+      await speakFrench(text);
+    } catch {
+      // Local playback may fail in some environments (no audio, etc.)
+    }
+  }, []);
+
+  // ── Broadcast to kiosks via socket ──────────────────
+  const broadcastToKiosks = useCallback((text: string, type: string, priority: number) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('kiosk:manualAnnounce', {
+        text,
+        priority,
+        type,
+        stationSlug: '*',
+      });
+      return true;
+    }
+    return false;
+  }, []);
+
+  // ── Update template stats ───────────────────────────
+  const updateTemplateStats = useCallback((templateId: string) => {
+    setTemplates((prev) =>
+      prev.map((t) =>
+        t.id === templateId
+          ? { ...t, lastSentAt: new Date().toISOString(), sendCount: t.sendCount + 1 }
+          : t,
+      ),
+    );
+  }, []);
+
+  // ── Handle Test (local playback only) ───────────────
   const handleTest = useCallback(async (template: NotificationTemplate) => {
     setTesting(template.id);
     try {
@@ -263,53 +301,43 @@ export default function AgencyNotificationsPage() {
     }
   }, []);
 
-  // ── Handle Send (for manual templates) ────────────────
+  // ── Handle Direct Send (SECURITY, GENERAL) ────────────
+  const handleDirectSend = useCallback(async (template: NotificationTemplate) => {
+    const resolvedText = template.text;
+
+    // Always play locally first
+    await playLocalAnnouncement(resolvedText);
+
+    // Then broadcast to kiosks
+    const broadcasted = broadcastToKiosks(resolvedText, template.type, priorityMap[template.priority]);
+
+    // Update stats
+    updateTemplateStats(template.id);
+
+    if (broadcasted) {
+      toast.success(`Notification "${template.name}" diffusée (localement + kiosques)`);
+    } else {
+      toast.warning(`Notification "${template.name}" diffusée localement (kiosques non connectés)`);
+    }
+  }, [playLocalAnnouncement, broadcastToKiosks, updateTemplateStats]);
+
+  // ── Handle Send Click (table row button) ─────────────
   const handleSendClick = useCallback((template: NotificationTemplate) => {
     if (template.type === 'CLIENT_CALL' || template.type === 'DRIVER_CALL') {
       setSendModal({ open: true, template, nom: '', guichet: '' });
     } else {
       handleDirectSend(template);
     }
-  }, []);
+  }, [handleDirectSend]);
 
-  const handleDirectSend = useCallback((template: NotificationTemplate) => {
-    if (!socketRef.current?.connected) {
-      toast.error('Non connecté au service kiosk');
-      return;
-    }
-
-    const resolvedText = template.text;
-
-    socketRef.current.emit('kiosk:manualAnnounce', {
-      text: resolvedText,
-      priority: priorityMap[template.priority],
-      type: template.type,
-      stationSlug: '*',
-    });
-
-    setTemplates((prev) =>
-      prev.map((t) =>
-        t.id === template.id
-          ? { ...t, lastSentAt: new Date().toISOString(), sendCount: t.sendCount + 1 }
-          : t,
-      ),
-    );
-
-    toast.success(`Notification "${template.name}" envoyée à tous les kiosques`);
-  }, []);
-
-  const handleSendSubmit = useCallback(() => {
+  // ── Handle Send Submit (modal confirm) ────────────────
+  const handleSendSubmit = useCallback(async () => {
     if (!sendModal.template) return;
 
     const { template, nom, guichet } = sendModal;
 
     if (!nom.trim() || !guichet.trim()) {
       toast.error('Veuillez remplir tous les champs');
-      return;
-    }
-
-    if (!socketRef.current?.connected) {
-      toast.error('Non connecté au service kiosk');
       return;
     }
 
@@ -320,25 +348,24 @@ export default function AgencyNotificationsPage() {
 
     setSending(true);
 
-    socketRef.current.emit('kiosk:manualAnnounce', {
-      text: resolvedText,
-      priority: priorityMap[template.priority],
-      type: template.type,
-      stationSlug: '*',
-    });
+    // Always play locally first
+    await playLocalAnnouncement(resolvedText);
 
-    setTemplates((prev) =>
-      prev.map((t) =>
-        t.id === template.id
-          ? { ...t, lastSentAt: new Date().toISOString(), sendCount: t.sendCount + 1 }
-          : t,
-      ),
-    );
+    // Then broadcast to kiosks
+    const broadcasted = broadcastToKiosks(resolvedText, template.type, priorityMap[template.priority]);
 
-    toast.success(`Notification "${template.name}" envoyée à tous les kiosques`);
+    // Update stats
+    updateTemplateStats(template.id);
+
+    if (broadcasted) {
+      toast.success(`Notification "${template.name}" diffusée (localement + kiosques)`);
+    } else {
+      toast.warning(`Notification "${template.name}" diffusée localement (kiosques non connectés)`);
+    }
+
     setSendModal({ open: false, template: null, nom: '', guichet: '' });
     setSending(false);
-  }, [sendModal, resolveText]);
+  }, [sendModal, resolveText, playLocalAnnouncement, broadcastToKiosks, updateTemplateStats]);
 
   // ── Handle Edit ───────────────────────────────────────
   const handleEditOpen = useCallback((template: NotificationTemplate) => {
@@ -593,16 +620,17 @@ export default function AgencyNotificationsPage() {
                           {testing === template.id ? 'En cours...' : 'Tester'}
                         </Button>
 
-                        {!template.isAuto && template.isActive && (
+                        {!template.isAuto && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleSendClick(template)}
+                            disabled={sending || !template.isActive}
                             className="h-8 px-2 text-xs text-[#FF1D8D] hover:text-[#FF1D8D]/80 hover:bg-[#FF1D8D]/10 rounded-lg"
-                            title="Envoyer aux kiosques"
+                            title="Diffuser localement et aux kiosques"
                           >
-                            <Send className="w-3.5 h-3.5 mr-1" />
-                            Envoyer
+                            <Send className={`w-3.5 h-3.5 mr-1 ${sending ? 'animate-pulse' : ''}`} />
+                            {sending ? 'Envoi...' : 'Diffuser'}
                           </Button>
                         )}
 
@@ -732,8 +760,8 @@ export default function AgencyNotificationsPage() {
               disabled={sending || !sendModal.nom.trim() || !sendModal.guichet.trim()}
               className="bg-[#FF1D8D] hover:bg-[#FF1D8D]/90 text-white rounded-xl"
             >
-              <Send className="w-4 h-4 mr-1.5" />
-              Envoyer
+              <Send className={`w-4 h-4 mr-1.5 ${sending ? 'animate-pulse' : ''}`} />
+              {sending ? 'Diffusion en cours...' : 'Diffuser'}
             </Button>
           </DialogFooter>
         </DialogContent>
