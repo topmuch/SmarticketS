@@ -783,3 +783,21 @@ Stage Summary:
 - 109 files changed, 0 TypeScript errors remaining
 - Docker build should now pass successfully
 - Code pushed to https://github.com/topmuch/SmarticketS (commit bc91ed7)
+
+---
+Task ID: 1
+Agent: Main
+Task: Fix Docker build error on /rgpd page
+
+Work Log:
+- Investigated build failure: `Export encountered an error on /rgpd/page: /rgpd, exiting the build`
+- Root cause: RGPD page references `BRAND.dpo.email`, `BRAND.company.rccm`, and `BRAND.company.ninea` — but these properties were missing from `src/lib/constants.ts`
+- During static generation, `undefined.email` throws TypeError → Next.js RSC `stringify` fails → build exits
+- Added missing properties to BRAND constant: `company.rccm`, `company.ninea`, `dpo.email`
+- Verified with `bun run lint` — passes clean
+- Pushed commit `2caef15` to GitHub main branch
+
+Stage Summary:
+- Fixed Docker build error caused by missing BRAND constant properties
+- File modified: `src/lib/constants.ts` (+7 lines)
+- Commit: `2caef15` pushed to `main`
