@@ -202,24 +202,41 @@ export default function KioskControlPage() {
   };
 
   /* ── Broadcast general message now ── */
-  const handleBroadcastNow = () => {
+  const handleBroadcastNow = async () => {
     if (!config.generalMessage.trim()) {
       toast.error('Veuillez saisir un message général');
       return;
     }
-    if (!socketRef.current?.connected) {
-      toast.error('WebSocket non connecté. Vérifiez le service kiosk.');
-      return;
+
+    // Always call the API endpoint (works without WebSocket)
+    try {
+      const res = await fetch('/api/kiosk/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: config.generalMessage,
+          stationSlug: selectedStation,
+          agencyId,
+        }),
+      });
+      if (res.ok) {
+        toast.success(`Message diffusé sur la gare: ${selectedStation || 'toutes'}`);
+      } else {
+        toast.error("Erreur lors de la diffusion");
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur");
     }
 
-    // Emit directly kiosk:generalMessage — the kiosk-service adds timestamp automatically
-    socketRef.current.emit('kiosk:generalMessage', {
-      text: config.generalMessage,
-      priority: 1, // LOW priority
-      stationSlug: selectedStation,
-      timestamp: Date.now(),
-    });
-    toast.success(`Message diffusé sur la gare: ${selectedStation}`);
+    // Also try WebSocket if connected (for instant delivery)
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('kiosk:generalMessage', {
+        text: config.generalMessage,
+        priority: 1,
+        stationSlug: selectedStation,
+        timestamp: Date.now(),
+      });
+    }
   };
 
   /* ── Toggle mute ── */
@@ -547,7 +564,7 @@ export default function KioskControlPage() {
               <Button
                 variant="outline"
                 onClick={handleBroadcastNow}
-                disabled={!config.generalMessage.trim() || !socketConnected}
+                disabled={!config.generalMessage.trim()}
                 className="flex-1 rounded-xl gap-2"
               >
                 <Send className="w-4 h-4" />

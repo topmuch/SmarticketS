@@ -377,7 +377,29 @@ export async function GET(
       })),
     };
 
-    // 11. Build response
+    // 11. Check for pending broadcast messages (from API fallback)
+    const broadcastSetting = await db.setting.findUnique({
+      where: { key: 'kiosk_broadcast_global' },
+    });
+    if (broadcastSetting?.value) {
+      try {
+        const bc = JSON.parse(broadcastSetting.value);
+        // Only show broadcasts less than 5 minutes old
+        if (bc.timestamp && Date.now() - bc.timestamp < 5 * 60 * 1000) {
+          const exists = regularTicker.some((m: { id?: string }) => m.id === `bc-${bc.timestamp}`);
+          if (!exists) {
+            regularTicker.push({
+              id: `bc-${bc.timestamp}`,
+              text: bc.text,
+              priority: 'info' as const,
+              active: true,
+            });
+          }
+        }
+      } catch { /* ignore parse errors */ }
+    }
+
+    // 12. Build response
     return NextResponse.json({
       stationId: station.id,
       stationName: station.name,

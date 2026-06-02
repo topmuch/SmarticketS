@@ -376,7 +376,15 @@ export default function SignageSlugPage() {
         const res = await fetch('/api/signage-ads');
         if (res.ok) {
           const ads = await res.json();
-          setSignageAds(Array.isArray(ads) ? ads : []);
+          // Filter: only keep ads that have at least one valid media URL
+          const validAds = (Array.isArray(ads) ? ads : []).filter(
+            (ad: SignageAd) =>
+              (ad.imageUrl && ad.imageUrl.trim()) ||
+              (ad.videoUrl && ad.videoUrl.trim()) ||
+              (ad.mediaUrl && ad.mediaUrl.trim()) ||
+              (ad.mobileImageUrl && ad.mobileImageUrl.trim())
+          );
+          setSignageAds(validAds);
         }
       } catch {
         // silent
@@ -887,15 +895,6 @@ export default function SignageSlugPage() {
             <div className="brand-sub">GARE ROUTIÈRE</div>
           </div>
         </div>
-
-        {/* ─── ARRIVALS BLOCKED BANNER ────────────────── */}
-        {isArrivalsBlocked && (
-          <div className="arrivals-blocked-banner">
-            <span className="arrivals-blocked-text">
-              &#9888;&#65039; ARRIVÉES TEMPORAIREMENT MASQUÉES — DÉPART IMMINENT
-            </span>
-          </div>
-        )}
 
         {/* ─── SLIDE WRAPPER ───────────────────────────── */}
         <div className="slide-wrapper">
