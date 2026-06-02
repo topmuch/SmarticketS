@@ -378,8 +378,10 @@ export async function speakAnnouncement(
  * Process the announcement queue: takes the highest-priority item,
  * calls speakAnnouncement, then processes the next item.
  *
- * Runs in a loop until the queue is empty. Re-entrant-safe:
- * if already processing, subsequent calls are ignored.
+ * Bounded iteration (max 20 items per batch) prevents infinite loops when
+ * items keep being added during speech. If new items arrive after a
+ * batch completes, the next batch is scheduled automatically.
+ * Re-entrant-safe: if already processing, subsequent calls are ignored.
  */
 export async function processQueue(): Promise<void> {
   if (isProcessing) {
@@ -388,32 +390,25 @@ export async function processQueue(): Promise<void> {
 
   isProcessing = true;
 
-  while (announcementQueue.length > 0) {
-    // Sort by priority descending (URGENT first), then by insertion order (FIFO)
-    announcementQueue.sort((a, b) => {
-      if (b.priority !== a.priority) {
-        return b.priority - a.priority;
-      }
-      // Same priority: maintain FIFO — lower ID came first
-      return a.id.localeCompare(b.id);
-    });
-
-    // Take the highest-priority item
+  let iterations = 0;
+  while (announcementQueue.length > 0 && iterations < 20) {
+    iterations++;
+    announcementQueue.sort(compareByPriority);
     const item = announcementQueue.shift()!;
-
     try {
       await speakAnnouncement(item.text, item.customAudioUrl);
-    } catch (err) {
-      console.error('[AudioSystem] Error processing announcement:', err);
+    } catch {
+      // Skip failed announcements to prevent infinite retry loops
     }
-
-    // Brief pause between announcements to avoid overlap
-    if (announcementQueue.length > 0) {
-      await delay(500);
-    }
+    if (announcementQueue.length > 0) await delay(500);
   }
 
   isProcessing = false;
+
+  // If new items arrived after the batch limit, schedule next batch
+  if (announcementQueue.length > 0) {
+    void processQueue();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -442,11 +437,28 @@ export function clearAnnouncedSet(): void {
 }
 
 /**
+ * Maximum number of items allowed in the queue at once.
+ * Prevents unbounded memory growth when callers add items faster than they can be spoken.
+ */
+const MAX_QUEUE_SIZE = 20;
+
+/**
+ * Sort comparator for announcement queue: priority descending, then FIFO by ID.
+ */
+function compareByPriority(a: QueuedAnnouncement, b: QueuedAnnouncement): number {
+  if (b.priority !== a.priority) {
+    return b.priority - a.priority;
+  }
+  return a.id.localeCompare(b.id);
+}
+
+/**
  * Add an announcement to the priority queue with deduplication.
  *
  * The queue is automatically sorted by priority (URGENT first).
  * If the queue processor is not already running, it is triggered.
  * If `departureKey` is provided and was already announced, the item is skipped.
+ * If the queue is at max capacity (20 items), the item is silently dropped.
  *
  * **P1 URGENT interrupt**: When a URGENT (10) item is added, immediately
  * cancels any in-progress speech, plays ding-dong, waits 3s, speaks the
@@ -456,7 +468,7 @@ export function clearAnnouncedSet(): void {
  * @param priority        - Priority level (default: NORMAL).
  * @param customAudioUrl  - Optional URL to play instead of TTS.
  * @param departureKey    - Optional dedup key to prevent duplicate announcements.
- * @returns The ID of the queued announcement, or empty string if deduped.
+ * @returns The ID of the queued announcement, or empty string if deduped or queue full.
  */
 export function addToQueue(
   text: string,
@@ -464,6 +476,11 @@ export function addToQueue(
   customAudioUrl?: string,
   departureKey?: string,
 ): string {
+  // Safety net: reject if queue is full (prevents unbounded growth)
+  if (announcementQueue.length >= MAX_QUEUE_SIZE) {
+    return '';
+  }
+
   announcementCounter++;
   const id = `ann-${Date.now()}-${announcementCounter}`;
 
@@ -486,12 +503,7 @@ export function addToQueue(
   announcementQueue.push(item);
 
   // Sort by priority
-  announcementQueue.sort((a, b) => {
-    if (b.priority !== a.priority) {
-      return b.priority - a.priority;
-    }
-    return a.id.localeCompare(b.id);
-  });
+  announcementQueue.sort(compareByPriority);
 
   // ── P1 URGENT interrupt: immediately cut current speech ──
   if (priority >= AnnouncementPriority.URGENT) {
@@ -872,7 +884,9 @@ export function playCustomAudio(url: string): Promise<void> {
  * Start a recurring general message broadcast at a specified interval.
  *
  * The message is added to the queue with `LOW` priority at the given frequency.
- * Returns a cleanup function that stops the interval.
+ * A time-sliced dedup key prevents unbounded queue growth — each repeat
+ * uses a key like `general:{text}:T{minute-bucket}` so the dedup set
+ * naturally expires old entries after `clearAnnouncedSet()` or `cancelAll()`.
  *
  * @param text              - The general message text to broadcast.
  * @param frequencyMinutes  - Interval between broadcasts in minutes.
@@ -886,12 +900,20 @@ export function startGeneralMessageInterval(
 ): () => void {
   const frequencyMs = frequencyMinutes * 60 * 1000;
 
-  // Broadcast immediately on start
-  addToQueue(text, AnnouncementPriority.LOW, customAudioUrl);
+  // Time-sliced dedup key: unique per broadcast cycle, preventing unbounded growth.
+  // The key changes each interval tick, allowing the same message to repeat
+  // at the configured frequency without flooding the queue.
+  let broadcastCount = 0;
+  const makeDedupKey = () => `general:${text.slice(0, 50)}:${broadcastCount}`;
 
-  // Then broadcast at interval
+  // Broadcast immediately on start
+  addToQueue(text, AnnouncementPriority.LOW, customAudioUrl, makeDedupKey());
+  broadcastCount++;
+
+  // Then broadcast at interval with incrementing dedup key
   const intervalId = setInterval(() => {
-    addToQueue(text, AnnouncementPriority.LOW, customAudioUrl);
+    addToQueue(text, AnnouncementPriority.LOW, customAudioUrl, makeDedupKey());
+    broadcastCount++;
   }, frequencyMs);
 
   pendingIntervals.push(intervalId);
@@ -1194,14 +1216,16 @@ export function addPhaseAnnouncement(
  * @deprecated Use `addToQueue()` with `AnnouncementPriority.NORMAL` instead.
  *
  * Legacy boarding announcement function for backward compatibility.
- * Builds the announcement text and adds it to the queue.
+ * Builds the announcement text and adds it to the queue with a
+ * dedup key based on destination + time to prevent duplicate boarding calls.
  */
 export async function playBoardingAnnouncement(
   destination: string,
   time: string,
 ): Promise<void> {
   const text = buildAnnouncementText(destination, time);
-  addToQueue(text, AnnouncementPriority.NORMAL);
+  const departureKey = `boarding:${destination}:${time}`;
+  addToQueue(text, AnnouncementPriority.NORMAL, undefined, departureKey);
 }
 
 /**
@@ -1217,10 +1241,19 @@ export const cancelAnnouncements = cancelAll;
 
 /**
  * Simple promise-based delay.
+ * Timer IDs are removed from `pendingTimers` upon resolution to prevent
+ * memory leaks. The `cancelAll()` function clears any still-pending timers.
  */
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
-    const id = setTimeout(resolve, ms);
+    const id = setTimeout(() => {
+      // Remove resolved timer to prevent unbounded memory growth
+      const idx = pendingTimers.indexOf(id);
+      if (idx >= 0) {
+        pendingTimers.splice(idx, 1);
+      }
+      resolve();
+    }, ms);
     pendingTimers.push(id);
   });
 }

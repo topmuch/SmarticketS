@@ -336,6 +336,7 @@ export default function NotificationsPage() {
 
     const socket = io('/?XTransformPort=3004', {
       transports: ['websocket', 'polling'],
+      tryAllTransports: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
       timeout: 5000,

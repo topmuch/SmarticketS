@@ -1,11 +1,9 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import {
   getAuthUser,
   requireRole,
-  requireTenantAccess,
   unauthorizedResponse,
   forbiddenResponse,
 } from "@/lib/auth-guard";
@@ -39,14 +37,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { controlCode } = parsed.data;
 
-    // Fetch ticket
+    // Fetch ticket with valid relations only
     const ticket = await db.passengerTicket.findUnique({
       where: { id },
       include: {
-        preprintedTicket: { select: { ticketCode: true } },
-        line: { select: { name: true, code: true } },
-        departure: { select: { scheduledTime: true, platform: true } },
-        activatedBy: { select: { firstName: true, lastName: true } },
+        baggage: { select: { reference: true, departureCity: true, destination: true } },
+        departure: { select: { scheduledTime: true, platform: true, lineNumber: true } },
+        agency: { select: { id: true, name: true } },
       },
     });
 
@@ -57,15 +54,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Enforce tenant isolation
-    if (payload.role !== "SUPER_ADMIN" && payload.tenantId !== ticket.tenantId) {
+    // Enforce tenant/agency isolation
+    if (payload.role !== "SUPER_ADMIN" && payload.tenantId && payload.tenantId !== ticket.agencyId) {
       return forbiddenResponse("Vous n'avez pas accès à ce ticket.");
     }
 
-    // Validate ticket status
-    if (ticket.status !== "active" && ticket.status !== "rescheduled") {
+    // Validate ticket status (schema uses uppercase: ACTIVE, VALIDATED, CANCELLED, USED)
+    if (ticket.ticketStatus !== "ACTIVE") {
       return NextResponse.json(
-        { error: `Ce ticket a déjà été utilisé ou annulé (statut: ${ticket.status}).` },
+        { error: `Ce ticket a déjà été utilisé ou annulé (statut: ${ticket.ticketStatus}).` },
         { status: 400 }
       );
     }
@@ -81,22 +78,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Mark ticket as used
     const updatedTicket = await db.passengerTicket.update({
       where: { id },
-      data: { status: "used" },
+      data: {
+        ticketStatus: "USED",
+        validatedAt: new Date(),
+        validatedBy: payload.userId,
+      },
       include: {
-        preprintedTicket: { select: { id: true, ticketCode: true, qrHash: true } },
-        line: { select: { id: true, name: true, code: true } },
-        departure: { select: { id: true, scheduledTime: true, status: true } },
-        activatedBy: { select: { id: true, firstName: true, lastName: true } },
+        baggage: { select: { reference: true, departureCity: true, destination: true } },
+        departure: { select: { id: true, scheduledTime: true, status: true, lineNumber: true } },
+        agency: { select: { id: true, name: true } },
       },
     });
-
-    // Also update the preprinted ticket status
-    if (ticket.preprintedId) {
-      await db.preprintedTicket.update({
-        where: { id: ticket.preprintedId },
-        data: { status: "used" },
-      });
-    }
 
     // Audit
     await logAudit({
@@ -106,8 +98,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       details: {
         controlCodeVerified: !!controlCode,
         passengerName: ticket.passengerName,
-        ticketCode: ticket.preprintedTicket?.ticketCode,
-        lineName: ticket.line?.name,
+        baggageReference: ticket.baggage?.reference,
+        lineNumber: ticket.departure?.lineNumber,
       },
       userId: payload.userId,
       tenantId: payload.tenantId,

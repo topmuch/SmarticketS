@@ -1118,6 +1118,7 @@ const STORAGE_KEYS = {
   accessToken: 'smartickets_staff_access_token',
   refreshToken: 'smartickets_staff_refresh_token',
   staffData: 'smartickets_staff_data',
+  pwaToken: 'smartickets_pwa_token',
 };
 
 export default function ControllerValidatePage() {
@@ -1163,6 +1164,9 @@ export default function ControllerValidatePage() {
   const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
+  // ─── Ref to hold the PWA token for API calls ──────────────
+  const pwaTokenRef = useRef<string | null>(null);
+
   // ─── Stable ref for selected agency ──────────────────────────
   const selectedAgencyIdRef = useRef(selectedAgencyId);
   selectedAgencyIdRef.current = selectedAgencyId;
@@ -1178,6 +1182,11 @@ export default function ControllerValidatePage() {
         // Ignore
       }
     }
+    // Restore PWA token from localStorage for API auth
+    const storedPwaToken = localStorage.getItem(STORAGE_KEYS.pwaToken);
+    if (storedPwaToken) {
+      pwaTokenRef.current = storedPwaToken;
+    }
   }, []);
 
   // ─── PWA Token validation on mount ──────────────────────────
@@ -1191,6 +1200,8 @@ export default function ControllerValidatePage() {
       const result = await validatePwaToken(token, 'controller');
       if (result.valid && result.payload) {
         const payload = result.payload;
+        // Store PWA token for API authentication
+        localStorage.setItem(STORAGE_KEYS.pwaToken, token);
         setPwaGuard({ verified: true, agencyName: payload.agencyName });
         setSelectedAgencyId(payload.agencyId);
         window.history.replaceState({}, '', '/controller/validate');
@@ -1455,9 +1466,14 @@ export default function ControllerValidatePage() {
       triggerHaptic(20);
 
       try {
+        // Build headers — include PWA token for API authentication
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (pwaTokenRef.current) {
+          headers['Authorization'] = `Bearer ${pwaTokenRef.current}`;
+        }
         const res = await fetch('/api/validate-ticket', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             controlCode,
             agencyId: selectedAgencyIdRef.current || undefined,
@@ -1687,6 +1703,8 @@ export default function ControllerValidatePage() {
     localStorage.removeItem(STORAGE_KEYS.accessToken);
     localStorage.removeItem(STORAGE_KEYS.refreshToken);
     localStorage.removeItem(STORAGE_KEYS.staffData);
+    localStorage.removeItem(STORAGE_KEYS.pwaToken);
+    pwaTokenRef.current = null;
     if (typeof window !== 'undefined') {
       window.location.href = '/controller/login';
     }

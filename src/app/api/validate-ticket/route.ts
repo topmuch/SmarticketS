@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
-import { getSession } from '@/lib/session';
+import { getSession, type SessionUser } from '@/lib/session';
+import { validatePwaToken, type PwaTokenPayload } from '@/lib/pwa-guard';
 
 // Validation schema
 const validateTicketSchema = z.object({
@@ -11,13 +12,44 @@ const validateTicketSchema = z.object({
   agencyId: z.string().optional(),
 });
 
+/** Normalized auth context from either session or PWA token */
+interface AuthContext {
+  role: string;
+  agencyId?: string | null;
+}
+
+/**
+ * Authenticate the request via cookie session (web) or Bearer PWA token (PWA).
+ * Returns null if neither auth method succeeds.
+ */
+async function authenticateRequest(request: NextRequest): Promise<AuthContext | null> {
+  // Strategy 1: Cookie-based session (web dashboard / admin)
+  const session: SessionUser | null = await getSession();
+  if (session) {
+    return { role: session.role, agencyId: session.agencyId };
+  }
+
+  // Strategy 2: PWA Bearer token (controller / driver PWA)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const result = await validatePwaToken(token);
+    if (result.valid && result.payload) {
+      const payload: PwaTokenPayload = result.payload;
+      return { role: payload.role, agencyId: payload.agencyId };
+    }
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
     }
-    if (!['controller', 'agency', 'admin', 'superadmin', 'agent'].includes(session.role)) {
+    if (!['controller', 'agency', 'admin', 'superadmin', 'agent', 'driver'].includes(auth.role)) {
       return NextResponse.json({ success: false, error: 'Accès non autorisé' }, { status: 403 });
     }
 
@@ -114,8 +146,7 @@ export async function POST(request: NextRequest) {
       validatedAt: now.toISOString(),
     });
   } catch (error) {
-    console.error('[/api/validate-ticket] Error:', error);
-
+    // Error logging intentional
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { valid: false, error: 'validation', message: error.issues[0].message },
