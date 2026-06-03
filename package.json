@@ -11,7 +11,12 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "services:start": "pm2 start ecosystem.config.js",
+    "services:stop": "pm2 delete ecosystem.config.js",
+    "services:restart": "pm2 restart ecosystem.config.js",
+    "services:status": "pm2 list && echo '' && echo 'Kiosk (3004):' && curl -sf http://localhost:3004/api/internal/health 2>/dev/null && echo ' UP' || echo '  DOWN' && echo 'Alert (3003):' && curl -sf http://localhost:3003/api/internal/health 2>/dev/null && echo ' UP' || echo '  DOWN'",
+    "services:logs": "pm2 logs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

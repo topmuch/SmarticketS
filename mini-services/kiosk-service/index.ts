@@ -90,6 +90,21 @@ function handleRestPush(req: IncomingMessage, res: ServerResponse) {
 const httpServer = createServer((req, res) => {
   // Handle REST push requests on the same HTTP server
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
+  
+  // Health check endpoint
+  if (req.method === 'GET' && url.pathname === '/api/internal/health') {
+    jsonRes(res, 200, {
+      status: 'ok',
+      service: 'kiosk-service',
+      port: PORT,
+      uptime: process.uptime(),
+      connectedClients: connectedClients.size,
+      rooms: [...io.sockets.adapter.rooms.keys()].length,
+      timestamp: Date.now(),
+    });
+    return;
+  }
+  
   if (req.method === 'POST' && url.pathname === '/api/internal/broadcast-ad') {
     // Forward as kiosk:forceAd event to all connected kiosks (or a specific station)
     let body = '';
