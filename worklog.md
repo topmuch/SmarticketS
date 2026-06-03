@@ -1656,3 +1656,37 @@ Stage Summary:
 - Offline queue/sync engine: OK — IndexedDB-based with exponential backoff
 - Login flow: OK — field-login stores staff JWT correctly in localStorage
 - Zero lint errors
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: Diagnostic PWA Contrôleur — validation tickets + scanner
+
+Work Log:
+- Located all controller PWA files: controller/login/page.tsx, controller/validate/page.tsx, controller/layout.tsx
+- Read and analyzed 12+ files: validate page (1859 lines), login page, layout, API routes, offline queue/sync, PWA guard, RBAC, session, Prisma schema
+- Verified PWA manifest (manifest-controller.json) and service worker (sw.js) configuration
+- Tested login page in browser — renders correctly with dark theme, phone input, 4-digit code entry
+- Tested validate dashboard — renders correctly with stats, scanner button, keypad button, install PWA button
+- Tested keypad screen — renders correctly with text input, number grid, validate button
+- Found CRITICAL BUG: JWT_SECRET and JWT_REFRESH_SECRET missing from .env → login API crashed with "secretOrPrivateKey must have a value"
+- Fixed: Added JWT_SECRET and JWT_REFRESH_SECRET to .env
+- Created test controller staff account (phone: +221771234567, code: 1234, role: CONTROLLER)
+- Created test ACTIVE ticket (CTRL-VOL26-TEST001) for validation testing
+- Verified full login flow via curl: POST /api/auth/field-login → 200 with JWT access/refresh tokens + staff data
+- Verified ticket validation via curl: POST /api/validate-ticket with Bearer token → 200 with full ticket data
+- Verified edge cases: already validated ticket → "Déjà utilisé", non-existent code → "Code inconnu"
+- Verified agencies API: GET /api/controller/agencies → 200 with active agencies list
+- Browser verification: login page, validate dashboard, keypad all render correctly in agent-browser
+- Service worker registers successfully in browser: "[Controller] SW registered: http://localhost:3000/"
+
+Stage Summary:
+- Controller PWA is WELL BUILT and FUNCTIONAL
+- 4 screens: Dashboard (stats, agency selector), QR Scanner (html5-qrcode), Keypad (manual entry), Result (color-coded)
+- Login flow: phone + 4-digit code → JWT tokens stored in localStorage → auto-redirect to validate
+- Validation flow: 3 auth strategies (cookie session, Staff JWT, PWA token) → ticket lookup → status check → mark VALIDATED
+- Offline support: IndexedDB queue + auto-sync engine with exponential backoff + service worker caching
+- PWA: manifest, service worker, iOS install guide, Android beforeinstallprompt, push notifications
+- BUG FIXED: Missing JWT_SECRET/JWT_REFRESH_SECRET env vars caused login to crash
+- Code quality: // @ts-nocheck on validate page (disables TypeScript checking — minor concern)
+- All API endpoints verified with curl: login, validate, agencies — all return correct responses
