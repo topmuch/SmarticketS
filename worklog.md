@@ -1605,3 +1605,27 @@ Stage Summary:
 - Eléments UI: badge PUBLICITÉ, timer compte à rebours, barre de progression, dots de carousel, caption
 - Les 2 pages signage (LED Airport + Premium Card) ont toutes les deux le bon système
 - Rien à corriger dans le code — le système fonctionnait déjà correctement
+---
+Task ID: 11
+Agent: Main Agent
+Task: Kiosk Ad System — Remove all overlays (badge, timer, progress, dots, caption), clean fullscreen
+
+Work Log:
+- Read full signage page (2120 lines) — src/app/signage-slug/[slug]/page.tsx
+- Diagnosed: renderAdFullscreen() function at line 1065 already had fullscreen CSS (100vw×100vh, object-fit:cover, position:fixed, z-index:9999)
+- The "banner" issue was likely due to no active ads in DB (signageAds empty = ads mode never activated)
+- User requested: remove ALL overlays — no badge "PUBLICITÉ", no timer, no progress bar, no dots carousel, no caption
+- Simplified renderAdFullscreen(): removed progress-track, top-bar (badge+timer), caption, carousel-dots — only media (video/img/placeholder) remains
+- Cleaned CSS: removed 11 unused styles (.ad-fs-top-bar, .ad-fs-badge, .ad-fs-timer, .ad-fs-caption, .ad-fs-dots, .ad-fs-dot, .ad-fs-dot-active, .ad-fs-progress-track, .ad-fs-progress-fill, .ad-fs-caption span)
+- Added smooth fade-in animation (ad-fade-in, 0.5s ease-out)
+- Added ref={rootRef} to ad overlay for fullscreen API support during ads
+- Verified: zero references to removed overlay classes remain in code
+- Lint: 0 errors
+- Dev server: compiled successfully, no runtime errors
+
+Stage Summary:
+- 1 file modified: src/app/signage-slug/[slug]/page.tsx
+- Ads now display as pure fullscreen media (image or video), no overlays
+- Smooth 0.5s fade-in transition between horaires and pub
+- Cycle preserved: departures (120s) → ads (60s, multi-image carousel) → arrivals (120s)
+- Zero overlay elements — badge, timer, progress bar, dots, caption all removed

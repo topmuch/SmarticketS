@@ -1061,7 +1061,7 @@ export default function SignageSlugPage() {
     };
   }, [slug]);
 
-  /* ─── Render Fullscreen Ad Overlay ────────────────── */
+  /* ─── Render Fullscreen Ad — clean, no overlays ────── */
   const renderAdFullscreen = () => {
     if (signageAds.length === 0) return null;
     const ad = signageAds[adCarouselIndex % signageAds.length];
@@ -1069,23 +1069,8 @@ export default function SignageSlugPage() {
     const isVideo = ad.mediaType === 'VIDEO' && ad.videoUrl;
 
     return (
-      <div className="ad-fs-overlay">
+      <div className="ad-fs-overlay" ref={rootRef}>
         <style>{LED_STYLES}</style>
-        {/* Ad progress bar at bottom */}
-        <div className="ad-fs-progress-track">
-          <div
-            className="ad-fs-progress-fill"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        {/* Top-right: badge + timer */}
-        <div className="ad-fs-top-bar">
-          <div className="ad-fs-badge">PUBLICITÉ</div>
-          <div className="ad-fs-timer">{Math.ceil(timeRemaining)}s</div>
-        </div>
-
-        {/* Media */}
         {isVideo ? (
           <video
             key={ad.id}
@@ -1106,25 +1091,6 @@ export default function SignageSlugPage() {
         ) : (
           <div className="ad-fs-placeholder">
             <p className="ad-fs-placeholder-text">{ad.title}</p>
-          </div>
-        )}
-
-        {/* Caption (bottom-center) */}
-        {ad.title && !isVideo && (
-          <div className="ad-fs-caption">
-            <span>{ad.title}</span>
-          </div>
-        )}
-
-        {/* Carousel dots */}
-        {signageAds.length > 1 && (
-          <div className="ad-fs-dots">
-            {signageAds.map((_, idx) => (
-              <div
-                key={idx}
-                className={`ad-fs-dot ${idx === adCarouselIndex % signageAds.length ? 'ad-fs-dot-active' : ''}`}
-              />
-            ))}
           </div>
         )}
       </div>
@@ -1727,7 +1693,7 @@ html, body {
   50% { opacity: 0.1; }
 }
 
-/* ─── FULLSCREEN AD OVERLAY ───────────────────────── */
+/* ─── FULLSCREEN AD OVERLAY (clean, no overlays) ────── */
 .ad-fs-overlay {
   position: fixed;
   top: 0;
@@ -1736,10 +1702,16 @@ html, body {
   height: 100vh;
   background: #000;
   z-index: 9999;
-  display: flex;
+ display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  animation: ad-fade-in 0.5s ease-out;
+}
+
+@keyframes ad-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .ad-fs-media {
@@ -1763,103 +1735,6 @@ html, body {
   font-size: 3vw;
   color: #555;
   text-align: center;
-}
-
-.ad-fs-top-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.ad-fs-badge {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 12px;
-  color: #888;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  border: 1px solid #333;
-  padding: 6px 16px;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-}
-
-.ad-fs-timer {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 16px;
-  color: #888;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-  border: 1px solid #333;
-  padding: 6px 12px;
-  border-radius: 4px;
-}
-
-.ad-fs-caption {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(6px);
-  padding: 8px 24px;
-  border-radius: 8px;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.ad-fs-caption span {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 16px;
-  color: #ccc;
-  letter-spacing: 1px;
-}
-
-.ad-fs-dots {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.ad-fs-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #333;
-  transition: all 0.3s ease;
-}
-
-.ad-fs-dot-active {
-  background: #22c55e;
-  box-shadow: 0 0 10px rgba(34,197,94,0.6);
-  transform: scale(1.2);
-}
-
-.ad-fs-progress-track {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: rgba(255,255,255,0.1);
-  z-index: 20;
-}
-
-.ad-fs-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  transition: width 1s linear;
 }
 
 /* ─── RESPONSIVE ────────────────────────────────── */
