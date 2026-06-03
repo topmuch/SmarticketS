@@ -42,6 +42,7 @@ import {
   Link,
   Globe,
   Smartphone,
+  Radio,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -131,6 +132,9 @@ export default function SignageAdsPage() {
 
   // Toggling state (per card)
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Broadcasting state (per card)
+  const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
 
   // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -320,6 +324,39 @@ export default function SignageAdsPage() {
       }
     },
     [addToast, fetchAds],
+  );
+
+  /* ---- broadcast ad now to all kiosks ---- */
+  const handleBroadcastAd = useCallback(
+    async (ad: SignageAd) => {
+      setBroadcastingId(ad.id);
+      try {
+        const res = await fetch('/api/kiosk/broadcast-ad', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adId: ad.id,
+            adTitle: ad.title,
+            mediaType: ad.mediaType,
+            mediaUrl: ad.mediaUrl,
+            imageUrl: ad.imageUrl,
+            videoUrl: ad.videoUrl,
+            mobileImageUrl: ad.mobileImageUrl,
+            duration: ad.duration,
+          }),
+        });
+        if (!res.ok) {
+          addToast('error', 'Erreur lors de la diffusion');
+          return;
+        }
+        addToast('success', `"${ad.title}" diffusée sur tous les kiosques`);
+      } catch {
+        addToast('error', 'Erreur de connexion au service kiosk');
+      } finally {
+        setBroadcastingId(null);
+      }
+    },
+    [addToast],
   );
 
   /* ---- delete ---- */
@@ -635,32 +672,53 @@ export default function SignageAdsPage() {
                 <Separator className="my-3" />
 
                 {/* Actions */}
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleToggle(ad)}
-                    disabled={togglingId === ad.id}
-                    className={`h-8 px-3 rounded-lg text-xs font-medium ${
-                      ad.isActive
-                        ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20'
-                        : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                    }`}
-                  >
-                    {togglingId === ad.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : ad.isActive ? (
-                      <>
-                        <EyeOff className="w-3.5 h-3.5 mr-1" />
-                        Désactiver
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-3.5 h-3.5 mr-1" />
-                        Activer
-                      </>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1">
+                    {ad.isActive && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleBroadcastAd(ad)}
+                        disabled={broadcastingId === ad.id}
+                        className="h-8 px-3 rounded-lg text-xs font-medium text-[#FF1D8D] hover:text-[#FF1D8D] hover:bg-[#FF1D8D]/10 dark:hover:bg-[#FF1D8D]/20"
+                        title="Diffuser sur tous les kiosques maintenant"
+                      >
+                        {broadcastingId === ad.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <Radio className="w-3.5 h-3.5 mr-1" />
+                            Diffuser
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleToggle(ad)}
+                      disabled={togglingId === ad.id}
+                      className={`h-8 px-3 rounded-lg text-xs font-medium ${
+                        ad.isActive
+                          ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                          : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                      }`}
+                    >
+                      {togglingId === ad.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : ad.isActive ? (
+                        <>
+                          <EyeOff className="w-3.5 h-3.5 mr-1" />
+                          Désactiver
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          Activer
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
                   <Button
                     variant="ghost"

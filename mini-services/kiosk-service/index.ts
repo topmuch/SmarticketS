@@ -90,7 +90,27 @@ function handleRestPush(req: IncomingMessage, res: ServerResponse) {
 const httpServer = createServer((req, res) => {
   // Handle REST push requests on the same HTTP server
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
-  if (req.method === 'POST' && url.pathname.startsWith('/api/push/')) {
+  if (req.method === 'POST' && url.pathname === '/api/internal/broadcast-ad') {
+    // Forward as kiosk:forceAd event to all connected kiosks (or a specific station)
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const { stationSlug, ...adData } = data;
+        if (stationSlug) {
+          io.to(`station:${stationSlug}`).emit('kiosk:forceAd', { ...adData, timestamp: Date.now() });
+          console.log(`[KioskService] 📢 ${ts()} | REST broadcast-ad → station:${stationSlug}`);
+        } else {
+          io.emit('kiosk:forceAd', { ...adData, timestamp: Date.now() });
+          console.log(`[KioskService] 📢 ${ts()} | REST broadcast-ad → ALL stations`);
+        }
+        jsonRes(res, 200, { success: true });
+      } catch {
+        jsonRes(res, 400, { error: 'Invalid JSON' });
+      }
+    });
+  } else if (req.method === 'POST' && url.pathname.startsWith('/api/push/')) {
     handleRestPush(req, res);
   } else {
     // Default response for non-socket requests
@@ -455,6 +475,41 @@ io.on('connection', (socket: Socket) => {
       if (payload.holidayEndDate !== undefined) data.holidayEndDate = payload.holidayEndDate;
       broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:reminderConfig', data);
       console.log(`[KioskService] 📢 ${ts()} | Reminder config update → raining=${payload.isRaining}, holiday=${payload.isHolidayMode}`);
+    },
+  );
+
+  // ----- kiosk:forceAd (Superadmin → Kiosk: force-show a specific ad now) --------
+  socket.on(
+    'kiosk:forceAd',
+    (payload: {
+      adId: string;
+      adTitle: string;
+      mediaType: string;
+      mediaUrl: string;
+      imageUrl: string | null;
+      videoUrl: string | null;
+      mobileImageUrl: string | null;
+      duration: number;
+      stationSlug?: string;
+    }) => {
+      const data = {
+        adId: payload.adId,
+        adTitle: payload.adTitle,
+        mediaType: payload.mediaType,
+        mediaUrl: payload.mediaUrl,
+        imageUrl: payload.imageUrl,
+        videoUrl: payload.videoUrl,
+        mobileImageUrl: payload.mobileImageUrl,
+        duration: payload.duration,
+        timestamp: Date.now(),
+      };
+      if (payload.stationSlug) {
+        broadcastTo(socket, resolveStationRoom(payload.stationSlug), 'kiosk:forceAd', data);
+      } else {
+        // Broadcast to ALL stations
+        io.emit('kiosk:forceAd', data);
+      }
+      console.log(`[KioskService] 📢 ${ts()} | Force ad → "${payload.adTitle}" (station: ${payload.stationSlug || 'ALL'})`);
     },
   );
 

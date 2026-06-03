@@ -241,6 +241,7 @@ export default function SignageSlugPage() {
   const generalMessageCleanupRef = useRef<(() => void) | null>(null);
   const departedTimersRef = useRef<Map<string, number>>(new Map()); // departureId → timestamp when marked DEPARTED
   const adImageErrorRef = useRef<string | null>(null); // track failed ad image loads
+  const forcedAdRef = useRef<SignageAd | null>(null); // force-show a specific ad from admin
 
   /* ─── Departed fade tick: forces re-evaluation of visible departures ─── */
   const [departedFadeTick, setDepartedFadeTick] = useState(0);
@@ -472,11 +473,23 @@ export default function SignageSlugPage() {
 
   /* ─── Ad carousel within ad slot ────────────────── */
   useEffect(() => {
-    if (currentMode !== 'ads' || signageAds.length <= 1) return;
+    if (currentMode !== 'ads') return;
+    const forcedAd = forcedAdRef.current;
+    const totalAds = forcedAd ? signageAds.length + 1 : signageAds.length;
+    if (totalAds <= 1) return;
     const currentAd = signageAds[adCarouselIndex % signageAds.length];
     const adDuration = Math.max(5, currentAd?.duration || 10) * 1000;
     const id = setTimeout(() => {
-      setAdCarouselIndex(prev => (prev + 1) % signageAds.length);
+      setAdCarouselIndex(prev => {
+        const next = prev + 1;
+        const totalForced = forcedAdRef.current ? signageAds.length + 1 : signageAds.length;
+        // If we've shown the forced ad and moved past it, clear it
+        if (forcedAdRef.current && next >= totalForced) {
+          forcedAdRef.current = null;
+          return 0;
+        }
+        return next % Math.max(1, totalForced);
+      });
     }, adDuration);
     return () => clearTimeout(id);
   }, [currentMode, adCarouselIndex, signageAds]);
@@ -1046,6 +1059,38 @@ export default function SignageSlugPage() {
       updateReminderConfig(payload);
     });
 
+    // ── Force Ad from Superadmin ──
+    socket.on('kiosk:forceAd', (payload: {
+      adId: string;
+      adTitle: string;
+      mediaType: string;
+      mediaUrl: string;
+      imageUrl: string | null;
+      videoUrl: string | null;
+      mobileImageUrl: string | null;
+      duration: number;
+      timestamp: number;
+    }) => {
+      // Store the forced ad and switch to ads mode immediately
+      forcedAdRef.current = {
+        id: payload.adId,
+        title: payload.adTitle,
+        mediaType: payload.mediaType,
+        mediaUrl: payload.mediaUrl,
+        videoUrl: payload.videoUrl,
+        imageUrl: payload.imageUrl,
+        mobileImageUrl: payload.mobileImageUrl,
+        duration: payload.duration,
+        interval: 0,
+        isActive: true,
+        priority: 999,
+      };
+      adImageErrorRef.current = null;
+      setAdCarouselIndex(0);
+      setCurrentMode('ads');
+      setTimeRemaining(payload.duration || AD_SLIDE_DURATION);
+    });
+
     socket.on('disconnect', () => {
       // silently disconnect
     });
@@ -1058,8 +1103,11 @@ export default function SignageSlugPage() {
 
   /* ─── Render Fullscreen Ad — clean, no overlays ────── */
   const renderAdFullscreen = () => {
-    if (signageAds.length === 0) return null;
-    const ad = signageAds[adCarouselIndex % signageAds.length];
+    // If a forced ad exists from superadmin broadcast, show it first
+    const forcedAd = forcedAdRef.current;
+    const adsToShow = forcedAd ? [forcedAd, ...signageAds] : signageAds;
+    if (adsToShow.length === 0) return null;
+    const ad = adsToShow[adCarouselIndex % adsToShow.length];
     const adImageUrl = ad.imageUrl || ad.mobileImageUrl || ad.mediaUrl || '';
     const isVideo = ad.mediaType === 'VIDEO' && ad.videoUrl;
 

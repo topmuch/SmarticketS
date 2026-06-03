@@ -16,3 +16,15 @@ error: Failed to start server. Is port 3004 in use?
 dpoint: POST /api/push/:slug
 [KioskService] 🟢 2026-06-03T09:33:18.652Z | CORS: all origins (gateway proxy mode)
 
+
+[KioskService] 🟢 2026-06-03T16:28:09.538Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-03T16:28:09.538Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-03T16:28:09.538Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-03T16:28:09.538Z | CORS: all origins (gateway proxy mode)
+
+
+[KioskService] 🟢 2026-06-03T16:33:49.251Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-03T16:33:49.251Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-03T16:33:49.251Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-03T16:33:49.251Z | CORS: all origins (gateway proxy mode)
+
