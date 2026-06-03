@@ -1,32 +1,18 @@
 [kiosk-service] Installing dependencies...
 bun install v1.3.14 (0d9b296a)
 
-+ socket.io@4.8.3
-
-22 packages installed [166.00ms]
+Checked 22 installs across 23 packages (no changes) [1.00ms]
 [kiosk-service] Running bun run dev...
-$ bun --hot index.ts
+$ bun --hot
+[KioskSer46 |     }
+47 |   }
+48 |   let er;
+49 |   if (args.length > 0)
+50 |     er = args[0];
+51 |     throw er;
+                 ^
+error: Failed to start server. Is port 3004 in use?
+      at emitError (node:events:51:13)
+dpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-03T09:33:18.652Z | CORS: all origins (gateway proxy mode)
 
-[KioskService] 🟢 2026-06-02T10:23:24.716Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-02T10:23:24.716Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-02T10:23:24.716Z | CORS: all origins (gateway proxy mode)
-
-
-[KioskService] 🟢 2026-06-02T10:39:58.578Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-02T10:39:58.578Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-02T10:39:58.578Z | REST endpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-02T10:39:58.578Z | CORS: all origins (gateway proxy mode)
-
-
-[KioskService] 🟢 2026-06-02T10:41:05.369Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-02T10:41:05.370Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-02T10:41:05.370Z | REST endpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-02T10:41:05.370Z | CORS: all origins (gateway proxy mode)
-
-
-[KioskService] 🟢 2026-06-02T19:36:44.541Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-02T19:36:44.541Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-02T19:36:44.541Z | REST endpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-02T19:36:44.541Z | CORS: all origins (gateway proxy mode)
-
-error: script "dev" was terminated by signal SIGKILL (Forced quit)

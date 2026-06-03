@@ -1,740 +1,158 @@
 [alert-service] Installing dependencies...
 bun install v1.3.14 (0d9b296a)
 
-+ @types/bun@1.3.14
 + prisma@6.19.3
 + @prisma/client@6.19.3
-+ socket.io@4.8.3
 + zod@4.4.3
 
-60 packages installed [4.38s]
+10 packages installed [2.71s]
 [alert-service] Running bun run dev...
 $ bun --hot index.ts
+[AlertEngine] WARN: INTERNAL_SECRET not set — using dev fallback
 [AlertEngine/Cron] Scheduler started (interval: 60s)
 [AlertEngine] WebSocket + HTTP server running on port 3003
 [AlertEngine] Health: http://localhost:3003/api/internal/health
 [AlertEngine] Evaluate: POST http://localhost:3003/api/internal/evaluate
 [AlertEngine] Socket.io: ws://localhost:3003
 [AlertEngine/Cron] Running initial evaluation...
-[AlertEngine/Cron] No active agencies found
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine/Cron] agency=demo-agency-1 evaluated=3 created=0
-[AlertEngine] FATAL: INTERNAL_SECRET env var is required
-error: script "dev" exited with code 1
+prisma:error 
+Invalid `db.agency.findMany()` invocation in
+/home/z/my-project/mini-services/alert-service/index.ts:482:38
+
+  479 
+  480 async function cronEvaluateAllAgencies() {
+  481   try {
+→ 482     const agencies = await db.agency.findMany(
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:10
+   | 
+ 9 |   provider = "sqlite"
+10 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+[AlertEngine/Cron] Fatal error: 116 | 
+117 | Example:
+118 |   await prisma.$executeRawUnsafe(\`ALTER USER prisma WITH PASSWORD '\${password}'\`)
+119 | 
+120 | More Information: https://pris.ly/d/execute-raw
+121 | `)}var So=({clientMethod:e,activeProvider:r})=>t=>{let n="",i;if(Vn(t))n=t.sql,i={values:Wr(t.values),__prismaRawParameters__:!0};else if(Array.isArray(t)){let[o,...s]=t;n=o,i={values:Wr(s||[]),__prismaRawParameters__:!0}}else switch(r){case"sqlite":case"mysql":{n=t.sql,i={values:Wr(t.values),__prismaRawParameters__:!0};break}case"cockroachdb":case"postgresql":case"postgres":{n=t.text,i={values:Wr(t.values),__prismaRawParameters__:!0};break}case"sqlserver":{n=Vl(t),i={values:Wr(t.values),__prismaRawParameters__:!0};break}default:throw new Error(`The ${r} provider does not support ${e}`)}return i?.values?Ql(`prisma.${e}(${n}, ${i.values})`):Ql(`prisma.${e}(${n})`),{query:n,parameters:i}},Wl={requestArgsToMiddlewareArgs(e){return[e.strings,...e.values]},middlewareArgsToRequestArgs(e){let[r,...t]=e;return new ie(r,t)}},Jl={requestArgsToMiddlewareArgs(e){return[e]},middlewareArgsToRequestArgs(e){return e[0]}};function Ro(e){return function(t,n){let i,o=(s=e)=>{try{return s===void 0||s?.kind==="itx"?i??=Kl(t(s)):K
+
+PrismaClientInitializationError: 
+Invalid `db.agency.findMany()` invocation in
+/home/z/my-project/mini-services/alert-service/index.ts:482:38
+
+  479 
+  480 async function cronEvaluateAllAgencies() {
+  481   try {
+→ 482     const agencies = await db.agency.findMany(
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:10
+   | 
+ 9 |   provider = "sqlite"
+10 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+ clientVersion: "6.19.3",
+  errorCode: undefined,
+  retryable: undefined,
+
+      at handleRequestError (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:7568)
+      at handleAndLogRequestError (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:6593)
+      at request (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:6300)
+
+prisma:error 
+Invalid `db.agency.findMany()` invocation in
+/home/z/my-project/mini-services/alert-service/index.ts:482:38
+
+  479 
+  480 async function cronEvaluateAllAgencies() {
+  481   try {
+→ 482     const agencies = await db.agency.findMany(
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:10
+   | 
+ 9 |   provider = "sqlite"
+10 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+[AlertEngine/Cron] Fatal error: 116 | 
+117 | Example:
+118 |   await prisma.$executeRawUnsafe(\`ALTER USER prisma WITH PASSWORD '\${password}'\`)
+119 | 
+120 | More Information: https://pris.ly/d/execute-raw
+121 | `)}var So=({clientMethod:e,activeProvider:r})=>t=>{let n="",i;if(Vn(t))n=t.sql,i={values:Wr(t.values),__prismaRawParameters__:!0};else if(Array.isArray(t)){let[o,...s]=t;n=o,i={values:Wr(s||[]),__prismaRawParameters__:!0}}else switch(r){case"sqlite":case"mysql":{n=t.sql,i={values:Wr(t.values),__prismaRawParameters__:!0};break}case"cockroachdb":case"postgresql":case"postgres":{n=t.text,i={values:Wr(t.values),__prismaRawParameters__:!0};break}case"sqlserver":{n=Vl(t),i={values:Wr(t.values),__prismaRawParameters__:!0};break}default:throw new Error(`The ${r} provider does not support ${e}`)}return i?.values?Ql(`prisma.${e}(${n}, ${i.values})`):Ql(`prisma.${e}(${n})`),{query:n,parameters:i}},Wl={requestArgsToMiddlewareArgs(e){return[e.strings,...e.values]},middlewareArgsToRequestArgs(e){let[r,...t]=e;return new ie(r,t)}},Jl={requestArgsToMiddlewareArgs(e){return[e]},middlewareArgsToRequestArgs(e){return e[0]}};function Ro(e){return function(t,n){let i,o=(s=e)=>{try{return s===void 0||s?.kind==="itx"?i??=Kl(t(s)):K
+
+PrismaClientInitializationError: 
+Invalid `db.agency.findMany()` invocation in
+/home/z/my-project/mini-services/alert-service/index.ts:482:38
+
+  479 
+  480 async function cronEvaluateAllAgencies() {
+  481   try {
+→ 482     const agencies = await db.agency.findMany(
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:10
+   | 
+ 9 |   provider = "sqlite"
+10 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+ clientVersion: "6.19.3",
+  errorCode: undefined,
+  retryable: undefined,
+
+      at handleRequestError (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:7568)
+      at handleAndLogRequestError (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:6593)
+      at request (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:6300)
+
+prisma:error 
+Invalid `db.agency.findMany()` invocation in
+/home/z/my-project/mini-services/alert-service/index.ts:482:38
+
+  479 
+  480 async function cronEvaluateAllAgencies() {
+  481   try {
+→ 482     const agencies = await db.agency.findMany(
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:10
+   | 
+ 9 |   provider = "sqlite"
+10 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+[AlertEngine/Cron] Fatal error: 116 | 
+117 | Example:
+118 |   await prisma.$executeRawUnsafe(\`ALTER USER prisma WITH PASSWORD '\${password}'\`)
+119 | 
+120 | More Information: https://pris.ly/d/execute-raw
+121 | `)}var So=({clientMethod:e,activeProvider:r})=>t=>{let n="",i;if(Vn(t))n=t.sql,i={values:Wr(t.values),__prismaRawParameters__:!0};else if(Array.isArray(t)){let[o,...s]=t;n=o,i={values:Wr(s||[]),__prismaRawParameters__:!0}}else switch(r){case"sqlite":case"mysql":{n=t.sql,i={values:Wr(t.values),__prismaRawParameters__:!0};break}case"cockroachdb":case"postgresql":case"postgres":{n=t.text,i={values:Wr(t.values),__prismaRawParameters__:!0};break}case"sqlserver":{n=Vl(t),i={values:Wr(t.values),__prismaRawParameters__:!0};break}default:throw new Error(`The ${r} provider does not support ${e}`)}return i?.values?Ql(`prisma.${e}(${n}, ${i.values})`):Ql(`prisma.${e}(${n})`),{query:n,parameters:i}},Wl={requestArgsToMiddlewareArgs(e){return[e.strings,...e.values]},middlewareArgsToRequestArgs(e){let[r,...t]=e;return new ie(r,t)}},Jl={requestArgsToMiddlewareArgs(e){return[e]},middlewareArgsToRequestArgs(e){return e[0]}};function Ro(e){return function(t,n){let i,o=(s=e)=>{try{return s===void 0||s?.kind==="itx"?i??=Kl(t(s)):K
+
+PrismaClientInitializationError: 
+Invalid `db.agency.findMany()` invocation in
+/home/z/my-project/mini-services/alert-service/index.ts:482:38
+
+  479 
+  480 async function cronEvaluateAllAgencies() {
+  481   try {
+→ 482     const agencies = await db.agency.findMany(
+error: Environment variable not found: DATABASE_URL.
+  -->  schema.prisma:10
+   | 
+ 9 |   provider = "sqlite"
+10 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+ clientVersion: "6.19.3",
+  errorCode: undefined,
+  retryable: undefined,
+
+      at handleRequestError (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:7568)
+      at handleAndLogRequestError (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:6593)
+      at request (/home/z/my-project/mini-services/alert-service/node_modules/@prisma/client/runtime/library.js:121:6300)
+
