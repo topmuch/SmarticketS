@@ -1,10 +1,13 @@
-$ bun --hot index.ts
-46 |     }
-47 |   }
-48 |   let er;
-49 |   if (args.length > 0)
-50 |     er = args[0];
-51 |     throw er;
-                 ^
-error: Failed to start server. Is port 3004 in use?
-      at emitError (node:events:51:13)
+
+[KioskService] 🟢 2026-06-03T19:19:57.695Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-03T19:19:57.695Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-03T19:19:57.695Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-03T19:19:57.695Z | CORS: all origins (gateway proxy mode)
+
+
+[KioskService] 🟢 2026-06-03T19:23:13.854Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-03T19:23:13.854Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-03T19:23:13.854Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-03T19:23:13.854Z | CORS: all origins (gateway proxy mode)
+
+[KioskService] 📢 2026-06-03T19:23:15.789Z | REST broadcast-ad → ALL stations

@@ -1792,3 +1792,29 @@ Stage Summary:
 - Security verified: all 5 AI/messages/reports routes return 401 without auth
 - Upload API verified: 401 without auth, MIME validation, 50MB limit, UUID filename, sanitizeFilename
 - Messages POST intentionally left open for public contact form
+---
+Task ID: 11
+Agent: Main Agent
+Task: Fix "Diffuser maintenant" broadcast error — Socket.io direct + API fallback
+
+Work Log:
+- Investigated broadcast chain: Admin button → POST /api/kiosk/broadcast-ad → kiosk-service (port 3004) → Socket.io emit kiosk:forceAd → kiosk display
+- Found root cause: kiosk-service was down (SIGTERM killed at 18:52), API returned 502, admin saw "Erreur lors de la diffusion"
+- Found architectural issue: admin page had NO Socket.io connection — relied entirely on HTTP relay to kiosk-service
+- Fixed src/app/admin/signage-ads/page.tsx:
+  - Added import of socket.io-client
+  - Added Socket.io connection via io("/?XTransformPort=3004") with auto-reconnect
+  - Modified handleBroadcastAd: Primary method emits kiosk:forceAd directly via Socket.io (instant, no server roundtrip)
+  - API route fallback when Socket.io not connected (better error messages)
+  - Added visual connection status indicator: "Kiosk connecté" (green) / "Kiosk déconnecté" (amber) badge in page header
+- Verified Socket.io handshake works through Caddy gateway (port 81)
+- Verified broadcast endpoint works: REST broadcast-ad → ALL stations
+- Lint clean
+- Pushed as commit 074d86f to GitHub
+
+Stage Summary:
+- 1 file modified: src/app/admin/signage-ads/page.tsx (+84, -23 lines)
+- Broadcast now uses Socket.io directly (primary) with API fallback
+- Connection status visible to admin in page header
+- Better error messages when kiosk-service unreachable
+
