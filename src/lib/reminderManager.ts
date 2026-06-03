@@ -164,6 +164,9 @@ let bannerCallback: ((banner: ReminderBanner | null) => void) | null = null;
 /** Current active banner (for React to read) */
 let activeBanner: ReminderBanner | null = null;
 
+/** Callback to notify React when a reminder starts/stops playing audio */
+let playingCallback: ((playing: boolean, text?: string) => void) | null = null;
+
 /** Minimum gap between two reminders in ms */
 const MIN_REMINDER_GAP_MS = 2 * 60 * 1000; // 2 minutes
 
@@ -347,6 +350,12 @@ function playNextReminder(): void {
     // Enqueue audio
     addToQueue(reminder.text, AnnouncementPriority.REMINDER, undefined, `reminder:CLOTURE:${nowMs}`);
 
+    // Notify React that a reminder is now playing
+    if (playingCallback) playingCallback(true, reminder.text);
+    setTimeout(() => {
+      if (playingCallback) playingCallback(false);
+    }, Math.max(15000, reminder.text.length * 80 + 8000));
+
     // Show orange banner for 2 minutes
     setBanner({
       type: 'CLOTURE_BILLETTERIE',
@@ -383,6 +392,15 @@ function playNextReminder(): void {
     // Enqueue audio with P6 priority
     const dedupKey = `reminder:${reminder.type}:${Math.floor(nowMs / 60000)}`;
     addToQueue(reminder.text, AnnouncementPriority.REMINDER, undefined, dedupKey);
+
+    // Notify React that a reminder is now playing
+    if (playingCallback) playingCallback(true, reminder.text);
+
+    // Auto-dismiss playing state after estimated duration (dingdong 3s + 2×TTS ~15s + gap 5s ≈ 30s)
+    const estimatedDuration = Math.max(15000, reminder.text.length * 80 + 8000);
+    setTimeout(() => {
+      if (playingCallback) playingCallback(false);
+    }, estimatedDuration);
 
     // Show banner if applicable
     if (reminder.hasBanner && reminder.bannerColor !== 'none') {
@@ -488,6 +506,7 @@ export function stopReminderManager(): void {
     checkIntervalId = null;
   }
   setBanner(null);
+  if (playingCallback) playingCallback(false);
   // ReminderManager stopped
 }
 
@@ -596,6 +615,17 @@ export function onBannerChange(callback: ((banner: ReminderBanner | null) => voi
   if (callback && activeBanner) {
     callback(activeBanner);
   }
+}
+
+/**
+ * Subscribe to reminder playing state changes.
+ * Fires `true` when a reminder starts speaking, `false` when it ends.
+ * Used by the Kiosk to show a small overlay banner during reminders.
+ *
+ * @param callback - Function called with (isPlaying: boolean, text?: string)
+ */
+export function onReminderPlaying(callback: ((playing: boolean, text?: string) => void) | null): void {
+  playingCallback = callback;
 }
 
 // ═══════════════════════════════════════════════════════════════════

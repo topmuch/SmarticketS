@@ -26,6 +26,7 @@ import {
   stopReminderManager,
   updateReminderConfig,
   onBannerChange,
+  onReminderPlaying,
   ReminderBanner as ReminderBannerType,
 } from '@/lib/reminderManager';
 
@@ -409,6 +410,10 @@ export default function SignageSlugPage() {
   /* ─── Reminder Banner state ────────────────────────── */
   const [reminderBanner, setReminderBanner] = useState<ReminderBannerType | null>(null);
 
+  /* ─── Reminder Playing state (audio P6 overlay indicator) ── */
+  const [reminderPlaying, setReminderPlaying] = useState(false);
+  const [reminderPlayingText, setReminderPlayingText] = useState('');
+
   /* ─── Init & Start ReminderManager ────────────── */
   useEffect(() => {
     // Fetch reminder config from API
@@ -422,12 +427,19 @@ export default function SignageSlugPage() {
     // Subscribe to banner changes for React state
     onBannerChange((banner) => setReminderBanner(banner));
 
+    // Subscribe to reminder playing state for visual overlay
+    onReminderPlaying((playing, text) => {
+      setReminderPlaying(playing);
+      setReminderPlayingText(text || '');
+    });
+
     // Start the reminder check loop
     startReminderManager();
 
     return () => {
       stopReminderManager();
       onBannerChange(null);
+      onReminderPlaying(null);
     };
   }, []);
 
@@ -1339,6 +1351,40 @@ export default function SignageSlugPage() {
             </div>
           </div>
 
+          {/* ─── REMINDER PLAYING BANNER (P6 overlay — NEVER hides schedule) ─── */}
+          {reminderPlaying && (
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.95), rgba(202, 138, 4, 0.95))',
+              color: '#1a1a1a',
+              padding: '6px 20px',
+              fontSize: '13px',
+              fontWeight: 700,
+              textAlign: 'center',
+              letterSpacing: '0.5px',
+              fontFamily: 'Share Tech Mono, monospace',
+              zIndex: 10,
+              borderTop: '1px solid rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#f97316',
+                animation: 'blink-slow 1.5s ease-in-out infinite',
+              }} />
+              📢 RAPPEL : {reminderPlayingText.length > 80 ? reminderPlayingText.slice(0, 80) + '…' : reminderPlayingText || 'Message de rappel'}
+            </div>
+          )}
+
           {/* ─── REMINDER BANNER BOTTOM (Bagages = yellow, discreet) ─── */}
           {reminderBanner && reminderBanner.color === 'yellow' && (
             <div style={{
@@ -1367,6 +1413,7 @@ export default function SignageSlugPage() {
 
   return (
     <>
+      {/* DEFENSIVE: Always render schedule board. Only fullscreen ads override. */}
       {isAdsMode && signageAds.length > 0 ? renderAdFullscreen() : renderScheduleBoard()}
     </>
   );

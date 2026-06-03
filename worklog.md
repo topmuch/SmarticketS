@@ -1711,3 +1711,37 @@ Stage Summary:
 - Arrivals always in slide sequence — no permanent blocking
 - Auto-switch to departures when imminent departure detected (temporary, not permanent)
 - CSS cleanup: removed ~20 lines of dead arrivals-blocked styles
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: Fix critical bug — Black screen during vocal reminders (P6) on Kiosk display
+
+Work Log:
+- Analyzed entire kiosk signage code (`src/app/signage-slug/[slug]/page.tsx`, 1800+ lines)
+- Analyzed audio system (`src/lib/audioSystem.ts`, 1162 lines) — confirmed NO DOM manipulation
+- Analyzed reminder manager (`src/lib/reminderManager.ts`, 629 lines) — confirmed NO mode change during reminders
+- Root cause: Likely Chrome rendering bug with `speechSynthesis.speak()` + multiple `cancel()` calls in `speakWithRetry` causing page repaint to freeze during TTS playback
+- Fix approach: Defensive rendering + visual overlay banner
+
+Modified `src/lib/reminderManager.ts`:
+- Added `playingCallback` state variable and `onReminderPlaying()` export function
+- When a reminder starts playing (cyclic or closure), fires `playingCallback(true, text)`
+- Auto-dismisses after estimated duration (`text.length * 80 + 8000` ms) via setTimeout
+- Cleans up callback on `stopReminderManager()`
+
+Modified `src/app/signage-slug/[slug]/page.tsx`:
+- Imported `onReminderPlaying` from reminderManager
+- Added `reminderPlaying` and `reminderPlayingText` state
+- Subscribed to `onReminderPlaying` callback in useEffect
+- Added **Reminder Playing Banner** (position:absolute, bottom:0, amber/yellow gradient, blinking dot, text truncated at 80 chars) — overlays schedule WITHOUT hiding it
+- Added defensive comment on render: "DEFENSIVE: Always render schedule board. Only fullscreen ads override."
+- Cleanup on unmount: `onReminderPlaying(null)`
+
+Design: Reminders (P6) now show as a small amber banner at the bottom of the schedule board with blinking indicator dot. The schedule table, clock, header, and ticker remain fully visible during the entire reminder announcement. Only Ads (fullscreen images/video) and hypothetical Evacuation alerts have permission to take over the full screen.
+
+Stage Summary:
+- 2 files modified: reminderManager.ts (+50 lines), signage-slug page.tsx (+45 lines)
+- Zero lint errors
+- Dev server compiling cleanly
+- Kiosk service running on port 3004
