@@ -42,13 +42,18 @@ export async function POST(req: NextRequest) {
       });
 
       if (!res.ok) {
+        const errText = await res.text().catch(() => 'Unknown error');
         return NextResponse.json(
-          { error: 'Kiosk service unavailable' },
+          { error: `Service kiosk indisponible: ${errText}` },
           { status: 502 }
         );
       }
-    } catch {
-      // Kiosk service not reachable — return success anyway (ad is already in rotation)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Service kiosk injoignable';
+      return NextResponse.json(
+        { error: `Impossible de joindre le service kiosk: ${msg}` },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json({ success: true, adId, adTitle });

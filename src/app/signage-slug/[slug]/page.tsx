@@ -1414,7 +1414,8 @@ export default function SignageSlugPage() {
   return (
     <>
       {/* DEFENSIVE: Always render schedule board. Only fullscreen ads override. */}
-      {isAdsMode && signageAds.length > 0 ? renderAdFullscreen() : renderScheduleBoard()}
+      {/* Forced ads (from superadmin broadcast) bypass the signageAds.length check */}
+      {isAdsMode && (signageAds.length > 0 || forcedAdRef.current) ? renderAdFullscreen() : renderScheduleBoard()}
     </>
   );
 }

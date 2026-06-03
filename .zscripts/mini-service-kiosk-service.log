@@ -28,3 +28,12 @@ dpoint: POST /api/push/:slug
 [KioskService] 🟢 2026-06-03T16:33:49.251Z | REST endpoint: POST /api/push/:slug
 [KioskService] 🟢 2026-06-03T16:33:49.251Z | CORS: all origins (gateway proxy mode)
 
+[KioskService] 📢 2026-06-03T18:50:33.148Z | REST broadcast-ad → ALL stations
+[KioskService] 📢 2026-06-03T18:50:55.357Z | REST broadcast-ad → ALL stations
+
+[KioskService] 🛑 2026-06-03T18:52:28.502Z | SIGTERM received — shutting down…
+
+[KioskService] 🛑 2026-06-03T18:52:28.503Z | SIGTERM received — shutting down…
+
+[KioskService] 🛑 2026-06-03T18:52:28.503Z | SIGTERM received — shutting down…
+[KioskService] 🛑 2026-06-03T18:52:28.504Z | HTTP server closed. Goodbye.
