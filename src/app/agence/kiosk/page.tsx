@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Ticket,
   Play,
+  Pencil,
 } from 'lucide-react';
 import { useAgency } from '../layout';
 import { toast } from 'sonner';
@@ -43,6 +44,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 /* ══════════════════════════════════════════════
    Types
@@ -130,6 +140,7 @@ export default function KioskControlPage() {
     holidayEndDate: '',
   });
   const [reminderSaving, setReminderSaving] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<{ type: ReminderType; text: string } | null>(null);
 
   /* ── Fetch kiosk config ── */
   const fetchConfig = useCallback(async () => {
@@ -306,20 +317,34 @@ export default function KioskControlPage() {
       toast.error('WebSocket non connecté');
       return;
     }
-    const testTexts: Record<ReminderType, string> = {
+    const defaultTexts: Record<ReminderType, string> = {
       BAGAGES: "Voyageurs, n'oubliez jamais vos bagages sans surveillance.",
       VALEURS: "Attention à vos effets personnels : téléphones, portefeuilles et sacs.",
       CLOTURE_BILLETTERIE: "La billetterie fermera ses portes dans 15 minutes.",
       PLUIE: "En raison de fortes pluies, les quais peuvent être glissants.",
       FESTIVE: "La gare est très fréquentée en cette période festive. Merci de patienter.",
     };
+    const text = reminderConfig.reminders[type].text.trim() || defaultTexts[type];
     socketRef.current.emit('kiosk:manualAnnounce', {
       stationSlug: selectedStation,
-      text: testTexts[type],
+      text,
       priority: -1,
       timestamp: Date.now(),
     });
     toast.success(`🔔 Rappel ${type} diffusé en test`);
+  };
+
+  /* ── Save edited reminder text ── */
+  const handleSaveReminderText = (type: ReminderType, text: string) => {
+    setReminderConfig(prev => ({
+      ...prev,
+      reminders: {
+        ...prev.reminders,
+        [type]: { ...prev.reminders[type], text },
+      },
+    }));
+    setEditingReminder(null);
+    toast.success('Texte du rappel mis à jour');
   };
 
   /* ── Save config ── */
@@ -769,6 +794,10 @@ export default function KioskControlPage() {
                   onClick={() => handleTestReminder('BAGAGES')}>
                   <Play className="w-3.5 h-3.5" />
                 </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Modifier le texte"
+                  onClick={() => setEditingReminder({ type: 'BAGAGES', text: reminderConfig.reminders.BAGAGES.text })}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
 
@@ -799,6 +828,10 @@ export default function KioskControlPage() {
                 <Button variant="ghost" size="icon" className="h-8 w-8" title="Tester"
                   onClick={() => handleTestReminder('VALEURS')}>
                   <Play className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Modifier le texte"
+                  onClick={() => setEditingReminder({ type: 'VALEURS', text: reminderConfig.reminders.VALEURS.text })}>
+                  <Pencil className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
@@ -831,6 +864,10 @@ export default function KioskControlPage() {
                   onClick={() => handleTestReminder('CLOTURE_BILLETTERIE')}>
                   <Play className="w-3.5 h-3.5" />
                 </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Modifier le texte"
+                  onClick={() => setEditingReminder({ type: 'CLOTURE_BILLETTERIE', text: reminderConfig.reminders.CLOTURE_BILLETTERIE.text })}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
 
@@ -862,6 +899,10 @@ export default function KioskControlPage() {
                   onClick={() => handleTestReminder('PLUIE')}>
                   <Play className="w-3.5 h-3.5" />
                 </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Modifier le texte"
+                  onClick={() => setEditingReminder({ type: 'PLUIE', text: reminderConfig.reminders.PLUIE.text })}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
 
@@ -892,6 +933,10 @@ export default function KioskControlPage() {
                 <Button variant="ghost" size="icon" className="h-8 w-8" title="Tester"
                   onClick={() => handleTestReminder('FESTIVE')}>
                   <Play className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Modifier le texte"
+                  onClick={() => setEditingReminder({ type: 'FESTIVE', text: reminderConfig.reminders.FESTIVE.text })}>
+                  <Pencil className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
@@ -961,6 +1006,44 @@ export default function KioskControlPage() {
           </Button>
         </div>
       </div>
+
+      {/* Edit Reminder Text Dialog */}
+      <Dialog open={editingReminder !== null} onOpenChange={(open) => { if (!open) setEditingReminder(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-amber-500" />
+              Modifier le texte du rappel
+            </DialogTitle>
+            <DialogDescription>
+              Modifiez le texte de l'annonce pour : {editingReminder?.type}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <Textarea
+              rows={4}
+              value={editingReminder?.text || ''}
+              onChange={(e) => setEditingReminder(prev => prev ? { ...prev, text: e.target.value } : null)}
+              placeholder="Texte de l'annonce..."
+              className="resize-none"
+            />
+            {editingReminder && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
+                Aperçu : "{editingReminder.text || '(texte par défaut)'}"
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setEditingReminder(null)} className="rounded-xl">Annuler</Button>
+            <Button
+              onClick={() => editingReminder && handleSaveReminderText(editingReminder.type, editingReminder.text)}
+              className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl"
+            >
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Voice Upload Card ── */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">

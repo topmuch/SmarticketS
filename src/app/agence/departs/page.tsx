@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock,
@@ -27,6 +27,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useAgency } from '../layout';
+import { io, Socket } from 'socket.io-client';
 
 /* ══════════════════════════════════════════════
    Types
@@ -816,6 +817,24 @@ export default function DepartsPage() {
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // WebSocket ref for kiosk TTS announcements
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    const socket = io('/?XTransformPort=3004', {
+      transports: ['websocket', 'polling'],
+      tryAllTransports: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      timeout: 5000,
+    });
+    socketRef.current = socket;
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []);
+
   // Fetch stations
   const fetchStations = useCallback(async () => {
     if (!agencyId) return;
@@ -910,6 +929,9 @@ export default function DepartsPage() {
 
   // Update departure status
   const handleUpdateStatus = async (id: string, status: string) => {
+    // Find the departure in current list to get data for the WebSocket event
+    const departure = departures.find(d => d.id === id);
+
     try {
       const res = await fetch('/api/admin/departures', {
         method: 'PUT',
@@ -918,6 +940,48 @@ export default function DepartsPage() {
       });
       if (res.ok) {
         showToast(`Statut mis à jour : ${statusConfig[status]?.label || status}`, 'success');
+
+        // Auto-announce on kiosk via WebSocket
+        if (socketRef.current?.connected && departure) {
+          const basePayload = {
+            departureId: id,
+            destination: departure.destination,
+            stationSlug: departure.originStationId || '*',
+            timestamp: Date.now(),
+          };
+
+          switch (status) {
+            case 'BOARDING':
+              socketRef.current.emit('kiosk:boarding', {
+                ...basePayload,
+                scheduledTime: departure.scheduledTime,
+                platform: departure.platform || 'A définir',
+              });
+              showToast('📢 Annonce embarquement envoyée au kiosk', 'success');
+              break;
+            case 'DEPARTED':
+              socketRef.current.emit('kiosk:departed', basePayload);
+              showToast('📢 Annonce départ envoyée au kiosk', 'success');
+              break;
+            case 'DELAYED':
+              socketRef.current.emit('kiosk:delay', {
+                ...basePayload,
+                minutes: departure.delayMinutes || 15,
+              });
+              showToast('📢 Annonce retard envoyée au kiosk', 'success');
+              break;
+            case 'CANCELLED':
+              socketRef.current.emit('kiosk:cancelled', basePayload);
+              showToast('📢 Annonce annulation envoyée au kiosk', 'success');
+              break;
+            case 'SCHEDULED':
+              // DELAYED → SCHEDULED (restored) = resolutionDelay
+              socketRef.current.emit('kiosk:resolutionDelay', basePayload);
+              showToast('📢 Retard résolu envoyé au kiosk', 'success');
+              break;
+          }
+        }
+
         fetchDepartures();
       } else {
         const err = await res.json();

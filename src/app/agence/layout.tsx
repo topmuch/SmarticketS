@@ -46,6 +46,7 @@ import {
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AdvertisementBanner from '@/components/AdvertisementBanner';
+import RealtimeAlertListener from '@/components/dashboard/RealtimeAlertListener';
 
 // Demo agency data - used as fallback
 export const DEMO_AGENCY = {
@@ -111,6 +112,7 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
     
     // ─── TRANSPORT ───
     { label: "Départs", icon: <Bus className="w-5 h-5" />, href: "/agence/departs", section: "TRANSPORT" },
+    { label: "Arrivées", icon: <Bus className="w-5 h-5 rotate-180" />, href: "/agence/arrivees" },
     { label: "Affichage Gare", icon: <Monitor className="w-5 h-5" />, href: "/agence/affichage-gare" },
     { label: "Panneau Kiosk", icon: <Radio className="w-5 h-5" />, href: "/agence/kiosk" },
     
@@ -297,7 +299,8 @@ function Sidebar({ isOpen, setIsOpen, unreadMessages, onLogout, userName, agency
 }
 
 // Modern Header Component
-function Header({ unreadMessages, onMenuClick, userName, agencySlug }: { unreadMessages?: number; onMenuClick: () => void; userName: string; agencySlug: string }) {
+function Header({ unreadMessages, unreadNotifs, onMenuClick, userName, agencySlug }: { unreadMessages?: number; unreadNotifs?: number; onMenuClick: () => void; userName: string; agencySlug: string }) {
+  const totalUnread = (unreadMessages ?? 0) + (unreadNotifs ?? 0);
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -415,13 +418,13 @@ function Header({ unreadMessages, onMenuClick, userName, agencySlug }: { unreadM
           
           {/* Notifications */}
           <Link 
-            href="/agence/assistance"
+            href="/agence/notifications"
             className="relative p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
           >
             <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-            {(unreadMessages ?? 0) > 0 && (
+            {totalUnread > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                {(unreadMessages ?? 0) > 9 ? '9+' : unreadMessages}
+                {totalUnread > 9 ? '9+' : totalUnread}
               </span>
             )}
           </Link>
@@ -449,6 +452,7 @@ export default function AgencyRootLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [stats, setStats] = useState<StatsData | null>(null);
   const { user, loading, logout, isAgency } = useAuth();
   const router = useRouter();
@@ -493,6 +497,16 @@ export default function AgencyRootLayout({
         if (statsData.pending !== undefined) {
           setStats(statsData);
         }
+
+        // Unread kiosk notifications
+        try {
+          const notifRes = await fetch('/api/notifications/unread');
+          if (notifRes.ok) {
+            const notifData = await notifRes.json();
+            const count = Array.isArray(notifData) ? notifData.length : (notifData.count ?? 0);
+            setUnreadNotifs(count);
+          }
+        } catch { /* silent */ }
       } catch (error) {
         console.error('Error fetching agency data:', error);
       }
@@ -555,7 +569,7 @@ export default function AgencyRootLayout({
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} unreadMessages={unreadMessages} onLogout={handleLogout} userName={user.name || 'Agence'} agencySlug={agencySlug} agencyId={agencyId} stats={stats} />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <Header unreadMessages={unreadMessages} onMenuClick={() => setSidebarOpen(true)} userName={user.name || 'Agence'} agencySlug={agencySlug} />
+          <Header unreadMessages={unreadMessages} unreadNotifs={unreadNotifs} onMenuClick={() => setSidebarOpen(true)} userName={user.name || 'Agence'} agencySlug={agencySlug} />
 
           <main className="flex-1 p-6 lg:p-8">
             {/* Advertisement Banner */}
@@ -564,6 +578,9 @@ export default function AgencyRootLayout({
             {children}
           </main>
         </div>
+
+        {/* Real-time alert listener — always mounted for agency users */}
+        <RealtimeAlertListener />
       </div>
     </AgencyContext.Provider>
   );
