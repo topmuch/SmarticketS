@@ -1690,3 +1690,24 @@ Stage Summary:
 - BUG FIXED: Missing JWT_SECRET/JWT_REFRESH_SECRET env vars caused login to crash
 - Code quality: // @ts-nocheck on validate page (disables TypeScript checking — minor concern)
 - All API endpoints verified with curl: login, validate, agencies — all return correct responses
+---
+Task ID: 11
+Agent: Main Agent
+Task: Fix kiosk black screen during departures→arrivals transition
+
+Work Log:
+- Diagnosed 2 bugs in signage-slug page:
+  1. **Black flash**: Both panels (departures + arrivals) used `left` class when inactive, causing both to slide in the same direction during transition — leaving a gap showing the black background
+  2. **Permanent arrivals blocking**: `hasImminentDeparture` triggered for any departure within 10-min window, blocking arrivals for 10 min, then immediately re-blocking when the timer expired — arrivals never displayed
+- Fix 1: Changed arrivals panel inactive class from `left` to `right` — arrivals now slide in from the RIGHT while departures slides out to the LEFT, creating a smooth cross-slide
+- Fix 2: Removed `arrivalsBlockedUntil` state and `isArrivalsBlocked` computed value entirely. Simplified `slideSequence` to always include arrivals. Changed auto-switch effect to only switch mode (not block) when a departure is imminent
+- Cleaned up dead CSS: removed `.arrivals-blocked-banner` and `.arrivals-blocked-text` styles (no longer referenced in JSX)
+- Lint: 0 errors
+- Browser test: ALL PASSED — departures panel ✅, arrivals panel ✅, smooth transitions ✅, no black flash ✅, auto-cycle timer ✅, progress bar ✅
+
+Stage Summary:
+- 2 bugs fixed: black flash eliminated, arrivals now display properly
+- Arrivals panel slides from right (opposite direction from departures)
+- Arrivals always in slide sequence — no permanent blocking
+- Auto-switch to departures when imminent departure detected (temporary, not permanent)
+- CSS cleanup: removed ~20 lines of dead arrivals-blocked styles

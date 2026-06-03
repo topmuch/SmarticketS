@@ -98,7 +98,6 @@ const SLIDE_DURATION = 120; // seconds
 const AD_SLIDE_DURATION = 60; // seconds for ads slide
 const MAX_ROWS = 10;
 const POLL_INTERVAL = 15000; // 15s
-const ARRIVALS_BLOCK_DURATION = 10 * 60 * 1000; // 10 minutes in ms
 const DEPARTURE_IMMINENT_THRESHOLD = 5 * 60 * 1000; // 5 minutes in ms
 const DEPARTED_FADE_DURATION = 5 * 60 * 1000; // 5 minutes in ms — show PARTI rows before removing
 
@@ -232,8 +231,7 @@ export default function SignageSlugPage() {
   const [currentMode, setCurrentMode] = useState<'departures' | 'arrivals' | 'ads'>('departures');
   const [timeRemaining, setTimeRemaining] = useState(SLIDE_DURATION);
 
-  /* ─── Arrivals blocking state ──────────────────────── */
-  const [arrivalsBlockedUntil, setArrivalsBlockedUntil] = useState<number>(0);
+
 
   /* ─── Refs ────────────────────────────────────────── */
   const rootRef = useRef<HTMLDivElement>(null);
@@ -285,11 +283,6 @@ export default function SignageSlugPage() {
       return diff >= -5 * 60 * 1000 && diff <= DEPARTURE_IMMINENT_THRESHOLD;
     });
   }, [data, now]);
-
-  /* ─── Computed: are arrivals currently blocked? ─── */
-  const isArrivalsBlocked = useMemo(() => {
-    return Date.now() < arrivalsBlockedUntil;
-  }, [arrivalsBlockedUntil, now]);
 
   /* ─── Computed: current slide duration based on mode ─── */
   const currentSlideDuration = currentMode === 'ads' ? AD_SLIDE_DURATION : SLIDE_DURATION;
@@ -365,15 +358,12 @@ export default function SignageSlugPage() {
     };
   }, [isKiosk]);
 
-  /* ─── Slide sequence based on blocking and ads availability ─── */
+  /* ─── Slide sequence based on ads availability (arrivals always included) ─── */
   const slideSequence = useMemo(() => {
     const hasAds = signageAds.length > 0;
-    const blocked = isArrivalsBlocked;
-    if (!hasAds && blocked) return ['departures'] as const;
-    if (!hasAds && !blocked) return ['departures', 'arrivals'] as const;
-    if (hasAds && blocked) return ['departures', 'ads'] as const;
+    if (!hasAds) return ['departures', 'arrivals'] as const;
     return ['departures', 'ads', 'arrivals'] as const;
-  }, [signageAds.length, isArrivalsBlocked]);
+  }, [signageAds.length]);
 
   /* ─── Switch mode function ─────────────────────────── */
   const switchMode = useCallback(() => {
@@ -483,15 +473,12 @@ export default function SignageSlugPage() {
     return () => clearTimeout(id);
   }, [currentMode, adCarouselIndex, signageAds]);
 
-  /* ─── Auto-block arrivals when departure imminent ────────────────── */
+  /* ─── Auto-switch to departures when a departure is imminent ────────── */
   useEffect(() => {
     if (!hasImminentDeparture) return;
-    const nowMs = Date.now();
-    if (nowMs < arrivalsBlockedUntil) return; // already blocked
-    setArrivalsBlockedUntil(nowMs + ARRIVALS_BLOCK_DURATION);
-    // Force switch to departures if currently showing arrivals
+    // Only switch if currently showing arrivals (don't permanently block)
     setCurrentMode((prev) => (prev === 'arrivals' ? 'departures' : prev));
-  }, [hasImminentDeparture, arrivalsBlockedUntil]);
+  }, [hasImminentDeparture]);
 
   /* ─── Slide timer ──────────────────────────────────── */
   useEffect(() => {
@@ -1193,7 +1180,7 @@ export default function SignageSlugPage() {
     const boardModeClass = isDeparturesMode ? 'departures-mode-active' : isArrivalsMode ? 'arrivals-mode-active' : '';
     const headerModeClass = isDeparturesMode ? 'departures-mode' : isArrivalsMode ? 'arrivals-mode' : '';
     const departuresPanelClass = isDeparturesMode ? 'slide-panel departures-panel active' : 'slide-panel departures-panel left';
-    const arrivalsPanelClass = isArrivalsMode ? 'slide-panel arrivals-panel active' : 'slide-panel arrivals-panel left';
+    const arrivalsPanelClass = isArrivalsMode ? 'slide-panel arrivals-panel active' : 'slide-panel arrivals-panel right';
     const titleText = isDeparturesMode ? 'DÉPARTS' : 'ARRIVÉES';
     const destHeader = isDeparturesMode ? 'DESTINATION' : 'PROVENANCE';
 
@@ -1737,24 +1724,6 @@ html, body {
   text-align: center;
 }
 
-/* ─── RESPONSIVE ────────────────────────────────── */
-.arrivals-blocked-banner {
-  background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
-  border: 1px solid rgba(239,68,68,0.4);
-  border-top: none;
-  padding: 0.8vh 2vw;
-  text-align: center;
-  flex-shrink: 0;
-  margin-bottom: 1vh;
-}
-.arrivals-blocked-text {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 1.6vh;
-  color: #ef4444;
-  letter-spacing: 0.2vw;
-  animation: blink-medium 1s infinite;
-}
-
 /* ─── COLUMN WIDTHS ─────────────────────────────── */
 .col-time { width: 12vw; }
 .col-dest { width: auto; }
@@ -1964,8 +1933,6 @@ html, body {
   .col-status { width: 30vw; font-size: clamp(9px, 3.5vw, 24px) !important; }
   .ticker-text { font-size: clamp(10px, 2.5vh, 22px); }
   .ticker-wrap { padding: 0.5vh 1.5vw; margin-bottom: 0.5vh; }
-  .arrivals-blocked-banner { padding: 0.5vh 1.5vw; }
-  .arrivals-blocked-text { font-size: clamp(8px, 1.8vh, 18px); }
   .slide-wrapper { margin-top: 1vh; }
   .loading-text { font-size: clamp(16px, 6vw, 48px); }
   .loading-sub { font-size: clamp(10px, 3vw, 24px); }
