@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -138,6 +139,10 @@ export default function SignageAdsPage() {
 
   // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Socket.io connection to kiosk service
+  const socketRef = useRef<Socket | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   /* ---- toast helper ---- */
   const addToast = useCallback((type: ToastMessage['type'], text: string) => {
@@ -326,35 +331,75 @@ export default function SignageAdsPage() {
     [addToast, fetchAds],
   );
 
+  /* ---- Socket.io connection to kiosk service ---- */
+  useEffect(() => {
+    const socket = io('/?XTransformPort=3004', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('join:station', { slug: '__ALL__', role: 'admin' });
+      setSocketConnected(true);
+    });
+    socket.on('disconnect', () => {
+      setSocketConnected(false);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+      setSocketConnected(false);
+    };
+  }, []);
+
   /* ---- broadcast ad now to all kiosks ---- */
   const handleBroadcastAd = useCallback(
-    async (ad: SignageAd) => {
+    (ad: SignageAd) => {
       setBroadcastingId(ad.id);
-      try {
-        const res = await fetch('/api/kiosk/broadcast-ad', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            adId: ad.id,
-            adTitle: ad.title,
-            mediaType: ad.mediaType,
-            mediaUrl: ad.mediaUrl,
-            imageUrl: ad.imageUrl,
-            videoUrl: ad.videoUrl,
-            mobileImageUrl: ad.mobileImageUrl,
-            duration: ad.duration,
-          }),
-        });
-        if (!res.ok) {
-          addToast('error', 'Erreur lors de la diffusion');
-          return;
-        }
+
+      const adPayload = {
+        adId: ad.id,
+        adTitle: ad.title,
+        mediaType: ad.mediaType,
+        mediaUrl: ad.mediaUrl,
+        imageUrl: ad.imageUrl,
+        videoUrl: ad.videoUrl,
+        mobileImageUrl: ad.mobileImageUrl,
+        duration: ad.duration,
+      };
+
+      // Primary: emit directly via Socket.io (instant, no server roundtrip)
+      const socket = socketRef.current;
+      if (socket && socket.connected) {
+        socket.emit('kiosk:forceAd', adPayload);
         addToast('success', `"${ad.title}" diffusée sur tous les kiosques`);
-      } catch {
-        addToast('error', 'Erreur de connexion au service kiosk');
-      } finally {
         setBroadcastingId(null);
+        return;
       }
+
+      // Fallback: use API route (requires kiosk-service HTTP endpoint)
+      fetch('/api/kiosk/broadcast-ad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adPayload),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            addToast('error', 'Erreur lors de la diffusion (service kiosk indisponible)');
+            return;
+          }
+          addToast('success', `"${ad.title}" diffusée sur tous les kiosques`);
+        })
+        .catch(() => {
+          addToast('error', 'Service kiosk injoignable — vérifiez que le kiosk-service est démarré');
+        })
+        .finally(() => {
+          setBroadcastingId(null);
+        });
     },
     [addToast],
   );
@@ -411,6 +456,22 @@ export default function SignageAdsPage() {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <Megaphone className="w-6 h-6 text-[#FF1D8D]" />
             Publicités &mdash; Affichage Gare
+            {/* Kiosk service connection indicator */}
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-normal px-2 py-0.5 rounded-full ${
+                socketConnected
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+              }`}
+              title={socketConnected ? 'Connecté au service kiosk' : 'Non connecté au service kiosk'}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                }`}
+              />
+              {socketConnected ? 'Kiosk connecté' : 'Kiosk déconnecté'}
+            </span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">
             Gérez les publicités diffusées sur les bornes kiosques de la gare
