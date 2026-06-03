@@ -1770,3 +1770,25 @@ Stage Summary:
 - P6 reminders only affect audio playback + small overlay banners, never hide schedule
 - Code architecture guarantees: schedule board always visible except during fullscreen ads
 - Safety net: if `currentMode` somehow becomes invalid, it auto-resets to 'departures'
+---
+Task ID: 11
+Agent: Main Agent
+Task: Create verifiable tests for Upload API + 5 secured API routes (Prompt 3)
+
+Work Log:
+- Read all 7 source files: rbac.ts, session.ts, upload/route.ts, ai/suggestions, ai/summarize, ai/translate, messages/route.ts, reports/route.ts
+- Verified all 5 API routes already have auth guards (🔒 AUTH AJOUTÉE markers present) from previous session
+- Created `__tests__/api-fixes.test.ts` with 3 test sections:
+  - Part A (Static Analysis): 58 tests verifying auth patterns exist in source code
+  - Part B (HTTP LIVE): 14 tests making real fetch() calls to localhost:3000, verifying 401/403 responses
+  - Part C (Upload Structure): 17 tests verifying upload validation logic, MIME mapping, security features
+- All 89 tests passed: 0 failures
+- Verified: no mock data, all real HTTP requests, all real source code analysis
+- Verified: POST /api/messages remains open (public contact form, intentionally no auth)
+
+Stage Summary:
+- 1 file created: __tests__/api-fixes.test.ts (89 tests)
+- All 89 tests pass with real HTTP calls (no mocks)
+- Security verified: all 5 AI/messages/reports routes return 401 without auth
+- Upload API verified: 401 without auth, MIME validation, 50MB limit, UUID filename, sanitizeFilename
+- Messages POST intentionally left open for public contact form
