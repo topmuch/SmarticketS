@@ -1629,3 +1629,30 @@ Stage Summary:
 - Smooth 0.5s fade-in transition between horaires and pub
 - Cycle preserved: departures (120s) → ads (60s, multi-image carousel) → arrivals (120s)
 - Zero overlay elements — badge, timer, progress bar, dots, caption all removed
+---
+Task ID: 11
+Agent: Main Agent
+Task: Diagnostic du PWA Contrôleur — validation tickets + scanner QR
+
+Work Log:
+- Localized all controller PWA files: /controller/login, /controller/validate, /controller/layout, /api/validate-ticket, /api/controller/agencies, /api/auth/field-login
+- Read 10 files: validate page (1854 lines), layout, login, validate-ticket API, controller agencies API, pwa-guard.ts, offline/queue.ts, offline/sync.ts, rbac.ts, Prisma schema
+- Diagnosed 4 bugs:
+  - BUG 1 (CRITICAL): validate-ticket API only accepts cookie session + PWA token, but NOT staff JWT from field-login. Controllers always get 401.
+  - BUG 2 (CRITICAL): Controller validate page sends pwaTokenRef (empty after field-login) instead of staff access token from localStorage.
+  - BUG 3 (CRITICAL): KeypadScreen setCodeDirect prop defined in types but not destructured — crashes when user types in text input.
+  - BUG 4 (MEDIUM): Offline sync queue doesn't include auth headers, replayed validations fail with 401.
+- Fixed BUG 1: Added Strategy 2 (Staff JWT via verifyStaffAccessToken) in authenticateRequest() in validate-ticket route, with role normalization to lowercase.
+- Fixed BUG 2: validateWithCode now reads staff access token from localStorage (priority) and falls back to PWA token.
+- Fixed BUG 3: Added setCodeDirect to KeypadScreen destructured props.
+- Fixed BUG 4: Offline queue items now include Authorization header with auth token.
+- Fixed scope issue: authToken variable moved before try/catch so it's accessible in catch block.
+- Verified: lint clean, dev server compiling, /controller/login returns 200, /controller/validate returns 200, /api/validate-ticket returns 401 without auth, /api/controller/agencies returns 1 agency.
+
+Stage Summary:
+- 2 files modified: src/app/api/validate-ticket/route.ts, src/app/controller/validate/page.tsx
+- 4 bugs fixed: auth mismatch (2), keypad crash (1), offline sync auth (1)
+- Scanner (Html5Qrcode): OK — correct camera setup, error handling, code extraction, flashlight toggle
+- Offline queue/sync engine: OK — IndexedDB-based with exponential backoff
+- Login flow: OK — field-login stores staff JWT correctly in localStorage
+- Zero lint errors

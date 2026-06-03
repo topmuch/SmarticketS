@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { getSession, type SessionUser } from '@/lib/session';
 import { validatePwaToken, type PwaTokenPayload } from '@/lib/pwa-guard';
+import { verifyStaffAccessToken } from '@/lib/rbac';
 
 // Validation schema
 const validateTicketSchema = z.object({
@@ -12,15 +13,15 @@ const validateTicketSchema = z.object({
   agencyId: z.string().optional(),
 });
 
-/** Normalized auth context from either session or PWA token */
+/** Normalized auth context from session, PWA token or Staff JWT */
 interface AuthContext {
   role: string;
   agencyId?: string | null;
 }
 
 /**
- * Authenticate the request via cookie session (web) or Bearer PWA token (PWA).
- * Returns null if neither auth method succeeds.
+ * Authenticate the request via cookie session, PWA token, or Staff JWT.
+ * Returns null if no auth method succeeds.
  */
 async function authenticateRequest(request: NextRequest): Promise<AuthContext | null> {
   // Strategy 1: Cookie-based session (web dashboard / admin)
@@ -29,10 +30,22 @@ async function authenticateRequest(request: NextRequest): Promise<AuthContext | 
     return { role: session.role, agencyId: session.agencyId };
   }
 
-  // Strategy 2: PWA Bearer token (controller / driver PWA)
+  // Strategy 2 & 3: Bearer token — try Staff JWT first, then PWA token
   const authHeader = request.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
+
+    // Strategy 2: Staff JWT (from field-login, signed with JWT_SECRET)
+    const staffPayload = verifyStaffAccessToken(token);
+    if (staffPayload) {
+      // Normalize role: StaffJwtPayload.role is e.g. "CONTROLLER" → lowercase for matching
+      return {
+        role: staffPayload.role.toLowerCase(),
+        agencyId: staffPayload.agencyId,
+      };
+    }
+
+    // Strategy 3: PWA Bearer token (from QR URL, signed with HMAC-SHA256)
     const result = await validatePwaToken(token);
     if (result.valid && result.payload) {
       const payload: PwaTokenPayload = result.payload;

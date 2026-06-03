@@ -957,6 +957,7 @@ function ResultScreen({
 function KeypadScreen({
   code,
   onDigit,
+  setCodeDirect,
   onDelete,
   onValidate,
   onBack,
@@ -1465,11 +1466,14 @@ export default function ControllerValidatePage() {
       setCode(controlCode);
       triggerHaptic(20);
 
+      // Build auth token — prefer staff access token, fallback to PWA token
+      const staffToken = localStorage.getItem(STORAGE_KEYS.accessToken);
+      const authToken = staffToken || pwaTokenRef.current;
+
       try {
-        // Build headers — include PWA token for API authentication
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (pwaTokenRef.current) {
-          headers['Authorization'] = `Bearer ${pwaTokenRef.current}`;
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
         }
         const res = await fetch('/api/validate-ticket', {
           method: 'POST',
@@ -1525,6 +1529,7 @@ export default function ControllerValidatePage() {
               url: '/api/validate-ticket',
               method: 'POST',
               body: { controlCode, agencyId: selectedAgencyIdRef.current || undefined },
+              headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
             });
             const stats = await getQueueStats();
             setPendingCount(stats.pending);
