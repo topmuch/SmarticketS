@@ -226,6 +226,7 @@ export default function SignageSlugPage() {
   /* ─── Signage Ads state ─────────────────────────────── */
   const [signageAds, setSignageAds] = useState<SignageAd[]>([]);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [adCarouselIndex, setAdCarouselIndex] = useState(0);
 
   /* ─── Slide state ──────────────────────────────────── */
   const [currentMode, setCurrentMode] = useState<'departures' | 'arrivals' | 'ads'>('departures');
@@ -382,8 +383,11 @@ export default function SignageSlugPage() {
       const nextIdx = (idx + 1) % seq.length;
       const next = seq[nextIdx];
       setTimeRemaining(next === 'ads' ? AD_SLIDE_DURATION : SLIDE_DURATION);
-      if (next === 'ads' && signageAds.length > 1) {
-        setCurrentAdIndex((i) => (i + 1) % signageAds.length);
+      if (next === 'ads') {
+        setAdCarouselIndex(0);  // RESET carousel when entering ads
+        if (signageAds.length > 1) {
+          setCurrentAdIndex((i) => (i + 1) % signageAds.length);
+        }
       }
       return next;
     });
@@ -467,6 +471,17 @@ export default function SignageSlugPage() {
     const id = setInterval(fetchAds, 60000); // refresh every 60s
     return () => clearInterval(id);
   }, []);
+
+  /* ─── Ad carousel within ad slot ────────────────── */
+  useEffect(() => {
+    if (currentMode !== 'ads' || signageAds.length <= 1) return;
+    const currentAd = signageAds[adCarouselIndex % signageAds.length];
+    const adDuration = Math.max(5, currentAd?.duration || 10) * 1000;
+    const id = setTimeout(() => {
+      setAdCarouselIndex(prev => (prev + 1) % signageAds.length);
+    }, adDuration);
+    return () => clearTimeout(id);
+  }, [currentMode, adCarouselIndex, signageAds]);
 
   /* ─── Auto-block arrivals when departure imminent ────────────────── */
   useEffect(() => {
@@ -1046,60 +1061,71 @@ export default function SignageSlugPage() {
     };
   }, [slug]);
 
-  /* ─── Render Ad Slide ────────────────────────────── */
-  const renderAdSlide = () => {
+  /* ─── Render Fullscreen Ad Overlay ────────────────── */
+  const renderAdFullscreen = () => {
     if (signageAds.length === 0) return null;
-    const ad = signageAds[currentAdIndex % signageAds.length];
+    const ad = signageAds[adCarouselIndex % signageAds.length];
     const adImageUrl = ad.imageUrl || ad.mobileImageUrl || ad.mediaUrl || '';
     const isVideo = ad.mediaType === 'VIDEO' && ad.videoUrl;
 
     return (
-      <div className={`slide-panel ${currentMode === 'ads' ? 'active' : 'left'} ads-panel`}>
-        <div className="ads-content">
-          <div className="ads-badge">PUBLICITÉ</div>
-          {isVideo ? (
-            <video
-              key={ad.id}
-              src={ad.videoUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="ads-media"
-            />
-          ) : adImageUrl ? (
-            <div style={{ position: 'relative', width: '80%', maxWidth: 'min(900px, 85vw)', aspectRatio: '16/9' }}>
-              <Image
-                key={ad.id}
-                src={adImageUrl}
-                alt={ad.title}
-                fill
-                className="ads-media"
-                style={{ objectFit: 'contain' }}
-                unoptimized
-              />
-            </div>
-          ) : (
-            <div className="ads-placeholder">
-              <p className="ads-placeholder-text">{ad.title}</p>
-            </div>
-          )}
-          {ad.title && !isVideo && (
-            <div className="ads-caption">
-              <span className="ads-caption-text">{ad.title}</span>
-            </div>
-          )}
-          {signageAds.length > 1 && (
-            <div className="ads-dots">
-              {signageAds.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`ads-dot ${idx === currentAdIndex % signageAds.length ? 'ads-dot-active' : ''}`}
-                />
-              ))}
-            </div>
-          )}
+      <div className="ad-fs-overlay">
+        {/* Ad progress bar at bottom */}
+        <div className="ad-fs-progress-track">
+          <div
+            className="ad-fs-progress-fill"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
+
+        {/* Top-right: badge + timer */}
+        <div className="ad-fs-top-bar">
+          <div className="ad-fs-badge">PUBLICITÉ</div>
+          <div className="ad-fs-timer">{Math.ceil(timeRemaining)}s</div>
+        </div>
+
+        {/* Media */}
+        {isVideo ? (
+          <video
+            key={ad.id}
+            src={ad.videoUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="ad-fs-media"
+          />
+        ) : adImageUrl ? (
+          <img
+            key={ad.id}
+            src={adImageUrl}
+            alt={ad.title}
+            className="ad-fs-media"
+          />
+        ) : (
+          <div className="ad-fs-placeholder">
+            <p className="ad-fs-placeholder-text">{ad.title}</p>
+          </div>
+        )}
+
+        {/* Caption (bottom-center) */}
+        {ad.title && !isVideo && (
+          <div className="ad-fs-caption">
+            <span>{ad.title}</span>
+          </div>
+        )}
+
+        {/* Carousel dots */}
+        {signageAds.length > 1 && (
+          <div className="ad-fs-dots">
+            {signageAds.map((_, idx) => (
+              <div
+                key={idx}
+                className={`ad-fs-dot ${idx === adCarouselIndex % signageAds.length ? 'ad-fs-dot-active' : ''}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -1194,137 +1220,143 @@ export default function SignageSlugPage() {
   const isDeparturesMode = currentMode === 'departures';
   const isArrivalsMode = currentMode === 'arrivals';
   const isAdsMode = currentMode === 'ads';
-  const boardModeClass = isDeparturesMode ? 'departures-mode-active' : isArrivalsMode ? 'arrivals-mode-active' : 'ads-mode-active';
-  const headerModeClass = isDeparturesMode ? 'departures-mode' : isArrivalsMode ? 'arrivals-mode' : 'ads-mode';
-  const departuresPanelClass = isDeparturesMode ? 'slide-panel departures-panel active' : 'slide-panel departures-panel left';
-  const arrivalsPanelClass = isArrivalsMode ? 'slide-panel arrivals-panel active' : 'slide-panel arrivals-panel left';
-  const titleText = isDeparturesMode ? 'DÉPARTS' : isArrivalsMode ? 'ARRIVÉES' : 'PUBLICITÉ';
-  const destHeader = isDeparturesMode ? 'DESTINATION' : 'PROVENANCE';
-  const destClass = isDeparturesMode ? 'departures-panel' : 'arrivals-panel';
 
-  const departureRows = visibleDepartures.slice(0, MAX_ROWS);
-  const arrivalRows = visibleArrivals.slice(0, MAX_ROWS);
+  /* ─── SCHEDULE RENDER (hidden when showing ads) ─── */
+  const renderScheduleBoard = () => {
+    const boardModeClass = isDeparturesMode ? 'departures-mode-active' : isArrivalsMode ? 'arrivals-mode-active' : '';
+    const headerModeClass = isDeparturesMode ? 'departures-mode' : isArrivalsMode ? 'arrivals-mode' : '';
+    const departuresPanelClass = isDeparturesMode ? 'slide-panel departures-panel active' : 'slide-panel departures-panel left';
+    const arrivalsPanelClass = isArrivalsMode ? 'slide-panel arrivals-panel active' : 'slide-panel arrivals-panel left';
+    const titleText = isDeparturesMode ? 'DÉPARTS' : 'ARRIVÉES';
+    const destHeader = isDeparturesMode ? 'DESTINATION' : 'PROVENANCE';
+
+    const departureRows = visibleDepartures.slice(0, MAX_ROWS);
+    const arrivalRows = visibleArrivals.slice(0, MAX_ROWS);
+
+    return (
+      <div className={`board ${boardModeClass}`} ref={rootRef}>
+        <style>{LED_STYLES}</style>
+        <div className="board-content" style={{ cursor: isKiosk && cursorHidden ? 'none' : 'default' }}>
+
+          {/* ─── TICKER BANDEAU ──────────────────────────── */}
+          {tickerText && (
+            <div className="ticker-wrap">
+              <div className="ticker-text">{tickerText}</div>
+            </div>
+          )}
+
+          {/* ─── REMINDER BANNER (Rain = blue top, Closure = orange top, Bagages = yellow bottom) ─── */}
+          {reminderBanner && reminderBanner.color === 'orange' && (
+            <div style={{
+              background: 'linear-gradient(90deg, #f97316, #ea580c)',
+              color: '#fff',
+              padding: '8px 20px',
+              fontSize: '14px',
+              fontWeight: 600,
+              textAlign: 'center',
+              letterSpacing: '0.5px',
+              animation: 'blink-slow 2s ease-in-out infinite',
+            }}>
+              ⏰ {reminderBanner.text}
+            </div>
+          )}
+          {reminderBanner && reminderBanner.color === 'blue' && (
+            <div style={{
+              background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
+              color: '#fff',
+              padding: '8px 20px',
+              fontSize: '14px',
+              fontWeight: 600,
+              textAlign: 'center',
+              letterSpacing: '0.5px',
+            }}>
+              🌧️ {reminderBanner.text}
+            </div>
+          )}
+
+          {/* ─── HEADER ──────────────────────────────────── */}
+          <div className={`header ${headerModeClass}`}>
+            <div className="header-icon">
+              <BusIcon />
+            </div>
+            <h1>{titleText}</h1>
+            <div className="header-brand">
+              <div className="brand-logo-wrap">
+                <Image src="/logo-full.png" alt="SmarticketS" width={120} height={40} className="brand-logo" />
+              </div>
+              <div className="brand-sub">SmarticketS Gare Routière</div>
+            </div>
+          </div>
+
+          {/* ─── SLIDE WRAPPER ───────────────────────────── */}
+          <div className="slide-wrapper">
+            {/* Departures Panel */}
+            <div className={departuresPanelClass}>
+              <table className="schedule-table departures-panel">
+                <thead>
+                  <tr>
+                    <th className="col-time">HEURE</th>
+                    <th className="col-dest">DESTINATION</th>
+                    <th className="col-status">STATUT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {departureRows.map(renderDepartureRow)}
+                  {renderEmptyRows(MAX_ROWS - departureRows.length)}
+                </tbody>
+              </table>
+              <AnalogClock date={now} />
+            </div>
+
+            {/* Arrivals Panel */}
+            <div className={arrivalsPanelClass}>
+              <table className="schedule-table arrivals-panel">
+                <thead>
+                  <tr>
+                    <th className="col-time">HEURE</th>
+                    <th className="col-dest">PROVENANCE</th>
+                    <th className="col-status">STATUT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {arrivalRows.map(renderArrivalRow)}
+                  {renderEmptyRows(MAX_ROWS - arrivalRows.length)}
+                </tbody>
+              </table>
+              <AnalogClock date={now} />
+            </div>
+          </div>
+
+          {/* ─── REMINDER BANNER BOTTOM (Bagages = yellow, discreet) ─── */}
+          {reminderBanner && reminderBanner.color === 'yellow' && (
+            <div style={{
+              background: 'linear-gradient(90deg, #eab308, #ca8a04)',
+              color: '#1a1a1a',
+              padding: '6px 20px',
+              fontSize: '12px',
+              fontWeight: 600,
+              textAlign: 'center',
+              letterSpacing: '0.3px',
+              opacity: 0.85,
+            }}>
+              💼 {reminderBanner.text}
+            </div>
+          )}
+        </div>
+
+        {/* ─── PROGRESS BAR ────────────────────────────── */}
+        <div
+          className={`timer-bar ${boardModeClass}`}
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    );
+  };
 
   return (
-    <div className={`board ${boardModeClass}`} ref={rootRef}>
-      <style>{LED_STYLES}</style>
-      <div className="board-content" style={{ cursor: isKiosk && cursorHidden ? 'none' : 'default' }}>
-
-        {/* ─── TICKER BANDEAU ──────────────────────────── */}
-        {tickerText && (
-          <div className="ticker-wrap">
-            <div className="ticker-text">{tickerText}</div>
-          </div>
-        )}
-
-        {/* ─── REMINDER BANNER (Rain = blue top, Closure = orange top, Bagages = yellow bottom) ─── */}
-        {reminderBanner && reminderBanner.color === 'orange' && (
-          <div style={{
-            background: 'linear-gradient(90deg, #f97316, #ea580c)',
-            color: '#fff',
-            padding: '8px 20px',
-            fontSize: '14px',
-            fontWeight: 600,
-            textAlign: 'center',
-            letterSpacing: '0.5px',
-            animation: 'blink-slow 2s ease-in-out infinite',
-          }}>
-            ⏰ {reminderBanner.text}
-          </div>
-        )}
-        {reminderBanner && reminderBanner.color === 'blue' && (
-          <div style={{
-            background: 'linear-gradient(90deg, #3b82f6, #2563eb)',
-            color: '#fff',
-            padding: '8px 20px',
-            fontSize: '14px',
-            fontWeight: 600,
-            textAlign: 'center',
-            letterSpacing: '0.5px',
-          }}>
-            🌧️ {reminderBanner.text}
-          </div>
-        )}
-
-        {/* ─── HEADER ──────────────────────────────────── */}
-        <div className={`header ${headerModeClass}`}>
-          <div className="header-icon">
-            <BusIcon />
-          </div>
-          <h1>{titleText}</h1>
-          <div className="header-brand">
-            <div className="brand-logo-wrap">
-              <Image src="/logo-full.png" alt="SmarticketS" width={120} height={40} className="brand-logo" />
-            </div>
-            <div className="brand-sub">SmarticketS Gare Routière</div>
-          </div>
-        </div>
-
-        {/* ─── SLIDE WRAPPER ───────────────────────────── */}
-        <div className="slide-wrapper">
-          {/* Departures Panel */}
-          <div className={departuresPanelClass}>
-            <table className="schedule-table departures-panel">
-              <thead>
-                <tr>
-                  <th className="col-time">HEURE</th>
-                  <th className="col-dest">DESTINATION</th>
-                  <th className="col-status">STATUT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {departureRows.map(renderDepartureRow)}
-                {renderEmptyRows(MAX_ROWS - departureRows.length)}
-              </tbody>
-            </table>
-            <AnalogClock date={now} />
-          </div>
-
-          {/* Ads Panel */}
-          {renderAdSlide()}
-
-          {/* Arrivals Panel */}
-          <div className={arrivalsPanelClass}>
-            <table className="schedule-table arrivals-panel">
-              <thead>
-                <tr>
-                  <th className="col-time">HEURE</th>
-                  <th className="col-dest">PROVENANCE</th>
-                  <th className="col-status">STATUT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {arrivalRows.map(renderArrivalRow)}
-                {renderEmptyRows(MAX_ROWS - arrivalRows.length)}
-              </tbody>
-            </table>
-            <AnalogClock date={now} />
-          </div>
-        </div>
-
-        {/* ─── REMINDER BANNER BOTTOM (Bagages = yellow, discreet) ─── */}
-        {reminderBanner && reminderBanner.color === 'yellow' && (
-          <div style={{
-            background: 'linear-gradient(90deg, #eab308, #ca8a04)',
-            color: '#1a1a1a',
-            padding: '6px 20px',
-            fontSize: '12px',
-            fontWeight: 600,
-            textAlign: 'center',
-            letterSpacing: '0.3px',
-            opacity: 0.85,
-          }}>
-            💼 {reminderBanner.text}
-          </div>
-        )}
-      </div>
-
-      {/* ─── PROGRESS BAR ────────────────────────────── */}
-      <div
-        className={`timer-bar ${boardModeClass}`}
-        style={{ width: `${progressPercent}%` }}
-      />
-    </div>
+    <>
+      {isAdsMode ? renderAdFullscreen() : renderScheduleBoard()}
+    </>
   );
 }
 
@@ -1694,41 +1726,28 @@ html, body {
   50% { opacity: 0.1; }
 }
 
-/* ─── ADS SLIDE ──────────────────────────────── */
-.ads-panel {
+/* ─── FULLSCREEN AD OVERLAY ───────────────────────── */
+.ad-fs-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: #000;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
-.ads-content {
+
+.ad-fs-media {
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding: 4vh 4vw;
+  object-fit: cover;
 }
-.ads-badge {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.2vw;
-  color: #888;
-  letter-spacing: 0.3vw;
-  text-transform: uppercase;
-  margin-bottom: 2vh;
-  border: 1px solid #333;
-  padding: 0.5vh 2vw;
-}
-.ads-media {
-  max-width: 85%;
-  max-height: 70vh;
-  border-radius: 12px;
-  object-fit: contain;
-  box-shadow: 0 0 40px rgba(255,255,255,0.1);
-}
-.ads-placeholder {
+
+.ad-fs-placeholder {
   width: 70vw;
   height: 50vh;
   border: 3px dashed #333;
@@ -1737,43 +1756,112 @@ html, body {
   align-items: center;
   justify-content: center;
 }
-.ads-placeholder-text {
+
+.ad-fs-placeholder-text {
   font-family: 'Share Tech Mono', monospace;
   font-size: 3vw;
   color: #555;
   text-align: center;
 }
-.ads-caption {
-  margin-top: 2vh;
-  text-align: center;
-}
-.ads-caption-text {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 2vw;
-  color: #ccc;
-  text-shadow: 0 0 10px rgba(255,255,255,0.3);
-  letter-spacing: 0.1vw;
-}
-.ads-dots {
+
+.ad-fs-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
-  gap: 1vw;
-  margin-top: 2vh;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  z-index: 10;
+  pointer-events: none;
 }
-.ads-dot {
-  width: 1.2vw;
-  height: 1.2vw;
-  max-width: 12px;
-  max-height: 12px;
+
+.ad-fs-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  color: #888;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: 1px solid #333;
+  padding: 6px 16px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+}
+
+.ad-fs-timer {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  color: #888;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  border: 1px solid #333;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+
+.ad-fs-caption {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  padding: 8px 24px;
+  border-radius: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.ad-fs-caption span {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  color: #ccc;
+  letter-spacing: 1px;
+}
+
+.ad-fs-dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.ad-fs-dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #333;
   transition: all 0.3s ease;
 }
-.ads-dot-active {
+
+.ad-fs-dot-active {
   background: #22c55e;
   box-shadow: 0 0 10px rgba(34,197,94,0.6);
+  transform: scale(1.2);
 }
 
-/* ─── ARRIVALS BLOCKED BANNER ──────────────────── */
+.ad-fs-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  z-index: 20;
+}
+
+.ad-fs-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  transition: width 1s linear;
+}
+
+/* ─── RESPONSIVE ────────────────────────────────── */
 .arrivals-blocked-banner {
   background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
   border: 1px solid rgba(239,68,68,0.4);
@@ -1789,23 +1877,6 @@ html, body {
   color: #ef4444;
   letter-spacing: 0.2vw;
   animation: blink-medium 1s infinite;
-}
-
-/* ─── ADS MODE HEADER ─────────────────────────── */
-.header.ads-mode {
-  border-top-color: #22c55e;
-  border-bottom-color: #22c55e;
-}
-.header.ads-mode .header-icon {
-  background: #22c55e;
-  box-shadow: 0 0 30px rgba(34,197,94,0.8);
-}
-.header.ads-mode h1 {
-  color: #22c55e;
-  text-shadow: 0 0 20px rgba(34,197,94,0.6);
-}
-.board.ads-mode-active .timer-bar {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
 }
 
 /* ─── COLUMN WIDTHS ─────────────────────────────── */
@@ -2020,9 +2091,6 @@ html, body {
   .arrivals-blocked-banner { padding: 0.5vh 1.5vw; }
   .arrivals-blocked-text { font-size: clamp(8px, 1.8vh, 18px); }
   .slide-wrapper { margin-top: 1vh; }
-  .ads-badge { font-size: clamp(9px, 2vw, 16px); padding: 0.4vh 1.5vw; }
-  .ads-caption-text { font-size: clamp(10px, 2.5vw, 20px); }
-  .ads-placeholder { width: 85vw; height: 40vh; }
   .loading-text { font-size: clamp(16px, 6vw, 48px); }
   .loading-sub { font-size: clamp(10px, 3vw, 24px); }
 }

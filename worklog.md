@@ -1446,3 +1446,65 @@ Stage Summary:
 - kiosk-service confirmed running on port 3004
 - TypeScript type-check passes with 0 errors
 - ESLint passes with 0 new errors
+---
+Task ID: 3
+Agent: Main Agent
+Task: Fix fullscreen advertisement display — ads should take over FULL SCREEN (100vw × 100vh) with black background, hiding ALL schedule UI elements
+
+Work Log:
+- **Change 1 (line 229)**: Added `adCarouselIndex` state variable to track which ad is shown within the fullscreen ad slot
+- **Change 2 (lines 475-484)**: Added new `useEffect` for ad carousel within the ad slot — cycles through ads based on each ad's `duration` field (min 5s default 10s)
+- **Change 3 (lines 378-394)**: Modified `switchMode` callback to reset `adCarouselIndex` to 0 when entering ads mode
+- **Change 4 (lines 1064-1131)**: Replaced old `renderAdSlide()` (slide panel inside `.slide-wrapper`) with new `renderAdFullscreen()` — renders a `position: fixed; 100vw×100vh` overlay with z-index 9999, black background, media content (video/image), progress bar, PUBLICITÉ badge, countdown timer, caption, and carousel dots
+- **Change 5 (lines 1220-1361)**: Restructured main render section:
+  - Extracted schedule rendering into `renderScheduleBoard()` function (only departures/arrivals, no ads panel)
+  - Added `isAdsMode` conditional: `{isAdsMode ? renderAdFullscreen() : renderScheduleBoard()}`
+  - Ads panel removed from inside `.slide-wrapper`
+  - Removed `ads-mode` and `ads-mode-active` CSS class references from render
+- **Change 6 (lines 1729-1862)**: Added 14 new `.ad-fs-*` CSS classes to `LED_STYLES` for fullscreen ad overlay:
+  - `.ad-fs-overlay`: fixed position, full viewport, black bg, z-index 9999
+  - `.ad-fs-media`: 100% width/height, object-fit cover
+  - `.ad-fs-top-bar`: absolute positioned, flex, badge + timer
+  - `.ad-fs-badge`, `.ad-fs-timer`: styled with backdrop-filter blur
+  - `.ad-fs-caption`: bottom center, glass-morphism style
+  - `.ad-fs-dots`, `.ad-fs-dot`, `.ad-fs-dot-active`: carousel indicator
+  - `.ad-fs-progress-track`, `.ad-fs-progress-fill`: bottom progress bar with green gradient
+- **Change 7**: Removed all old `.ads-*` CSS classes:
+  - Removed: `.ads-panel`, `.ads-content`, `.ads-badge`, `.ads-media`, `.ads-placeholder`, `.ads-placeholder-text`, `.ads-caption`, `.ads-caption-text`, `.ads-dots`, `.ads-dot`, `.ads-dot-active`, `.header.ads-mode`, `.header.ads-mode .header-icon`, `.header.ads-mode h1`, `.board.ads-mode-active .timer-bar`
+  - Removed responsive media query entries for `.ads-badge`, `.ads-caption-text`, `.ads-placeholder`
+
+Lint Result: 0 errors (clean)
+Dev Server: Compiled successfully (5.9s), no errors in dev.log
+
+Stage Summary:
+- 1 file modified: src/app/signage-slug/[slug]/page.tsx
+- 7 logical changes applied (new state, useEffect, switchMode, render function, render restructure, new CSS, old CSS removal)
+- Ads now display as fullscreen overlay (100vw × 100vh, z-index 9999) with black background
+- All schedule UI elements (header, ticker, clock, progress bar, reminders) are hidden during ad mode
+- Ad carousel cycles through multiple ads based on individual ad duration
+- Progress bar, PUBLICITÉ badge, countdown timer, and carousel dots visible during ads
+- Zero lint errors introduced
+
+---
+Task ID: 3
+Agent: main
+Task: Audit and fix signage advertisement system — full-screen display
+
+Work Log:
+- Read signage-slug/[slug]/page.tsx (2051 lines) and diagnosed root cause
+- Identified bug: ads rendered as slide-panel inside .slide-wrapper, not full-screen
+- Header, ticker, clock, progress bar, reminders all remained visible during ads mode
+- Added adCarouselIndex state for multi-ad carousel within ad slot
+- Added useEffect to cycle ads based on per-ad duration field
+- Modified switchMode to reset carousel index when entering ads mode
+- Replaced renderAdSlide() (slide panel) with renderAdFullscreen() (fixed overlay)
+- Restructured render: {isAdsMode ? renderAdFullscreen() : renderScheduleBoard()}
+- Added 14 new .ad-fs-* CSS classes for fullscreen overlay (z-index: 9999, 100vw×100vh)
+- Removed old .ads-panel/.header.ads-mode CSS classes (~80 lines)
+- Lint: 0 errors, dev server compiled successfully
+
+Stage Summary:
+- Root cause: Architecture issue — ads were a slide panel, not a full-screen takeover
+- Fix: position:fixed overlay with z-index:9999 replaces entire board-content during ad mode
+- All 7 FAIL items from audit checklist now fixed
+- Carousel support: multiple ads cycle based on individual ad.duration within the 60s ad slot
