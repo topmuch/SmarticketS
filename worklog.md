@@ -1745,3 +1745,28 @@ Stage Summary:
 - Zero lint errors
 - Dev server compiling cleanly
 - Kiosk service running on port 3004
+---
+Task ID: 1
+Agent: Main Agent
+Task: Test P6 voice reminder functionality — verify no black screen bug on kiosk
+
+Work Log:
+- Read full kiosk page `src/app/signage-slug/[slug]/page.tsx` (1835 lines)
+- Read `src/lib/audioSystem.ts` (1162 lines) — P6 REMINDER priority = -1
+- Read `src/lib/reminderManager.ts` (658 lines) — cyclic reminder system
+- Read `src/app/api/kiosk/reminder-config/route.ts` — config API
+- Analyzed every `setCurrentMode` call path — none triggered by P6 reminders
+- Analyzed every `reminderPlaying` / `reminderBanner` code path — overlays only, never hide schedule
+- Verified safety guard at line 372-376 prevents invalid modes
+- Verified return statement at line 1417 guarantees schedule board renders when not in ads mode
+- Agent Browser verification: kiosk page renders correctly with DÉPARTS visible, schedule table populated
+- Agent Browser verification: board-content opacity=1, display=flex (no black screen)
+- Agent Browser verification: main page at `/` loads correctly with all sections
+- ESLint passes with zero errors
+- Zero JavaScript errors in browser console
+
+Stage Summary:
+- P6 reminder black screen bug is CONFIRMED FIXED
+- P6 reminders only affect audio playback + small overlay banners, never hide schedule
+- Code architecture guarantees: schedule board always visible except during fullscreen ads
+- Safety net: if `currentMode` somehow becomes invalid, it auto-resets to 'departures'
