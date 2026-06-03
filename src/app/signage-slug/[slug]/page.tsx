@@ -240,6 +240,7 @@ export default function SignageSlugPage() {
   const socketRef = useRef<Socket | null>(null);
   const generalMessageCleanupRef = useRef<(() => void) | null>(null);
   const departedTimersRef = useRef<Map<string, number>>(new Map()); // departureId → timestamp when marked DEPARTED
+  const adImageErrorRef = useRef<string | null>(null); // track failed ad image loads
 
   /* ─── Departed fade tick: forces re-evaluation of visible departures ─── */
   const [departedFadeTick, setDepartedFadeTick] = useState(0);
@@ -364,6 +365,13 @@ export default function SignageSlugPage() {
     if (!hasAds) return ['departures', 'arrivals'] as const;
     return ['departures', 'ads', 'arrivals'] as const;
   }, [signageAds.length]);
+
+  /* ─── Safety: reset mode if not in slideSequence (prevents black screen) ─── */
+  useEffect(() => {
+    if (!slideSequence.includes(currentMode)) {
+      setCurrentMode('departures');
+    }
+  }, [slideSequence, currentMode]);
 
   /* ─── Switch mode function ─────────────────────────── */
   const switchMode = useCallback(() => {
@@ -1068,12 +1076,14 @@ export default function SignageSlugPage() {
             playsInline
             className="ad-fs-media"
           />
-        ) : adImageUrl ? (
+        ) : adImageUrl && adImageErrorRef.current !== ad.id ? (
           <img
             key={ad.id}
             src={adImageUrl}
             alt={ad.title}
             className="ad-fs-media"
+            onError={() => { adImageErrorRef.current = ad.id; }}
+            onLoad={() => { adImageErrorRef.current = null; }}
           />
         ) : (
           <div className="ad-fs-placeholder">
@@ -1309,7 +1319,7 @@ export default function SignageSlugPage() {
 
   return (
     <>
-      {isAdsMode ? renderAdFullscreen() : renderScheduleBoard()}
+      {isAdsMode && signageAds.length > 0 ? renderAdFullscreen() : renderScheduleBoard()}
     </>
   );
 }
