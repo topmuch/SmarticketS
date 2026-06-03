@@ -674,25 +674,23 @@ export default function SignageAdsPage() {
                 {/* Actions */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
-                    {ad.isActive && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleBroadcastAd(ad)}
-                        disabled={broadcastingId === ad.id}
-                        className="h-8 px-3 rounded-lg text-xs font-medium text-[#FF1D8D] hover:text-[#FF1D8D] hover:bg-[#FF1D8D]/10 dark:hover:bg-[#FF1D8D]/20"
-                        title="Diffuser sur tous les kiosques maintenant"
-                      >
-                        {broadcastingId === ad.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <>
-                            <Radio className="w-3.5 h-3.5 mr-1" />
-                            Diffuser
-                          </>
-                        )}
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBroadcastAd(ad)}
+                      disabled={broadcastingId === ad.id}
+                      className="h-8 px-3 rounded-lg text-xs font-semibold border-[#FF1D8D]/40 text-[#FF1D8D] hover:bg-[#FF1D8D] hover:text-white hover:border-[#FF1D8D] dark:border-[#FF1D8D]/50 dark:hover:bg-[#FF1D8D] dark:hover:text-white transition-colors"
+                      title="Diffuser cette pub sur tous les kiosques maintenant"
+                    >
+                      {broadcastingId === ad.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <>
+                          <Radio className="w-3.5 h-3.5 mr-1" />
+                          Diffuser maintenant
+                        </>
+                      )}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
