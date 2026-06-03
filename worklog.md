@@ -1508,3 +1508,75 @@ Stage Summary:
 - Fix: position:fixed overlay with z-index:9999 replaces entire board-content during ad mode
 - All 7 FAIL items from audit checklist now fixed
 - Carousel support: multiple ads cycle based on individual ad.duration within the 60s ad slot
+
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Fix signage/[stationId] page ads from overlay to fullscreen exclusive mode
+
+Work Log:
+- Read the existing signage/[stationId]/page.tsx file (1370+ lines with CSS)
+- Read the reference implementation signage-slug/[slug]/page.tsx for correct mode-based approach
+- Identified overlay approach problem: showAdOverlay state rendered ads ON TOP of horaires (bandeau overlay)
+- Removed overlay state: showAdOverlay, activeAd, adIntervalTimerRef, adDisplayTimerRef, lastAdShowTimeRef, showAdOverlayRef, dismissAd callback
+- Added mode-based state: currentMode ('board' | 'ads'), timeRemaining, adCarouselIndex
+- Added constants: BOARD_SLIDE_DURATION (120s), AD_SLIDE_DURATION (60s)
+- Added computed values: currentSlideDuration, progressPercent
+- Replaced ad rotation engine useEffect with mode-cycling timer useEffect + ad carousel useEffect
+- Updated JSX rendering: conditional render based on isAdsMode flag (if ads mode → fullscreen ads only, else → full board)
+- Updated fullscreen ads render: added progress bar (bottom), badge + timer (top-right), carousel dots (bottom-center)
+- Updated CSS: enhanced sp-ad-overlay for fullscreen exclusive mode, added sp-ad-fs-top-bar, sp-ad-fs-badge, sp-ad-fs-timer, sp-ad-fs-progress-track, sp-ad-fs-progress-fill, sp-ad-fs-dots, sp-ad-fs-dot classes
+- Removed unused CSS: sp-ad-progress, sp-ad-label, @keyframes sp-ad-progress
+- Updated debug panel to show current mode and timer
+- Lint: 0 errors, dev server compiling successfully
+
+Stage Summary:
+- signage/[stationId] page now shows ads in fullscreen exclusive mode (matching signage-slug behavior)
+- Cycle: board 120s → ads 60s → board 120s
+- When no ads exist, board displays permanently without cycling
+- Ad carousel works within ads slot (multiple ads cycle based on individual ad.duration)
+- Ads render: progress bar, PUBLICITÉ badge, countdown timer, carousel dots
+- Board render: complete horaires with header, ticker, tabs, departures/arrivals columns, footer
+- Kept AdMedia component and resolveAdMedia function unchanged
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: Verify and fix kiosk signage advertising system — fullscreen ads (not bandeau)
+
+Work Log:
+- AUDIT: Read and analyzed both signage pages:
+  - `src/app/signage-slug/[slug]/page.tsx` — ALREADY had correct fullscreen exclusive mode (mode switch, horaires completely hidden when ads showing)
+  - `src/app/signage/[stationId]/page.tsx` — Had OVERLAY approach (ads appear as translucent bandeau ON TOP of horaires)
+- ROOT CAUSE IDENTIFIED: No demo ads in database. The `/api/signage-ads` API returned empty array because:
+  1. `auto-seed.ts` never created SignageAd records
+  2. Without ads, the cycle never enters 'ads' mode
+ 3. User saw only horaires, never ads → reported as "bandeau only"
+- Fix 1: Added 3 demo SignageAd records to auto-seed.ts for future deployments
+- Fix 2: Inserted 3 demo ads directly into DB via Prisma (immediate fix):
+  - "Offre Spéciale Hajj 2026" (Unsplash image, 15s duration, priority 10)
+  - "Voyagez avec Ashraf Voyages" (Unsplash image, 10s duration, priority 5)
+  - "Billets à partir de 3500 FCFA" (Unsplash image, 10s duration, priority 3)
+- Fix 3: Fixed CSS injection bug in signage-slug page — renderAdFullscreen() now includes <style>{LED_STYLES}</style> tag so ad CSS is available when in ads mode (was missing before)
+- Fix 4: Fixed signage/[stationId] page via subagent — replaced overlay approach with fullscreen exclusive mode:
+  - Removed: showAdOverlay, activeAd, adIntervalTimerRef, adDisplayTimerRef, lastAdShowTimeRef, showAdOverlayRef, dismissAd
+  - Added: currentMode ('board' | 'ads'), timeRemaining, adCarouselIndex, progressPercent
+  - Added: mode cycling timer (120s board → 60s ads → 120s board)
+  - Added: ad carousel within ads slot (cycles through multiple ads)
+  - Added: fullscreen ad render with progress bar, PUBLICITÉ badge, countdown timer, carousel dots
+- Verified API returns 3 active ads (curl /api/signage-ads)
+- Verified with agent-browser:
+  - Page loads correctly in departures mode
+  - LED_STYLES CSS is injected (including ad-fs-overlay classes)
+  - Timer bar animating at 61.67% progress
+  - No JavaScript errors
+- Lint: 0 errors
+
+Stage Summary:
+- signage-slug/[slug]/page.tsx: Fixed CSS injection bug in renderAdFullscreen()
+- signage/[stationId]/page.tsx: Completely refactored from overlay to fullscreen exclusive mode
+- auto-seed.ts: Added 3 demo SignageAd records for future deployments
+- Database: 3 real demo ads seeded (Unsplash images)
+- API: /api/signage-ads returns 3 active ads
+- Cycle: departures 120s → ads 60s (with carousel) → arrivals 120s → repeat
+- Zero lint errors

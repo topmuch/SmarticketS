@@ -317,7 +317,66 @@ export async function ensureSeeded(): Promise<boolean> {
       });
     }
 
-    // 10. Mark as seeded
+    // 10. Create demo SignageAds for kiosk display testing
+    const demoAds = [
+      {
+        id: 'signage-ad-demo-1',
+        title: 'Offre Spéciale Hajj 2026',
+        mediaType: 'IMAGE',
+        mediaUrl: 'https://images.unsplash.com/photo-1590055531615-5b93e6bb3d25?w=1920&h=1080&fit=crop',
+        imageUrl: 'https://images.unsplash.com/photo-1590055531615-5b93e6bb3d25?w=1920&h=1080&fit=crop',
+        videoUrl: null,
+        mobileImageUrl: null,
+        duration: 15,
+        interval: 30,
+        startDate: new Date(Date.now() - 86400000),
+        endDate: new Date(Date.now() + 30 * 86400000),
+        isActive: true,
+        priority: 10,
+        createdBy: 'system',
+      },
+      {
+        id: 'signage-ad-demo-2',
+        title: 'Voyagez avec Ashraf Voyages',
+        mediaType: 'IMAGE',
+        mediaUrl: 'https://images.unsplash.com/photo-1580674684084-53e2f2941801?w=1920&h=1080&fit=crop',
+        imageUrl: 'https://images.unsplash.com/photo-1580674684084-53e2f2941801?w=1920&h=1080&fit=crop',
+        videoUrl: null,
+        mobileImageUrl: null,
+        duration: 10,
+        interval: 30,
+        startDate: new Date(Date.now() - 86400000),
+        endDate: new Date(Date.now() + 30 * 86400000),
+        isActive: true,
+        priority: 5,
+        createdBy: 'system',
+      },
+      {
+        id: 'signage-ad-demo-3',
+        title: 'Billets à partir de 3500 FCFA',
+        mediaType: 'IMAGE',
+        mediaUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1920&h=1080&fit=crop',
+        imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1920&h=1080&fit=crop',
+        videoUrl: null,
+        mobileImageUrl: null,
+        duration: 10,
+        interval: 30,
+        startDate: new Date(Date.now() - 86400000),
+        endDate: new Date(Date.now() + 30 * 86400000),
+        isActive: true,
+        priority: 3,
+        createdBy: 'system',
+      },
+    ];
+    for (const adData of demoAds) {
+      await db.signageAd.upsert({
+        where: { id: adData.id },
+        update: {},
+        create: adData,
+      });
+    }
+
+    // 11. Mark as seeded
     await db.setting.upsert({
       where: { key: SEED_LOCK_KEY },
       update: { value: 'true' },

@@ -275,14 +275,13 @@ export default function SignagePremiumPage() {
   // Mobile tab state
   const [activeTab, setActiveTab] = useState<'departures' | 'arrivals'>('departures');
 
-  // Ad rotation state
+  // Ad rotation state (mode-based exclusive fullscreen)
+  const BOARD_SLIDE_DURATION = 120; // seconds for board display
+  const AD_SLIDE_DURATION = 60; // seconds for ads display
   const [ads, setAds] = useState<SignageAd[]>([]);
-  const [activeAd, setActiveAd] = useState<SignageAd | null>(null);
-  const [showAdOverlay, setShowAdOverlay] = useState(false);
-  const adIntervalTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const adDisplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastAdShowTimeRef = useRef<number>(0);
-  const showAdOverlayRef = useRef(false);
+  const [currentMode, setCurrentMode] = useState<'board' | 'ads'>('board');
+  const [timeRemaining, setTimeRemaining] = useState(BOARD_SLIDE_DURATION);
+  const [adCarouselIndex, setAdCarouselIndex] = useState(0);
 
   // Audio alert tracking
   const announcedRef = useRef<Set<string>>(new Set());
@@ -400,42 +399,47 @@ export default function SignagePremiumPage() {
     return () => clearInterval(id);
   }, []);
 
-  // ─── Ad rotation engine ─────────────────────────────
+  // ─── Computed: current slide duration based on mode ───
+  const currentSlideDuration = currentMode === 'ads' ? AD_SLIDE_DURATION : BOARD_SLIDE_DURATION;
+
+  // ─── Computed: progress percent for progress bar ───
+  const progressPercent = ((currentSlideDuration - timeRemaining) / currentSlideDuration) * 100;
+
+  // ─── Mode cycling timer ──────────────────────────────
   useEffect(() => {
-    if (ads.length === 0) return;
+    if (ads.length === 0) return; // No ads → stay on board forever
 
-    const minInterval = Math.min(...ads.map(a => a.interval)) * 60 * 1000;
+    const id = setInterval(() => {
+      setTimeRemaining((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          // Switch mode
+          setCurrentMode((prevMode) => {
+            const newMode = prevMode === 'board' ? 'ads' : 'board';
+            setTimeRemaining(newMode === 'ads' ? AD_SLIDE_DURATION : BOARD_SLIDE_DURATION);
+            if (newMode === 'ads') {
+              setAdCarouselIndex(0); // reset carousel when entering ads
+            }
+            return newMode;
+          });
+          return currentSlideDuration; // holdover value until state updates
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [ads.length, currentSlideDuration]);
 
-    const showAd = () => {
-      const now = Date.now();
-      if (now - lastAdShowTimeRef.current < 5000) return;
-      if (showAdOverlayRef.current) return;
-      lastAdShowTimeRef.current = now;
-
-      const randomAd = ads[Math.floor(Math.random() * ads.length)];
-      setActiveAd(randomAd);
-      setShowAdOverlay(true);
-      showAdOverlayRef.current = true;
-
-      if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
-      adDisplayTimerRef.current = setTimeout(() => {
-        setShowAdOverlay(false);
-        setActiveAd(null);
-        showAdOverlayRef.current = false;
-      }, randomAd.duration * 1000);
-    };
-
-    const initialDelay = setTimeout(() => {
-      showAd();
-      adIntervalTimerRef.current = setInterval(showAd, minInterval);
-    }, 3000);
-
-    return () => {
-      clearTimeout(initialDelay);
-      if (adIntervalTimerRef.current) clearInterval(adIntervalTimerRef.current);
-      if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
-    };
-  }, [ads]);
+  // ─── Ad carousel within ad slot ──────────────────────
+  useEffect(() => {
+    if (currentMode !== 'ads' || ads.length <= 1) return;
+    const currentAd = ads[adCarouselIndex % ads.length];
+    const adDuration = Math.max(5, currentAd?.duration || 10) * 1000;
+    const id = setTimeout(() => {
+      setAdCarouselIndex((prev) => (prev + 1) % ads.length);
+    }, adDuration);
+    return () => clearTimeout(id);
+  }, [currentMode, adCarouselIndex, ads]);
 
   // ─── Poll station data every 15s ────────────────────
   useEffect(() => {
@@ -497,13 +501,7 @@ export default function SignagePremiumPage() {
     return { type: 'image' as const, url: '' };
   }, []);
 
-  // ─── Dismiss ad overlay ─────────────────────────────
-  const dismissAd = useCallback(() => {
-    if (adDisplayTimerRef.current) clearTimeout(adDisplayTimerRef.current);
-    setShowAdOverlay(false);
-    setActiveAd(null);
-    showAdOverlayRef.current = false;
-  }, []);
+
 
   // ─── Loading state ──────────────────────────────────
   if (!data && !notFound) {
@@ -537,181 +535,218 @@ export default function SignagePremiumPage() {
   const stationName = data.stationName || 'Gare Routière';
   const slug = data.slug || stationId;
 
+  const isAdsMode = currentMode === 'ads' && ads.length > 0;
+
+  /* ─── Fullscreen Ad Render ────────────────────────── */
+  const renderAdsFullscreen = () => {
+    if (ads.length === 0) return null;
+    const activeAd = ads[adCarouselIndex % ads.length];
+
+    return (
+      <div className="sp-ad-overlay">
+        {/* Ad progress bar at bottom */}
+        <div className="sp-ad-fs-progress-track">
+          <div
+            className="sp-ad-fs-progress-fill"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        {/* Top-right: badge + timer */}
+        <div className="sp-ad-fs-top-bar">
+          <div className="sp-ad-fs-badge">PUBLICITÉ</div>
+          <div className="sp-ad-fs-timer">{Math.ceil(timeRemaining)}s</div>
+        </div>
+
+        {/* Media */}
+        <AdMedia ad={activeAd} resolveMedia={resolveAdMedia} />
+
+        {/* Carousel dots */}
+        {ads.length > 1 && (
+          <div className="sp-ad-fs-dots">
+            {ads.map((_, idx) => (
+              <div
+                key={idx}
+                className={`sp-ad-fs-dot ${idx === adCarouselIndex % ads.length ? 'sp-ad-fs-dot--active' : ''}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="sp-root" ref={rootRef}>
       <style>{spStyles.main(cursorHidden)}</style>
 
-      {/* ─── TICKER BANDEAU ────────────────────────── */}
-      {tickerText && (
-        <div className="sp-ticker-wrap">
-          <div className="sp-ticker">{tickerText}</div>
-        </div>
-      )}
-
-      {/* ─── HEADER ────────────────────────────────── */}
-      <header className="sp-header">
-        <div className="sp-header__left">
-          {data.logoUrl ? (
-            <img className="sp-header__logo" src={data.logoUrl} alt="Logo" />
-          ) : (
-            <div className="sp-header__logo-fallback">ST</div>
-          )}
-          <div>
-            <h1 className="sp-header__name">{stationName}</h1>
-            <span className="sp-header__city">{data.city || ''}</span>
-          </div>
-        </div>
-        <div className="sp-header__right">
-          <div className="sp-clock">{currentTime}</div>
-          <div className="sp-date">{currentDate}</div>
-        </div>
-      </header>
-
-      {/* ─── MOBILE TAB BAR ───────────────────────── */}
-      <div className="sp-tabs">
-        <button
-          className={['sp-tab', activeTab === 'departures' ? 'sp-tab--active' : ''].join(' ')}
-          onClick={() => setActiveTab('departures')}
-        >
-          DÉPARTS ({data.departures.length})
-        </button>
-        <button
-          className={['sp-tab', activeTab === 'arrivals' ? 'sp-tab--active' : ''].join(' ')}
-          onClick={() => setActiveTab('arrivals')}
-        >
-          ARRIVÉES ({data.arrivals.length})
-        </button>
-      </div>
-
-      {/* ─── CONTENT: 2 Columns OR End of Day ──── */}
-      {data.departures.length === 0 && data.arrivals.length === 0 ? (
-        <main className="sp-eod-wrap">
-          <div className="sp-eod-moon">{'\uD83C\uDF19'}</div>
-          <h2 className="sp-eod-title">Fin des d&eacute;parts aujourd&apos;hui</h2>
-          <p className="sp-eod-sub">Merci de votre confiance. &Agrave; demain !</p>
-          {data.nextDayPreview && data.nextDayPreview.length > 0 && (
-            <div className="sp-eod-next">
-              <p className="sp-eod-next-label">Prochains d&eacute;parts demain</p>
-              {data.nextDayPreview.map((d) => (
-                <div key={d.id} className="sp-eod-next-item">
-                  <span className="sp-eod-next-time">{d.time}</span>
-                  <span className="sp-eod-next-arrow">&rarr;</span>
-                  <span className="sp-eod-next-dest">{d.destination}</span>
-                </div>
-              ))}
+      {isAdsMode ? (
+        /* ─── FULLSCREEN ADS MODE ─────────────────── */
+        renderAdsFullscreen()
+      ) : (
+        /* ─── BOARD MODE ──────────────────────────── */
+        <>
+          {/* ─── TICKER BANDEAU ────────────────────────── */}
+          {tickerText && (
+            <div className="sp-ticker-wrap">
+              <div className="sp-ticker">{tickerText}</div>
             </div>
           )}
-          {data.nextDayFirstDeparture && (
-            <p className="sp-eod-first">
-              Prochain d&eacute;part demain &agrave;{' '}
-              <span className="sp-eod-first-time">{data.nextDayFirstDeparture}</span>
-            </p>
+
+          {/* ─── HEADER ────────────────────────────────── */}
+          <header className="sp-header">
+            <div className="sp-header__left">
+              {data.logoUrl ? (
+                <img className="sp-header__logo" src={data.logoUrl} alt="Logo" />
+              ) : (
+                <div className="sp-header__logo-fallback">ST</div>
+              )}
+              <div>
+                <h1 className="sp-header__name">{stationName}</h1>
+                <span className="sp-header__city">{data.city || ''}</span>
+              </div>
+            </div>
+            <div className="sp-header__right">
+              <div className="sp-clock">{currentTime}</div>
+              <div className="sp-date">{currentDate}</div>
+            </div>
+          </header>
+
+          {/* ─── MOBILE TAB BAR ───────────────────────── */}
+          <div className="sp-tabs">
+            <button
+              className={['sp-tab', activeTab === 'departures' ? 'sp-tab--active' : ''].join(' ')}
+              onClick={() => setActiveTab('departures')}
+            >
+              DÉPARTS ({data.departures.length})
+            </button>
+            <button
+              className={['sp-tab', activeTab === 'arrivals' ? 'sp-tab--active' : ''].join(' ')}
+              onClick={() => setActiveTab('arrivals')}
+            >
+              ARRIVÉES ({data.arrivals.length})
+            </button>
+          </div>
+
+          {/* ─── CONTENT: 2 Columns OR End of Day ──── */}
+          {data.departures.length === 0 && data.arrivals.length === 0 ? (
+            <main className="sp-eod-wrap">
+              <div className="sp-eod-moon">{'\uD83C\uDF19'}</div>
+              <h2 className="sp-eod-title">Fin des d&eacute;parts aujourd&apos;hui</h2>
+              <p className="sp-eod-sub">Merci de votre confiance. &Agrave; demain !</p>
+              {data.nextDayPreview && data.nextDayPreview.length > 0 && (
+                <div className="sp-eod-next">
+                  <p className="sp-eod-next-label">Prochains d&eacute;parts demain</p>
+                  {data.nextDayPreview.map((d) => (
+                    <div key={d.id} className="sp-eod-next-item">
+                      <span className="sp-eod-next-time">{d.time}</span>
+                      <span className="sp-eod-next-arrow">&rarr;</span>
+                      <span className="sp-eod-next-dest">{d.destination}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {data.nextDayFirstDeparture && (
+                <p className="sp-eod-first">
+                  Prochain d&eacute;part demain &agrave;{' '}
+                  <span className="sp-eod-first-time">{data.nextDayFirstDeparture}</span>
+                </p>
+              )}
+            </main>
+          ) : (
+            <main className="sp-content">
+              {/* Départs Column */}
+              <div className={['sp-col', activeTab === 'departures' ? 'sp-col--active' : ''].join(' ')}>
+                <BoardSection
+                  title="DÉPARTS"
+                  count={data.departures.length}
+                  accentClass="sp-board__head--depart"
+                >
+                  {data.departures.length === 0 ? (
+                    <div className="sp-empty">Aucun départ prévu</div>
+                  ) : (
+                    data.departures.map(dep => <DepartureCard key={dep.id} dep={dep} />)
+                  )}
+                </BoardSection>
+              </div>
+
+              {/* Arrivées Column */}
+              <div className={['sp-col', activeTab === 'arrivals' ? 'sp-col--active' : ''].join(' ')}>
+                <BoardSection
+                  title="ARRIVÉES"
+                  count={data.arrivals.length}
+                  accentClass="sp-board__head--arrive"
+                >
+                  {data.arrivals.length === 0 ? (
+                    <div className="sp-empty">Aucune arrivée prévue</div>
+                  ) : (
+                    data.arrivals.map(arr => <ArrivalCard key={arr.id} arr={arr} />)
+                  )}
+                </BoardSection>
+              </div>
+            </main>
           )}
-        </main>
-      ) : (
-        <main className="sp-content">
-        {/* Départs Column */}
-        <div className={['sp-col', activeTab === 'departures' ? 'sp-col--active' : ''].join(' ')}>
-          <BoardSection
-            title="DÉPARTS"
-            count={data.departures.length}
-            accentClass="sp-board__head--depart"
+
+          {/* ─── FOOTER ────────────────────────────────── */}
+          <footer className="sp-footer">
+            <div className="sp-footer__left">
+              <span className="sp-footer__date">{currentDate}</span>
+              <span className="sp-footer__city">{data.city || ''}</span>
+            </div>
+            <div className="sp-footer__center">
+              <QRCodeSVG
+                value={`/signage/${slug}`}
+                size={56}
+                bgColor="#ffffff"
+                fgColor="#0b0f19"
+                level="M"
+              />
+              <span className="sp-footer__qr-label">Scanner</span>
+            </div>
+            <div className="sp-footer__right">
+              <span className="sp-footer__brand">SmarticketS</span>
+            </div>
+          </footer>
+
+          {/* ─── FULLSCREEN BUTTON ────────────────────── */}
+          <button
+            className="sp-fs-btn"
+            onClick={() => toggleFullscreen(rootRef.current)}
+            aria-label="Plein écran"
           >
-            {data.departures.length === 0 ? (
-              <div className="sp-empty">Aucun départ prévu</div>
-            ) : (
-              data.departures.map(dep => <DepartureCard key={dep.id} dep={dep} />)
-            )}
-          </BoardSection>
-        </div>
+            ⛶
+          </button>
 
-        {/* Arrivées Column */}
-        <div className={['sp-col', activeTab === 'arrivals' ? 'sp-col--active' : ''].join(' ')}>
-          <BoardSection
-            title="ARRIVÉES"
-            count={data.arrivals.length}
-            accentClass="sp-board__head--arrive"
-          >
-            {data.arrivals.length === 0 ? (
-              <div className="sp-empty">Aucune arrivée prévue</div>
-            ) : (
-              data.arrivals.map(arr => <ArrivalCard key={arr.id} arr={arr} />)
-            )}
-          </BoardSection>
-        </div>
-        </main>
-      )}
+          {/* ─── OFFLINE BADGE ────────────────────────── */}
+          {offline && (
+            <div className="sp-offline-badge">⛔ HORS LIGNE</div>
+          )}
 
-      {/* ─── FOOTER ────────────────────────────────── */}
-      <footer className="sp-footer">
-        <div className="sp-footer__left">
-          <span className="sp-footer__date">{currentDate}</span>
-          <span className="sp-footer__city">{data.city || ''}</span>
-        </div>
-        <div className="sp-footer__center">
-          <QRCodeSVG
-            value={`/signage/${slug}`}
-            size={56}
-            bgColor="#ffffff"
-            fgColor="#0b0f19"
-            level="M"
-          />
-          <span className="sp-footer__qr-label">Scanner</span>
-        </div>
-        <div className="sp-footer__right">
-          <span className="sp-footer__brand">SmarticketS</span>
-        </div>
-      </footer>
+          {/* ─── VOICE INDICATOR ──────────────────────── */}
+          {hasAnnouncement && (
+            <div className="sp-voice-badge">🔊 Annonce en cours</div>
+          )}
 
-      {/* ─── FULLSCREEN BUTTON ────────────────────── */}
-      <button
-        className="sp-fs-btn"
-        onClick={() => toggleFullscreen(rootRef.current)}
-        aria-label="Plein écran"
-      >
-        ⛶
-      </button>
+          {/* ─── LAST UPDATE ─────────────────────────── */}
+          {lastUpdate && (
+            <div className="sp-last-update">MàJ {lastUpdate}</div>
+          )}
 
-      {/* ─── OFFLINE BADGE ────────────────────────── */}
-      {offline && (
-        <div className="sp-offline-badge">⛔ HORS LIGNE</div>
-      )}
-
-      {/* ─── VOICE INDICATOR ──────────────────────── */}
-      {hasAnnouncement && (
-        <div className="sp-voice-badge">🔊 Annonce en cours</div>
-      )}
-
-      {/* ─── LAST UPDATE ─────────────────────────── */}
-      {lastUpdate && (
-        <div className="sp-last-update">MàJ {lastUpdate}</div>
-      )}
-
-      {/* ─── AD OVERLAY ──────────────────────────── */}
-      {showAdOverlay && activeAd && (
-        <div className="sp-ad-overlay" onClick={dismissAd}>
-          <AdMedia ad={activeAd} resolveMedia={resolveAdMedia} />
-          <div
-            className="sp-ad-progress"
-            style={{ animationDuration: `${activeAd.duration}s` }}
-          />
-          <div className="sp-ad-label">
-            PUBLICITÉ — Cliquez pour fermer
-          </div>
-        </div>
-      )}
-
-      {/* ─── DEBUG PANEL ────────────────────────── */}
-      {isDebug && (
-        <div className="sp-debug">
-          <div className="sp-debug__title">DEBUG</div>
-          <div className="sp-debug__info">
-            Slug: {stationId}<br />
-            Départs: {data.departures.length}<br />
-            Arrivées: {data.arrivals.length}<br />
-            Ads: {ads.length}
-          </div>
-        </div>
+          {/* ─── DEBUG PANEL ────────────────────────── */}
+          {isDebug && (
+            <div className="sp-debug">
+              <div className="sp-debug__title">DEBUG</div>
+              <div className="sp-debug__info">
+                Slug: {stationId}<br />
+                Départs: {data.departures.length}<br />
+                Arrivées: {data.arrivals.length}<br />
+                Ads: {ads.length}<br />
+                Mode: {currentMode}<br />
+                Timer: {timeRemaining}s
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -1194,11 +1229,12 @@ const spStyles = {
       font-size: 0.6rem; z-index: 50;
     }
 
-    /* ═══ AD OVERLAY ═══ */
+    /* ═══ AD OVERLAY (fullscreen exclusive mode) ═══ */
     .sp-ad-overlay {
       position: fixed; inset: 0; z-index: 100; background: #000;
       display: flex; align-items: center; justify-content: center;
-      animation: sp-fadein 0.5s ease; cursor: pointer;
+      animation: sp-fadein 0.5s ease;
+      width: 100vw; height: 100vh; height: 100dvh;
     }
     .sp-ad-overlay img,
     .sp-ad-overlay video,
@@ -1213,19 +1249,53 @@ const spStyles = {
     .sp-ad-image { object-fit: cover; }
     .sp-ad-video { object-fit: contain; }
     .sp-ad-frame { border: none; }
-    .sp-ad-progress {
-      position: absolute; bottom: 0; left: 0; height: 4px;
-      background: #f97316;
-      animation: sp-ad-progress linear forwards;
+    .sp-ad-empty {
+      color: #64748b; font-size: 1rem;
     }
-    .sp-ad-label {
+
+    /* Ad fullscreen top bar: badge + timer */
+    .sp-ad-fs-top-bar {
       position: absolute; top: clamp(8px, 2vh, 16px); right: clamp(8px, 2vw, 20px);
+      display: flex; align-items: center; gap: clamp(6px, 1vw, 12px);
+      z-index: 101;
+    }
+    .sp-ad-fs-badge {
       background: rgba(0,0,0,0.7); color: rgba(255,255,255,0.7);
       padding: 4px 10px; border-radius: 6px;
       font-size: clamp(0.55rem, 1vh, 0.75rem); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .sp-ad-empty {
-      color: #64748b; font-size: 1rem;
+    .sp-ad-fs-timer {
+      background: rgba(0,0,0,0.7); color: rgba(255,255,255,0.9);
+      padding: 4px 10px; border-radius: 6px;
+      font-size: clamp(0.55rem, 1vh, 0.75rem); font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    /* Ad fullscreen progress bar */
+    .sp-ad-fs-progress-track {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
+      background: rgba(255,255,255,0.1); z-index: 101;
+    }
+    .sp-ad-fs-progress-fill {
+      height: 100%; background: #f97316;
+      transition: width 1s linear;
+    }
+
+    /* Ad fullscreen carousel dots */
+    .sp-ad-fs-dots {
+      position: absolute; bottom: clamp(12px, 2vh, 24px); left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: clamp(6px, 1vw, 10px); z-index: 101;
+    }
+    .sp-ad-fs-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+    }
+    .sp-ad-fs-dot--active {
+      background: #f97316;
+      transform: scale(1.3);
     }
 
     /* ═══ DEBUG PANEL ═══ */
@@ -1256,10 +1326,6 @@ const spStyles = {
       from { opacity: 0; }
       to { opacity: 1; }
     }
-    @keyframes sp-ad-progress {
-      from { width: 0; }
-      to { width: 100%; }
-    }
 
     /* ═══ RESPONSIVE: Mobile (< 768px) ═══ */
     @media (max-width: 767px) {
@@ -1282,7 +1348,7 @@ const spStyles = {
       .sp-footer__brand { font-size: 0.6rem; }
       .sp-footer__qr-label { display: none; }
       .sp-fs-btn { width: 28px; height: 28px; font-size: 0.7rem; top: 4px; right: 4px; }
-      .sp-ad-label { font-size: 0.5rem; }
+      .sp-ad-fs-badge, .sp-ad-fs-timer { font-size: 0.5rem; }
     }
 
     /* ═══ RESPONSIVE: Tablet (768px – 1023px) ═══ */

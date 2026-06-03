@@ -1070,6 +1070,7 @@ export default function SignageSlugPage() {
 
     return (
       <div className="ad-fs-overlay">
+        <style>{LED_STYLES}</style>
         {/* Ad progress bar at bottom */}
         <div className="ad-fs-progress-track">
           <div
