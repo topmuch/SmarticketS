@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { sendEmail, getEmailSettings } from '@/lib/email';
 
@@ -6,14 +7,37 @@ import { sendEmail, getEmailSettings } from '@/lib/email';
 // GET - Fetch all messages with filters
 export async function GET(request: NextRequest) {
   try {
+    // 🔒 AUTH AJOUTÉE — Vérification authentification
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+    const allowedRoles = ['admin', 'agent', 'agency', 'superadmin'];
+    if (!allowedRoles.includes(session.role)) {
+      return NextResponse.json(
+        { error: 'Accès refusé - Rôle insuffisant' },
+        { status: 403 }
+      );
+    }
+    // 🔒 ISOLATION PAR AGENCE — Un admin/agence ne voit que ses messages, superadmin voit tout
+    // 🔒 FIN AUTH
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    const where: Record<string, string | boolean> = {};
+    const where: Record<string, unknown> = {};
     if (type && type !== 'all') where.type = type;
     if (status && status !== 'all') where.status = status;
+    // 🔒 ISOLATION PAR AGENCE — filtrer par agencyId de la session
+    if (session.role !== 'superadmin' && session.agencyId) {
+      where.agencyId = session.agencyId;
+    }
+    // 🔒 FIN ISOLATION
 
     const messages = await db.message.findMany({
       where,
@@ -22,8 +46,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Get unread count
+    const unreadWhere: Record<string, unknown> = { status: 'non_lu' };
+    if (session.role !== 'superadmin' && session.agencyId) {
+      unreadWhere.agencyId = session.agencyId;
+    }
     const unreadCount = await db.message.count({
-      where: { status: 'non_lu' },
+      where: unreadWhere,
     });
 
     return NextResponse.json({ messages, unreadCount });
@@ -36,7 +64,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create a new message
+// POST - Create a new message (public contact form — auth optional for contact type)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -107,6 +135,23 @@ export async function POST(request: NextRequest) {
 // PUT - Update message status
 export async function PUT(request: NextRequest) {
   try {
+    // 🔒 AUTH AJOUTÉE — Vérification authentification
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+    const allowedRoles = ['admin', 'agent', 'agency', 'superadmin'];
+    if (!allowedRoles.includes(session.role)) {
+      return NextResponse.json(
+        { error: 'Accès refusé - Rôle insuffisant' },
+        { status: 403 }
+      );
+    }
+    // 🔒 FIN AUTH
+
     const body = await request.json();
     const { id, status } = body;
 
@@ -116,6 +161,18 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 🔒 ISOLATION — vérifier que le message appartient à l'agence (sauf superadmin)
+    if (session.role !== 'superadmin' && session.agencyId) {
+      const existing = await db.message.findUnique({ where: { id }, select: { agencyId: true } });
+      if (existing && existing.agencyId && existing.agencyId !== session.agencyId) {
+        return NextResponse.json(
+          { error: 'Accès refusé - Message non trouvé' },
+          { status: 404 }
+        );
+      }
+    }
+    // 🔒 FIN ISOLATION
 
     const message = await db.message.update({
       where: { id },
@@ -135,6 +192,23 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete a message
 export async function DELETE(request: NextRequest) {
   try {
+    // 🔒 AUTH AJOUTÉE — Vérification authentification
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+    const allowedRoles = ['admin', 'agent', 'agency', 'superadmin'];
+    if (!allowedRoles.includes(session.role)) {
+      return NextResponse.json(
+        { error: 'Accès refusé - Rôle insuffisant' },
+        { status: 403 }
+      );
+    }
+    // 🔒 FIN AUTH
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -144,6 +218,18 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 🔒 ISOLATION — vérifier que le message appartient à l'agence (sauf superadmin)
+    if (session.role !== 'superadmin' && session.agencyId) {
+      const existing = await db.message.findUnique({ where: { id }, select: { agencyId: true } });
+      if (existing && existing.agencyId && existing.agencyId !== session.agencyId) {
+        return NextResponse.json(
+          { error: 'Accès refusé - Message non trouvé' },
+          { status: 404 }
+        );
+      }
+    }
+    // 🔒 FIN ISOLATION
 
     await db.message.delete({
       where: { id },

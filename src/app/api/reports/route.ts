@@ -1,14 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { isPending, isActive } from '@/lib/status';
 
 // GET - Fetch report statistics
 export async function GET(request: NextRequest) {
   try {
+    // 🔒 AUTH AJOUTÉE — Vérification authentification + rôle admin/superadmin
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+    const allowedRoles = ['admin', 'superadmin'];
+    if (!allowedRoles.includes(session.role)) {
+      return NextResponse.json(
+        { error: 'Accès refusé - Rôle insuffisant' },
+        { status: 403 }
+      );
+    }
+    // 🔒 FIN AUTH
+
     const { searchParams } = new URL(request.url);
-    const agencyId = searchParams.get('agencyId');
+    let agencyId = searchParams.get('agencyId');
     const period = searchParams.get('period') || 'week'; // week, month, year
     const includeFounders = searchParams.get('founders') === 'true';
+
+    // 🔒 ISOLATION PAR AGENCE — superadmin peut voir tout, admin limité à son agence
+    if (session.role !== 'superadmin' && !agencyId && session.agencyId) {
+      agencyId = session.agencyId;
+    }
+    if (session.role !== 'superadmin' && agencyId && session.agencyId && agencyId !== session.agencyId) {
+      return NextResponse.json(
+        { error: 'Accès refusé - Agence non autorisée' },
+        { status: 403 }
+      );
+    }
+    // 🔒 FIN ISOLATION
 
     // Calculate date ranges
     const now = new Date();
