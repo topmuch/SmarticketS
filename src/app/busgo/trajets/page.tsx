@@ -64,7 +64,7 @@ export default function AgentTrajetsPage() {
     setLoading(true);
     setError(null);
     try {
-      let res = await fetch('/api/agent/trajets', { credentials: 'include' });
+      let res = await fetch('/api/busgo/trajets', { credentials: 'include' });
       if (!res.ok) {
         res = await fetch('/api/admin/departures', { credentials: 'include' });
       }
@@ -124,7 +124,7 @@ export default function AgentTrajetsPage() {
                 return (
                   <Link
                     key={departure.id}
-                    href={`/agent/embarquement/${departure.id}`}
+                    href={`/busgo/embarquement/${departure.id}`}
                     className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">

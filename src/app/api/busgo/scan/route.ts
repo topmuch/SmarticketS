@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
 
 /**
- * POST /api/agent/scan
+ * POST /api/busgo/scan
  *
  * Valide un billet via son QR code (controlCode) pour un départ donné.
  *
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       departure: ticket.departure,
     });
   } catch (error) {
-    console.error('[API /api/agent/scan]', error);
+    console.error('[API /api/busgo/scan]', error);
     return NextResponse.json(
       { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * PATCH /api/agent/scan
+ * PATCH /api/busgo/scan
  *
  * Met à jour le statut d'un billet (marquer absent, annuler, etc.)
  *
@@ -212,7 +212,7 @@ export async function PATCH(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[API /api/agent/scan PATCH]', error);
+    console.error('[API /api/busgo/scan PATCH]', error);
     return NextResponse.json(
       { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Page d'embarquement détaillée — /agent/embarquement/[departureId]
+ * Page d'embarquement détaillée — /busgo/embarquement/[departureId]
  *
  * Adapté de BusGo agent/embarquement/[trajetId]/page.tsx pour SmarticketS.
  *
@@ -39,13 +39,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { DepartureTimer } from '@/components/agent/departure-timer';
-import { SeatMap, type SeatTicket } from '@/components/agent/seat-map';
-import { MissingPassengerModal, type MissingPassenger } from '@/components/agent/missing-passenger-modal';
+import { DepartureTimer } from '@/components/busgo/departure-timer';
+import { SeatMap, type SeatTicket } from '@/components/busgo/seat-map';
+import { MissingPassengerModal, type MissingPassenger } from '@/components/busgo/missing-passenger-modal';
 import {
   RetardNotifications,
   useDelayNotifications,
-} from '@/components/agent/retard-notifications';
+} from '@/components/busgo/retard-notifications';
 import { useAgentVocalAlerts } from '@/hooks/use-agent-vocal-alerts';
 import { useKioskSocket } from '@/hooks/use-kiosk-socket';
 import { AnnouncementPriority } from '@/lib/audioSystem';
@@ -146,7 +146,7 @@ export default function EmbarquementPage() {
   const fetchDeparture = useCallback(async () => {
     if (!departureId) return;
     try {
-      const res = await fetch(`/api/agent/trajets/${departureId}`, {
+      const res = await fetch(`/api/busgo/trajets/${departureId}`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -207,7 +207,7 @@ export default function EmbarquementPage() {
     if (!scanInput.trim()) return;
     setScanning(true);
     try {
-      const res = await fetch('/api/agent/scan', {
+      const res = await fetch('/api/busgo/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -249,7 +249,7 @@ export default function EmbarquementPage() {
   // Update ticket status
   const updateTicketStatus = async (ticketId: string, status: 'BOARDED' | 'ABSENT' | 'ACTIVE' | 'CANCELLED') => {
     try {
-      const res = await fetch('/api/agent/scan', {
+      const res = await fetch('/api/busgo/scan', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -283,7 +283,7 @@ export default function EmbarquementPage() {
   const updateDepartureStatus = async (action: 'start-boarding' | 'depart') => {
     if (!departure) return;
     try {
-      const res = await fetch(`/api/agent/trajets/${departureId}`, {
+      const res = await fetch(`/api/busgo/trajets/${departureId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -311,7 +311,7 @@ export default function EmbarquementPage() {
 
   // Signal delay
   const signalDelay = async (depId: string, minutes: number) => {
-    const res = await fetch(`/api/agent/trajets/${depId}`, {
+    const res = await fetch(`/api/busgo/trajets/${depId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

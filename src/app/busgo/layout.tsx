@@ -1,20 +1,19 @@
 'use client';
 
 /**
- * Agent Layout — Espace agent embarquement (PWA mobile-first).
+ * BusGo Layout — Espace BusGo indépendant.
  *
- * Adapté de BusGo agent/layout.tsx pour SmarticketS.
- *
- * - Sidebar desktop avec navigation agent
- * - Bottom nav mobile (PWA)
- * - Header avec logo + déconnexion
- * - VocalProvider + KioskSocket pour temps réel
- * - OfflineIndicator pour mode hors-ligne
+ * BusGo est un module autonome de gestion de transport en bus.
+ * Accessible via /busgo/* pour les compagnies créées par le SuperAdmin.
  *
  * Routes:
- *   /agent                    — Dashboard (trajets du jour)
- *   /agent/trajets            — Liste des trajets assignés
- *   /agent/embarquement/[id]  — Embarquement passagers d'un trajet
+ *   /busgo                    — Dashboard (trajets du jour, KPIs)
+ *   /busgo/trajets            — Tous les trajets
+ *   /busgo/embarquement       — Embarquement (scan QR)
+ *   /busgo/guichet            — Vente de billets
+ *   /busgo/bus                — Gestion flotte de bus
+ *   /busgo/voix               — Configuration annonces vocales
+ *   /busgo/rapports           — Rapports et statistiques
  */
 
 import { useState, useEffect } from 'react';
@@ -25,19 +24,22 @@ import {
   LayoutDashboard,
   Clock,
   ScanLine,
+  Ticket,
+  Users,
+  Volume2,
+  VolumeX,
   LogOut,
   Menu,
   X,
   WifiOff,
   Wifi,
-  Volume2,
-  VolumeX,
   Bell,
+  BarChart3,
+  Cog,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentVocalAlerts } from '@/hooks/use-agent-vocal-alerts';
 import { useKioskSocket } from '@/hooks/use-kiosk-socket';
-import { AnnouncementPriority } from '@/lib/audioSystem';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -56,12 +58,16 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/agent', label: 'Accueil', icon: LayoutDashboard },
-  { href: '/agent/trajets', label: 'Trajets', icon: Clock },
-  { href: '/agent/embarquement', label: 'Embarquement', icon: ScanLine },
+  { href: '/busgo', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/busgo/trajets', label: 'Trajets', icon: Clock },
+  { href: '/busgo/embarquement', label: 'Embarquement', icon: ScanLine },
+  { href: '/busgo/guichet', label: 'Guichet', icon: Ticket },
+  { href: '/busgo/bus', label: 'Bus', icon: Bus },
+  { href: '/busgo/voix', label: 'Voix & Annonces', icon: Volume2 },
+  { href: '/busgo/rapports', label: 'Rapports', icon: BarChart3 },
 ];
 
-export default function AgentLayout({ children }: { children: React.ReactNode }) {
+export default function BusGoLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, isAuthenticated, loading } = useAuth();
@@ -70,37 +76,22 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
 
   const { config, toggleMuted, announceCustom } = useAgentVocalAlerts();
 
-  // Listen to kiosk events for real-time updates
   const { isConnected: wsConnected } = useKioskSocket({
     stationSlug: user?.agency?.slug,
-    enabled: isAuthenticated && user?.role === 'agent',
+    enabled: isAuthenticated,
     onEvent: (event, data) => {
-      // Auto-announce certain events via TTS
       if (!config.autoTTS) return;
-      switch (event) {
-        case 'passenger:missing':
-          if (data.passengerName && data.seatNumber) {
-            announceCustom(
-              `Passager manquant : ${data.passengerName}, siège ${data.seatNumber}.`,
-              AnnouncementPriority.HIGH
-            );
-          }
-          break;
-        case 'departure:delay':
-          if (data.delayMinutes && data.message) {
-            announceCustom(data.message, AnnouncementPriority.NORMAL);
-          }
-          break;
-        case 'announcement':
-          if (data.message) {
-            announceCustom(data.message, AnnouncementPriority.NORMAL);
-          }
-          break;
+      if (event === 'passenger:missing' && data.passengerName && data.seatNumber) {
+        announceCustom(
+          `Passager manquant : ${data.passengerName}, siège ${data.seatNumber}.`,
+          'high'
+        );
+      } else if (event === 'announcement' && data.message) {
+        announceCustom(data.message, 'normal');
       }
     },
   });
 
-  // Online/offline detection
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const updateOnline = () => setIsOnline(navigator.onLine);
@@ -113,29 +104,24 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     };
   }, []);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
     }
-    // Allow only agents (and admins/superadmins for testing)
-    if (!loading && user && !['agent', 'admin', 'superadmin'].includes(user.role)) {
-      router.push('/agence/tableau-de-bord');
-    }
-  }, [loading, isAuthenticated, user, router]);
+  }, [loading, isAuthenticated, router]);
 
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-sm text-muted-foreground">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto" />
+          <p className="mt-4 text-sm text-muted-foreground">Chargement BusGo...</p>
         </div>
       </div>
     );
   }
 
-  const initials = (user.name || user.email || 'A')
+  const initials = (user.name || user.email || 'B')
     .split(' ')
     .map((n) => n[0])
     .join('')
@@ -150,74 +136,68 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-dvh flex flex-col bg-background">
       {/* ─── Header ──────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-amber-600 to-orange-600 text-white">
         <div className="flex h-14 items-center px-4 md:px-6 gap-3">
-          {/* Mobile hamburger */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden text-white hover:bg-white/20"
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
           >
             {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
 
-          {/* Logo */}
-          <Link href="/agent" className="flex items-center gap-2 font-bold text-lg">
-            <Bus className="h-5 w-5 text-primary" />
-            <span className="hidden sm:inline">SmarticketS</span>
-            <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded font-medium">
-              Agent
-            </span>
+          {/* Logo BusGo */}
+          <Link href="/busgo" className="flex items-center gap-2 font-bold text-lg text-white">
+            <div className="bg-white/20 rounded-lg p-1">
+              <Bus className="h-5 w-5" />
+            </div>
+            <span className="hidden sm:inline">BusGo</span>
           </Link>
+
+          {/* Agency name */}
+          {user.agency && (
+            <span className="hidden md:inline text-sm text-white/80 ml-2">
+              — {user.agency.name}
+            </span>
+          )}
 
           {/* Status indicators */}
           <div className="ml-auto flex items-center gap-2">
-            {/* Online status */}
             <div
               className={cn(
                 'hidden sm:flex items-center gap-1 text-xs px-2 py-1 rounded',
                 isOnline
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                  : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-rose-500/30 text-white'
               )}
-              title={isOnline ? 'En ligne' : 'Hors ligne'}
             >
               {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
               <span>{isOnline ? 'Online' : 'Offline'}</span>
             </div>
 
-            {/* WS connection */}
             {wsConnected && (
-              <div
-                className="hidden sm:flex items-center gap-1 text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                title="Connecté au serveur temps réel"
-              >
+              <div className="hidden sm:flex items-center gap-1 text-xs px-2 py-1 rounded bg-white/20 text-white">
                 <Bell className="h-3 w-3" />
                 <span>Live</span>
               </div>
             )}
 
-            {/* Vocal mute toggle */}
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleMuted}
+              className="text-white hover:bg-white/20"
               title={config.muted ? 'Activer le son' : 'Couper le son'}
             >
-              {config.muted ? (
-                <VolumeX className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Volume2 className="h-4 w-4 text-primary" />
-              )}
+              {config.muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </Button>
 
-            {/* Avatar dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-white/20">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-amber-600 text-white text-xs">
+                    <AvatarFallback className="bg-white text-amber-700 text-xs font-bold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -250,7 +230,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
       {/* ─── Body: Sidebar + Main ────────────────────────────────── */}
       <div className="flex-1 flex min-h-0">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-56 flex-col border-r bg-muted/40 p-4">
+        <aside className="hidden md:flex w-56 flex-col border-r bg-amber-50/50 dark:bg-amber-950/10 p-4">
           <nav className="flex flex-col gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -261,7 +241,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                     variant="ghost"
                     className={cn(
                       'w-full justify-start gap-2 text-sm',
-                      isActive && 'bg-accent text-accent-foreground font-medium'
+                      isActive && 'bg-amber-200/50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 font-medium'
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -273,7 +253,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
           </nav>
         </aside>
 
-        {/* Mobile sidebar (drawer) */}
+        {/* Mobile sidebar */}
         {mobileNavOpen && (
           <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileNavOpen(false)}>
             <div
@@ -281,7 +261,10 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <span className="font-bold">Menu</span>
+                <span className="font-bold flex items-center gap-2">
+                  <Bus className="h-5 w-5 text-amber-600" />
+                  BusGo
+                </span>
                 <Button variant="ghost" size="icon" onClick={() => setMobileNavOpen(false)}>
                   <X className="h-5 w-5" />
                 </Button>
@@ -300,7 +283,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                         variant="ghost"
                         className={cn(
                           'w-full justify-start gap-2 text-sm',
-                          isActive && 'bg-accent text-accent-foreground font-medium'
+                          isActive && 'bg-amber-200/50 dark:bg-amber-900/30 font-medium'
                         )}
                       >
                         <Icon className="h-4 w-4" />
@@ -314,16 +297,15 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
           </div>
         )}
 
-        {/* Main content */}
         <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto">
           {children}
         </main>
       </div>
 
       {/* ─── Mobile bottom navigation ────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur">
         <div className="flex items-center justify-around h-16 px-2">
-          {navItems.map((item) => {
+          {navItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
@@ -332,15 +314,11 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 className={cn(
                   'flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 min-w-[60px] transition-colors',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-primary'
+                  isActive ? 'text-amber-600' : 'text-muted-foreground hover:text-amber-600'
                 )}
               >
                 <Icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium leading-tight">
-                  {item.label}
-                </span>
+                <span className="text-[10px] font-medium leading-tight">{item.label}</span>
               </Link>
             );
           })}

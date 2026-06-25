@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
 
 /**
- * GET /api/agent/trajets
+ * GET /api/busgo/trajets
  *
  * Renvoie les départs assignés à l'agent (aujourd'hui + à venir).
  * Filtre par agencyId de l'utilisateur connecté.
@@ -108,7 +108,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ data: formatted });
   } catch (error) {
-    console.error('[API /api/agent/trajets]', error);
+    console.error('[API /api/busgo/trajets]', error);
     return NextResponse.json(
       { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }

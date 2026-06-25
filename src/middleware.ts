@@ -100,9 +100,11 @@ export async function middleware(req: NextRequest) {
     // No session → redirect to login
     const loginPath = pathname.startsWith('/admin')
       ? '/admin/connexion'
-      : pathname.startsWith('/agent')
+      : pathname.startsWith('/busgo')
         ? '/login'
-        : '/agence/connexion';
+        : pathname.startsWith('/agent')
+          ? '/login'
+          : '/agence/connexion';
 
     const redirectUrl = new URL(loginPath, req.url);
     redirectUrl.searchParams.set('from', pathname);
@@ -117,6 +119,7 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/agence/:path*',
+    '/busgo/:path*',
     '/agent/:path*',
     '/login',
     '/register',

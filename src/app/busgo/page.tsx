@@ -11,7 +11,7 @@
  *   - Lien vers la page d'embarquement détaillée
  *
  * Tout est fetché depuis l'API SmarticketS existante :
- *   - /api/agent/trajets  (à créer si nécessaire, sinon fallback /api/departures)
+ *   - /api/busgo/trajets  (à créer si nécessaire, sinon fallback /api/departures)
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -92,7 +92,7 @@ export default function AgentDashboard() {
     setError(null);
     try {
       // Try the dedicated agent endpoint first, fallback to admin/departures
-      let res = await fetch('/api/agent/trajets', { credentials: 'include' });
+      let res = await fetch('/api/busgo/trajets', { credentials: 'include' });
       if (!res.ok) {
         // Fallback to admin departures endpoint
         res = await fetch('/api/admin/departures', { credentials: 'include' });
@@ -236,7 +236,7 @@ export default function AgentDashboard() {
                   return (
                     <Link
                       key={departure.id}
-                      href={`/agent/embarquement/${departure.id}`}
+                      href={`/busgo/embarquement/${departure.id}`}
                       className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors group"
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -290,7 +290,7 @@ export default function AgentDashboard() {
 
       {/* Quick actions */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/agent/trajets">
+        <Link href="/busgo/trajets">
           <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
             <CardContent className="flex items-center gap-3 p-4">
               <Clock className="h-8 w-8 text-amber-600" />
@@ -302,7 +302,7 @@ export default function AgentDashboard() {
           </Card>
         </Link>
 
-        <Link href="/agent/embarquement">
+        <Link href="/busgo/embarquement">
           <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
             <CardContent className="flex items-center gap-3 p-4">
               <ScanLine className="h-8 w-8 text-emerald-600" />

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
 
 /**
- * GET /api/agent/trajets/[departureId]
+ * GET /api/busgo/trajets/[departureId]
  *
  * Renvoie les détails d'un départ + la liste des passagers (PassengerTicket).
  * Inclus : statut boarded/absent, siège, nom, téléphone, contrôle code.
@@ -116,7 +116,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[API /api/agent/trajets/[departureId]]', error);
+    console.error('[API /api/busgo/trajets/[departureId]]', error);
     return NextResponse.json(
       { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }
@@ -125,7 +125,7 @@ export async function GET(
 }
 
 /**
- * PATCH /api/agent/trajets/[departureId]
+ * PATCH /api/busgo/trajets/[departureId]
  *
  * Met à jour le statut d'un départ (start-boarding, depart, etc.)
  * ou le retard.
@@ -198,7 +198,7 @@ export async function PATCH(
       },
     });
   } catch (error) {
-    console.error('[API /api/agent/trajets/[departureId] PATCH]', error);
+    console.error('[API /api/busgo/trajets/[departureId] PATCH]', error);
     return NextResponse.json(
       { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }
