@@ -2,16 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  reactStrictMode: true,
+  reactStrictMode: false,
   // Skip TypeScript check during build — Prisma client types can be stale
   // in some environments. The code is checked separately in CI/lint.
   typescript: {
     ignoreBuildErrors: true,
-  },
-  // Explicitly set the Turbopack root to avoid multi-lockfile detection issues.
-  // In Docker, there's only one lockfile so this is redundant but harmless.
-  turbopack: {
-    root: __dirname,
   },
   images: {
     formats: ['image/webp'],

@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
 
 /**
  * Server-side route protection middleware.
  *
- * Protects /admin/* and /agence/* page routes by verifying the session cookie.
- * API routes are NOT intercepted here — they handle their own auth via getSession().
+ * Protects /admin/*, /agence/*, /busgo/* page routes by verifying the
+ * session cookie. API routes are NOT intercepted here — they handle their
+ * own auth via getSession().
  *
- * Public routes (login pages, static assets, API) are allowed through.
+ * IMPORTANT: Do NOT import `cookies` from `next/headers` in middleware.
+ * In Next.js 16, middleware runs in a different context than Server
+ * Components. Using `cookies()` from `next/headers` causes the bug:
+ *   "Expected workUnitAsyncStorage to have a store"
+ * which breaks the production build (prerendering /_global-error fails).
+ *
+ * Instead, use `req.cookies.get()` which is the Edge-runtime compatible API.
  */
 const SESSION_COOKIE_NAME = 'smartickets_session';
 const LEGACY_SESSION_COOKIE_NAME = 'qrtrans_session';
@@ -85,27 +91,37 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/blog') ||
     pathname.startsWith('/inscrire') ||
     pathname.startsWith('/pwa') ||
-    pathname.startsWith('/driver')
+    pathname.startsWith('/driver') ||
+    pathname.startsWith('/scan') ||
+    pathname.startsWith('/arrivee') ||
+    pathname.startsWith('/sending') ||
+    pathname.startsWith('/success') ||
+    pathname.startsWith('/expired') ||
+    pathname.startsWith('/support') ||
+    pathname.startsWith('/hajj') ||
+    pathname.startsWith('/horaires') ||
+    pathname.startsWith('/a-propos') ||
+    pathname.startsWith('/controller') ||
+    pathname.startsWith('/agency/') ||
+    pathname.startsWith('/ecrans') ||
+    pathname.startsWith('/demo')
   ) {
     return NextResponse.next();
   }
 
-  // ─── Protected routes (/admin/* and /agence/*) ────────────────────
-  // Check for session cookie existence
-  const cookieStore = await cookies();
+  // ─── Protected routes (/admin/*, /agence/*, /busgo/*) ───────────
+  // Use req.cookies (Edge-runtime compatible) — NOT cookies() from next/headers
   const sessionId =
-    cookieStore.get(SESSION_COOKIE_NAME)?.value ||
-    cookieStore.get(LEGACY_SESSION_COOKIE_NAME)?.value;
+    req.cookies.get(SESSION_COOKIE_NAME)?.value ||
+    req.cookies.get(LEGACY_SESSION_COOKIE_NAME)?.value;
 
   if (!sessionId) {
     // No session → redirect to login
     const loginPath = pathname.startsWith('/admin')
       ? '/admin/connexion'
       : pathname.startsWith('/busgo')
-        ? '/login'
-        : pathname.startsWith('/agent')
-          ? '/login'
-          : '/agence/connexion';
+        ? '/busgo/connexion'
+        : '/agence/connexion';
 
     const redirectUrl = new URL(loginPath, req.url);
     redirectUrl.searchParams.set('from', pathname);
@@ -121,7 +137,6 @@ export const config = {
     '/admin/:path*',
     '/agence/:path*',
     '/busgo/:path*',
-    '/agent/:path*',
     '/login',
     '/register',
     '/forgot-password',
