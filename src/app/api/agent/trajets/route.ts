@@ -45,10 +45,13 @@ export async function GET(request: Request) {
     }
     // 'all' → no date filter
 
-    // Agency filter — superadmin sees all, others see only their agency
-    const agencyFilter = session.role === 'superadmin'
-      ? {}
-      : { agencyId: session.agencyId };
+    // Agency filter — superadmin sees all, others see only their agency.
+    // If agencyId is null (shouldn't happen for non-superadmin, but be safe),
+    // fall back to a non-match (empty string) instead of null (Prisma rejects null).
+    const agencyFilter =
+      session.role === 'superadmin' || !session.agencyId
+        ? {}
+        : { agencyId: session.agencyId };
 
     const departures = await db.departure.findMany({
       where: {
