@@ -135,8 +135,11 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/admin/:path*',
+    '/admin',
     '/agence/:path*',
+    '/agence',
     '/busgo/:path*',
+    '/busgo',
     '/login',
     '/register',
     '/forgot-password',

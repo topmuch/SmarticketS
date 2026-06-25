@@ -106,7 +106,7 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login');
+      router.push('/busgo/connexion');
     }
   }, [loading, isAuthenticated, router]);
 
