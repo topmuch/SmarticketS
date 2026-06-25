@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 import { DepartureTimer } from '@/components/busgo/departure-timer';
 import { useAgentVocalAlerts } from '@/hooks/use-agent-vocal-alerts';
 import { cn } from '@/lib/utils';
@@ -163,10 +164,13 @@ export default function EmbarquementPage() {
         </CardHeader>
         <CardContent className="text-center">
           <div className="bg-white p-4 rounded-xl inline-block border-2 border-amber-200">
-            {/* Simple visual QR placeholder — in production, use qrcode.react */}
-            <div className="w-48 h-48 bg-amber-50 rounded-lg flex items-center justify-center border-2 border-dashed border-amber-300">
-              <QrCode className="h-24 w-24 text-amber-600" />
-            </div>
+            <QRCodeSVG
+              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/pwa-passager/scan?dep=${agentQrData}`}
+              size={200}
+              level="M"
+              bgColor="#ffffff"
+              fgColor="#000000"
+            />
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             Affichez ce QR code aux passagers pour qu'ils l'embarquent

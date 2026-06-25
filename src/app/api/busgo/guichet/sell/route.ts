@@ -27,8 +27,21 @@ import { randomBytes } from 'crypto';
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || !session.agencyId) {
+    if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    // Superadmin without agency → use first agency
+    let agencyId = session.agencyId;
+    if (!agencyId) {
+      if (session.role !== 'superadmin') {
+        return NextResponse.json({ error: 'Aucune agence associée' }, { status: 403 });
+      }
+      const firstAgency = await db.agency.findFirst();
+      if (!firstAgency) {
+        return NextResponse.json({ error: 'Aucune agence trouvée' }, { status: 400 });
+      }
+      agencyId = firstAgency.id;
     }
 
     const body = await request.json();
@@ -56,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Départ introuvable' }, { status: 404 });
     }
 
-    if (departure.agencyId !== session.agencyId && session.role !== 'superadmin') {
+    if (departure.agencyId !== agencyId && session.role !== 'superadmin') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
@@ -98,7 +111,7 @@ export async function POST(request: NextRequest) {
         type: 'voyageur',
         category: 'ticket',
         status: 'ACTIVE',
-        agencyId: departure.agencyId,
+        agencyId: agencyId,
       },
     });
 
@@ -106,7 +119,7 @@ export async function POST(request: NextRequest) {
     const ticket = await db.passengerTicket.create({
       data: {
         baggageId: baggage.id,
-        agencyId: departure.agencyId,
+        agencyId: agencyId,
         departureId,
         passengerName,
         passengerPhone,

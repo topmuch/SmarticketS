@@ -9,19 +9,25 @@ import { getSession } from '@/lib/session';
 export async function GET() {
   try {
     const session = await getSession();
-    if (!session || !session.agencyId) {
+    if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
+    let agencyId = session.agencyId;
+    if (!agencyId) {
+      const firstAgency = await db.agency.findFirst();
+      if (!firstAgency) return NextResponse.json({ error: 'Aucune agence' }, { status: 400 });
+      agencyId = firstAgency.id;
+    }
+
     let config = await db.busGoVoiceConfig.findUnique({
-      where: { agencyId: session.agencyId },
+      where: { agencyId },
     });
 
     if (!config) {
-      // Create default config
       config = await db.busGoVoiceConfig.create({
         data: {
-          agencyId: session.agencyId,
+          agencyId,
           messageH130Text: 'Embarquement pour {destination} à {heure}. En cas de retard, contactez l\'agent au {agentPhone}.',
           messageH5Text: 'Embarquement imminent pour {destination}. Veuillez vous présenter au quai {platform}.',
           messageDepartText: 'Le bus pour {destination} part maintenant. Bon voyage.',
@@ -39,26 +45,26 @@ export async function GET() {
 
 /**
  * POST /api/busgo/voix
- * Met à jour la config vocale (textes TTS + URLs MP3 + agent phone).
- *
- * Body: {
- *   dingDongUrl?, messageH130Text?, messageH130AudioUrl?,
- *   messageH5Text?, messageH5AudioUrl?,
- *   messageDepartText?, messageDepartAudioUrl?,
- *   messageAbsentText?, messageAbsentAudioUrl?
- * }
+ * Met à jour la config vocale.
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || !session.agencyId) {
+    if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    let agencyId = session.agencyId;
+    if (!agencyId) {
+      const firstAgency = await db.agency.findFirst();
+      if (!firstAgency) return NextResponse.json({ error: 'Aucune agence' }, { status: 400 });
+      agencyId = firstAgency.id;
     }
 
     const body = await request.json();
 
     const config = await db.busGoVoiceConfig.upsert({
-      where: { agencyId: session.agencyId },
+      where: { agencyId },
       update: {
         ...(body.dingDongUrl !== undefined && { dingDongUrl: body.dingDongUrl }),
         ...(body.messageH130Text !== undefined && { messageH130Text: body.messageH130Text }),
@@ -71,7 +77,7 @@ export async function POST(request: NextRequest) {
         ...(body.messageAbsentAudioUrl !== undefined && { messageAbsentAudioUrl: body.messageAbsentAudioUrl }),
       },
       create: {
-        agencyId: session.agencyId,
+        agencyId,
         ...body,
       },
     });

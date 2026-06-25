@@ -5,20 +5,24 @@ import { hashPassword } from '@/lib/auth';
 
 /**
  * GET /api/busgo/equipe
- * Liste les utilisateurs de l'agence (guichetiers + contrôleurs).
+ * Liste les utilisateurs de l'agence.
  */
 export async function GET() {
   try {
     const session = await getSession();
-    if (!session || !session.agencyId) {
+    if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
+    let agencyId = session.agencyId;
+    if (!agencyId) {
+      const firstAgency = await db.agency.findFirst();
+      if (!firstAgency) return NextResponse.json({ error: 'Aucune agence' }, { status: 400 });
+      agencyId = firstAgency.id;
+    }
+
     const members = await db.user.findMany({
-      where: {
-        agencyId: session.agencyId,
-        role: { in: ['agent', 'controller', 'admin'] },
-      },
+      where: { agencyId, role: { in: ['agent', 'controller', 'admin'] } },
       select: { id: true, email: true, name: true, role: true, isActive: true, phone: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -37,12 +41,18 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || !session.agencyId) {
+    if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
-    if (!['admin', 'superadmin'].includes(session.role)) {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    let agencyId = session.agencyId;
+    if (!agencyId) {
+      if (session.role !== 'superadmin') {
+        return NextResponse.json({ error: 'Aucune agence associée' }, { status: 403 });
+      }
+      const firstAgency = await db.agency.findFirst();
+      if (!firstAgency) return NextResponse.json({ error: 'Aucune agence trouvée' }, { status: 400 });
+      agencyId = firstAgency.id;
     }
 
     const body = await request.json();
@@ -72,7 +82,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         password: hashedPassword,
         role,
-        agencyId: session.agencyId,
+        agencyId,
         isActive: true,
       },
     });
@@ -82,7 +92,10 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error('[API /api/busgo/equipe POST]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
+      { status: 500 }
+    );
   }
 }
 
@@ -93,33 +106,65 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || !session.agencyId) {
+    if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    let agencyId = session.agencyId;
+    if (!agencyId) {
+      const firstAgency = await db.agency.findFirst();
+      if (!firstAgency) return NextResponse.json({ error: 'Aucune agence' }, { status: 400 });
+      agencyId = firstAgency.id;
     }
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id');
-    if (!userId) {
-      return NextResponse.json({ error: 'ID requis' }, { status: 400 });
-    }
+    if (!userId) return NextResponse.json({ error: 'ID requis' }, { status: 400 });
 
     const body = await request.json();
     const { isActive } = body as { isActive: boolean };
 
-    // Vérifier que l'utilisateur appartient à l'agence
     const user = await db.user.findUnique({ where: { id: userId } });
-    if (!user || user.agencyId !== session.agencyId) {
+    if (!user || user.agencyId !== agencyId) {
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
     }
 
-    await db.user.update({
-      where: { id: userId },
-      data: { isActive },
-    });
-
+    await db.user.update({ where: { id: userId }, data: { isActive } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[API /api/busgo/equipe PATCH]', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/busgo/equipe?id=xxx
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+
+    let agencyId = session.agencyId;
+    if (!agencyId) {
+      const firstAgency = await db.agency.findFirst();
+      if (!firstAgency) return NextResponse.json({ error: 'Aucune agence' }, { status: 400 });
+      agencyId = firstAgency.id;
+    }
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('id');
+    if (!userId) return NextResponse.json({ error: 'ID requis' }, { status: 400 });
+
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user || user.agencyId !== agencyId) {
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+    }
+
+    await db.user.delete({ where: { id: userId } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[API /api/busgo/equipe DELETE]', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

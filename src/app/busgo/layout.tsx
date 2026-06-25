@@ -36,6 +36,7 @@ import {
   Bell,
   BarChart3,
   Cog,
+  Smartphone,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentVocalAlerts } from '@/hooks/use-agent-vocal-alerts';
@@ -64,6 +65,7 @@ const navItems: NavItem[] = [
   { href: '/busgo/guichet', label: 'Guichet', icon: Ticket },
   { href: '/busgo/equipe', label: 'Équipe', icon: Users },
   { href: '/busgo/voix', label: 'Voix & Annonces', icon: Volume2 },
+  { href: '/busgo/pwa-terrain', label: 'PWA Terrain', icon: Smartphone },
   { href: '/busgo/rapports', label: 'Rapports', icon: BarChart3 },
 ];
 

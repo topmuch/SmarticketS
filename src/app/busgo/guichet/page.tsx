@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Ticket, Plus, Loader2, Bus, MapPin, QrCode, CheckCircle2, Copy } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,9 +110,13 @@ export default function BusGoGuichetPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-white p-4 rounded-xl border-2 border-emerald-200 text-center">
-              <div className="w-48 h-48 bg-emerald-50 rounded-lg flex items-center justify-center border-2 border-dashed border-emerald-300 mx-auto">
-                <QrCode className="h-24 w-24 text-emerald-600" />
-              </div>
+              <QRCodeSVG
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}${qrResult.installUrl}`}
+                size={200}
+                level="M"
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
               <p className="text-sm font-medium mt-3">{qrResult.ticket.passengerName} — Siège {qrResult.ticket.seatNumber}</p>
               <p className="text-xs text-muted-foreground font-mono">Code: {qrResult.ticket.controlCode}</p>
             </div>
