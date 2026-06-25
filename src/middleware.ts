@@ -18,6 +18,7 @@ const PUBLIC_PAGE_ROUTES = [
   '/admin/login',
   '/agence/connexion',
   '/agence/login',
+  '/busgo/connexion',
   '/login',
   '/register',
   '/forgot-password',

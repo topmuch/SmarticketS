@@ -16,6 +16,7 @@ import {
   Layers,
   Users,
   Building2,
+  Bus,
   MessageSquare,
   Settings,
   BarChart3,
@@ -79,6 +80,9 @@ function Sidebar({
 
     // Agencies - superadmin and admin only
     { label: "Agences", icon: <Building2 className="w-5 h-5" />, href: "/admin/agences", permission: PERMISSIONS.VIEW_AGENCIES, roles: ['superadmin', 'admin'] },
+
+    // BusGo — independent bus transport space (superadmin only)
+    { label: "BusGo", icon: <Bus className="w-5 h-5" />, href: "/admin/busgo-compagnies", roles: ['superadmin'] },
 
     // Products Category
     { label: "PRODUITS", icon: null, isCategory: true },

@@ -13,6 +13,8 @@ function LoginRedirect() {
     // Redirect to the appropriate login page
     if (role === 'admin') {
       router.replace('/admin/connexion');
+    } else if (role === 'busgo') {
+      router.replace('/busgo/connexion');
     } else {
       router.replace('/agence/connexion');
     }

@@ -30,7 +30,7 @@ import { useAuth } from '@/contexts/AuthContext';
 /* ══════════════════════════════════════════════
    CONFIG PER VARIANT
    ══════════════════════════════════════════════ */
-type LoginVariant = 'agence' | 'superadmin';
+type LoginVariant = 'agence' | 'superadmin' | 'busgo';
 
 interface LoginConfig {
   type: LoginVariant;
@@ -108,6 +108,33 @@ const CONFIGS: Record<LoginVariant, LoginConfig> = {
       { icon: Globe, title: 'Multi-agences', desc: 'Vue centralisée' },
       { icon: Zap, title: 'API intégrées', desc: 'Webhooks & PDF' },
       { icon: Fingerprint, title: 'Rôles', desc: 'Permissions avancées' },
+    ],
+  },
+  busgo: {
+    type: 'busgo',
+    title: 'Espace BusGo',
+    subtitle: 'Gestion de transport en bus — embarquement, billetterie, annonces vocales',
+    demoEmail: 'admin@smartickets.com',
+    demoPassword: 'admin123',
+    demoLabel: 'BusGo',
+    role: 'admin',
+    redirectPath: '/busgo',
+    accentBg: 'bg-[#F59E0B]',
+    accentHover: 'hover:bg-[#D97706]',
+    accentText: 'text-[#F59E0B]',
+    accentGradient: 'from-[#F59E0B] to-[#EA580C]',
+    accentShadow: 'shadow-[#F59E0B]/30',
+    leftTitle: 'Gérez vos bus et embarquements en temps réel',
+    leftSubtitle: 'Billetterie, scan QR, plan de sièges, annonces vocales — tout dans une seule app.',
+    leftTagline: 'Transport intelligent',
+    switchText: 'Vous êtes administrateur ?',
+    switchLink: 'Connexion Admin',
+    switchHref: '/admin/connexion',
+    features: [
+      { icon: Bus, title: 'Billetterie', desc: 'Vente de billets' },
+      { icon: ScanLine, title: 'Scan QR', desc: 'Embarquement rapide' },
+      { icon: Bell, title: 'Annonces vocales', desc: 'TTS gratuit' },
+      { icon: MapPin, title: 'Temps réel', desc: 'WebSocket live' },
     ],
   },
 };
@@ -198,8 +225,14 @@ export default function LoginPage({ variant }: { variant: LoginVariant }) {
   // Redirect if already logged in
   useEffect(() => {
     if (authLoading) return;
-    if (user && ((variant === 'agence' && isAgency) || (variant === 'superadmin' && isSuperAdmin))) {
-      router.replace(config.redirectPath);
+    if (user) {
+      if (variant === 'agence' && isAgency) {
+        router.replace(config.redirectPath);
+      } else if (variant === 'superadmin' && isSuperAdmin) {
+        router.replace(config.redirectPath);
+      } else if (variant === 'busgo' && (user.role === 'admin' || user.role === 'agent' || user.role === 'superadmin')) {
+        router.replace(config.redirectPath);
+      }
     }
   }, [user, authLoading, isAgency, isSuperAdmin, variant, router, config.redirectPath]);
 
@@ -593,17 +626,35 @@ export default function LoginPage({ variant }: { variant: LoginVariant }) {
             </div>
           </motion.div>
 
-          {/* Switch role */}
+          {/* Switch role — 3 links: SuperAdmin, Transporteur, BusGo */}
           <motion.div variants={fadeUp} custom={7} className="mt-6 text-center">
-            <p className="text-[13px] text-slate-400">
-              {config.switchText}{' '}
-              <Link
-                href={config.switchHref}
-                className={`font-bold ${config.accentText} hover:underline transition-colors`}
-              >
-                {config.switchLink} →
-              </Link>
-            </p>
+            <p className="text-[13px] text-slate-400 mb-2">Changer d&apos;espace :</p>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              {variant !== 'superadmin' && (
+                <Link
+                  href="/admin/connexion"
+                  className="text-[13px] font-bold text-[#FF1D8D] hover:underline transition-colors"
+                >
+                  SuperAdmin
+                </Link>
+              )}
+              {variant !== 'agence' && (
+                <Link
+                  href="/agence/connexion"
+                  className="text-[13px] font-bold text-[#FF6B35] hover:underline transition-colors"
+                >
+                  Transporteur
+                </Link>
+              )}
+              {variant !== 'busgo' && (
+                <Link
+                  href="/busgo/connexion"
+                  className="text-[13px] font-bold text-[#F59E0B] hover:underline transition-colors"
+                >
+                  BusGo
+                </Link>
+              )}
+            </div>
           </motion.div>
 
           {/* Footer */}
