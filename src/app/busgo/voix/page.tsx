@@ -90,13 +90,42 @@ export default function BusGoVoixPage() {
   };
 
   const handleUpload = async (field: keyof VoiceConfig, file: File) => {
-    // For now, we'll use a placeholder URL — in production, upload to /api/upload
+    // Validate file type before upload
+    const allowedTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/m4a'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`Format non autorisé: ${file.type}. Acceptés: MP3, WAV, OGG, M4A`);
+      return;
+    }
+
+    // Validate file size (max 10 MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(`Fichier trop volumineux: ${Math.round(file.size / 1024 / 1024)}MB. Max: 10MB`);
+      return;
+    }
+
     toast.info(`Upload de ${file.name} (${Math.round(file.size / 1024)}KB)...`);
 
-    // Create a temporary URL for the file (in production, upload to server/CDN)
-    const url = URL.createObjectURL(file);
-    setConfig({ ...config, [field]: url });
-    toast.success(`${file.name} chargé. Cliquez sur "Enregistrer" pour sauvegarder.`);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/busgo/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Erreur upload');
+      }
+
+      const data = await res.json();
+      setConfig({ ...config, [field]: data.url });
+      toast.success(`${file.name} uploadé avec succès !`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur upload');
+    }
   };
 
   if (loading) {
@@ -223,6 +252,34 @@ function MessageEditor({
   onAudioChange: (v: string | null) => void;
 }) {
   const [mode, setMode] = useState<'text' | 'audio'>(audioUrl ? 'audio' : 'text');
+  const [uploading, setUploading] = useState(false);
+
+  const handleAudioUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/busgo/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Erreur upload');
+      }
+
+      const data = await res.json();
+      onAudioChange(data.url);
+      toast.success(`${file.name} uploadé !`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur upload');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <Card>
@@ -273,16 +330,23 @@ function MessageEditor({
             ) : (
               <Label className="cursor-pointer">
                 <div className="border-2 border-dashed border-amber-200 rounded-lg p-4 text-center hover:bg-amber-50">
-                  <Upload className="h-6 w-6 text-amber-600 mx-auto mb-1" />
-                  <p className="text-sm">Upload MP3</p>
+                  {uploading ? (
+                    <p className="text-sm text-amber-600">Upload en cours...</p>
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 text-amber-600 mx-auto mb-1" />
+                      <p className="text-sm">Upload MP3 (max 10MB)</p>
+                    </>
+                  )}
                 </div>
                 <Input
                   type="file"
-                  accept="audio/mp3,audio/mpeg"
+                  accept="audio/mp3,audio/mpeg,audio/wav,audio/ogg,audio/m4a"
                   className="hidden"
+                  disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) onAudioChange(URL.createObjectURL(file));
+                    if (file) handleAudioUpload(file);
                   }}
                 />
               </Label>
