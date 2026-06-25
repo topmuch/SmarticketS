@@ -1,8 +1,8 @@
 # SmarticketS - Dockerfile for Coolify
 FROM node:20-alpine
 
-# Install required packages
-RUN apk add --no-cache git libc6-compat sqlite
+# Install required packages (openssl for secret generation in entrypoint)
+RUN apk add --no-cache git libc6-compat sqlite openssl
 RUN npm install -g bun
 
 WORKDIR /app
@@ -24,11 +24,16 @@ RUN bun run build
 # Create data directory
 RUN mkdir -p /app/data
 
+# Copy entrypoint script (already in repo, but ensure it's executable)
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=file:/app/data/qrtrans.db
+ENV NODE_ENV=production
 
-# Start command - sync DB, seed users, migrate, start server
-CMD sh -c "mkdir -p /app/data && export DATABASE_URL=file:/app/data/qrtrans.db && npx prisma db push --skip-generate 2>/dev/null || true && bun run prisma/seed.ts 2>/dev/null || true && node scripts/migrate-db.js 2>/dev/null || true && exec node .next/standalone/server.js"
+# Use the entrypoint script — auto-generates secrets if missing, syncs DB,
+# seeds data, then starts the server.
+ENTRYPOINT ["/app/entrypoint.sh"]
