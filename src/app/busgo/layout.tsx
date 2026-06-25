@@ -62,7 +62,7 @@ const navItems: NavItem[] = [
   { href: '/busgo/trajets', label: 'Trajets', icon: Clock },
   { href: '/busgo/embarquement', label: 'Embarquement', icon: ScanLine },
   { href: '/busgo/guichet', label: 'Guichet', icon: Ticket },
-  { href: '/busgo/bus', label: 'Bus', icon: Bus },
+  { href: '/busgo/equipe', label: 'Équipe', icon: Users },
   { href: '/busgo/voix', label: 'Voix & Annonces', icon: Volume2 },
   { href: '/busgo/rapports', label: 'Rapports', icon: BarChart3 },
 ];

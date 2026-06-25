@@ -1,75 +1,112 @@
 'use client';
 
 /**
- * Agent Embarquement (index) — Redirige vers le dashboard ou affiche un scanner QR.
- *
- * Cette page est un placeholder pour la Phase 2 (page embarquement détaillée).
- * Pour l'instant, elle affiche un scanner QR simple qui redirige vers la page
- * du départ correspondant.
+ * BusGo Embarquement (index) — Liste les trajets du jour avec lien vers l'embarquement.
  */
 
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ScanLine, Bus, Clock, ArrowRight } from 'lucide-react';
+import { Clock, MapPin, Loader2, AlertCircle, Bus, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
-export default function AgentEmbarquementIndex() {
+interface Departure {
+  id: string;
+  lineNumber: string;
+  destination: string;
+  scheduledTime: string;
+  platform: string | null;
+  status: string;
+  availableSeats: number;
+  totalSeats: number;
+}
+
+const STATUS_LABELS: Record<string, { label: string; variant: 'secondary' | 'default' | 'destructive' | 'outline' }> = {
+  SCHEDULED: { label: 'Programmé', variant: 'secondary' },
+  BOARDING: { label: 'Embarquement', variant: 'default' },
+  DEPARTED: { label: 'Parti', variant: 'outline' },
+  DELAYED: { label: 'Retardé', variant: 'destructive' },
+};
+
+export default function BusGoEmbarquementIndex() {
+  const [departures, setDepartures] = useState<Departure[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDepartures = useCallback(async () => {
+    try {
+      const res = await fetch('/api/busgo/trajets?dateFilter=today', { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setDepartures(Array.isArray(data) ? data : data.data || []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchDepartures(); }, [fetchDepartures]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Embarquement</h1>
-        <p className="text-muted-foreground">
-          Sélectionnez un trajet pour gérer l&apos;embarquement des passagers.
-        </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link href="/agent">
-          <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-600" />
-                Trajets du jour
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Voir les départs programmés aujourd&apos;hui et accéder à l&apos;embarquement.
-              </p>
-              <Button variant="ghost" className="mt-3 p-0 h-auto">
-                Accéder <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <ScanLine className="h-4 w-4 text-emerald-600" />
-              Scanner un billet
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
-              Le scanner QR sera disponible dans la Phase 2 de l&apos;intégration.
-            </p>
-            <Link href="/controller/validate">
-              <Button variant="outline" size="sm">
-                Utiliser le scanner existant
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <p className="text-muted-foreground">Sélectionnez un trajet pour gérer l'embarquement.</p>
       </div>
 
       <Card>
-        <CardContent className="p-6 text-center">
-          <Bus className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">
-            La page d&apos;embarquement détaillée (avec plan de sièges, liste passagers,
-            statut boarded/absent) sera ajoutée en Phase 2.
-          </p>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Bus className="h-5 w-5 text-amber-600" />
+            Trajets du jour
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+            </div>
+          ) : departures.length === 0 ? (
+            <div className="text-center py-8">
+              <Bus className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-muted-foreground text-sm mb-4">Aucun trajet aujourd'hui.</p>
+              <Link href="/busgo/trajets">
+                <button className="text-amber-600 hover:underline text-sm font-medium">
+                  → Créer un trajet
+                </button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {departures.map((d) => {
+                const statusInfo = STATUS_LABELS[d.status] || { label: d.status, variant: 'outline' as const };
+                return (
+                  <Link
+                    key={d.id}
+                    href={`/busgo/embarquement/${d.id}`}
+                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-sm font-medium truncate">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate">Ligne {d.lineNumber} → {d.destination}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(d.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {d.platform && ` · Quai ${d.platform}`}
+                          {` · ${d.availableSeats}/${d.totalSeats} places`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-amber-600" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
