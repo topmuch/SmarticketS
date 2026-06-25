@@ -159,6 +159,7 @@ model Agency {
   passengerTickets PassengerTicket[]
   stations        Station[]
   staff           Staff[]
+  busGoVoiceConfig BusGoVoiceConfig?
 }
 
 // Baggage model - main entity for luggage tracking
@@ -683,6 +684,14 @@ model PassengerTicket {
   cancelledAt       DateTime?
   cancelReason      String?
 
+  // ─── BusGo fields ───
+  paperTicketNumber String?   // Référence du billet papier pré-imprimé (ex: 12365)
+  pwaInstalled      Boolean   @default(false)   // Passager a installé la PWA
+  pwaInstalledAt    DateTime?                   // Quand la PWA a été installée
+  boardedAt         DateTime?                   // Quand le passager a embarqué (scanné QR agent)
+  isLate            Boolean   @default(false)   // Agent a marqué ce passager en retard
+  lateMinutes       Int       @default(0)       // Minutes de retard accordées par l'agent
+
   activatedAt       DateTime
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -691,6 +700,8 @@ model PassengerTicket {
   @@index([controlCode])
   @@index([ticketStatus])
   @@index([passengerPhone])
+  busGoNotifications   BusGoNotification[]
+  busGoPushSubscriptions BusGoPushSubscription[]
 }
 
 // SignageAd model - publicités diffusées sur l'affichage gare (kiosk)
@@ -750,6 +761,12 @@ model Departure {
   totalSeats      Int      @default(45)
   status          String   @default("SCHEDULED") // SCHEDULED, BOARDING, DEPARTED, CANCELLED, DELAYED, ARRIVED, IMMINENT_ARRIVAL
   delayMinutes    Int      @default(0)
+
+  // ─── BusGo fields ───
+  agentName            String?           // Nom de l'agent assigné à ce départ
+  agentPhone           String?           // N° de l'agent à contacter par les passagers
+  boardingStartedAt    DateTime?         // Quand l'embarquement a commencé (chronomètre)
+  departedAt           DateTime?         // Quand le bus est réellement parti
 
   // Relations multi-gares
   originStationId      String?
@@ -827,4 +844,69 @@ model Alert {
   @@index([agencyId, type])
   @@index([type, createdAt])
   @@index([status])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BusGo models — Transport en bus avec notifications vocales
+// ═══════════════════════════════════════════════════════════════
+
+// BusGo Voice Configuration — per agency
+// Stores uploaded MP3 files + TTS text for each notification type
+model BusGoVoiceConfig {
+  id              String   @id @default(cuid())
+  agencyId        String   @unique
+  agency          Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  // Ding-dong sound played before each message
+  dingDongUrl     String?  // URL of uploaded ding-dong.mp3
+
+  // Message H-1h30: "Embarquement à {heure}. Contact agent: {n°}"
+  messageH130Text      String?  // TTS text (if no MP3)
+  messageH130AudioUrl  String?  // Uploaded MP3 (overrides TTS)
+
+  // Message H-5min: "Embarquement imminent"
+  messageH5Text        String?
+  messageH5AudioUrl    String?
+
+  // Message H-0 (départ): "Le bus part maintenant"
+  messageDepartText      String?
+  messageDepartAudioUrl  String?
+
+  // Message rappel absent: "Le bus va partir, présentez-vous"
+  messageAbsentText      String?
+  messageAbsentAudioUrl  String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// BusGo Notification Log — tracks all notifications sent to passengers
+model BusGoNotification {
+  id              String   @id @default(cuid())
+  passengerTicketId String
+  passengerTicket PassengerTicket @relation(fields: [passengerTicketId], references: [id], onDelete: Cascade)
+  departureId     String?
+
+  type            String   // "H130" | "H5" | "DEPART" | "ABSENT" | "LATE"
+  message         String?  // Texte envoyé
+  audioUrl        String?  // MP3 joué (si uploadé)
+  sentAt          DateTime @default(now())
+  status          String   @default("sent") // "sent" | "failed" | "pending"
+
+  @@index([passengerTicketId])
+  @@index([departureId])
+  @@index([type])
+}
+
+// BusGo Push Subscription — Web Push subscriptions for passenger PWA
+model BusGoPushSubscription {
+  id              String   @id @default(cuid())
+  passengerTicketId String
+  passengerTicket PassengerTicket @relation(fields: [passengerTicketId], references: [id], onDelete: Cascade)
+  endpoint        String   // Web Push endpoint URL
+  keys            String   // JSON: { p256dh, auth }
+  userAgent       String?  // Browser info
+  createdAt       DateTime @default(now())
+
+  @@index([passengerTicketId])
 }

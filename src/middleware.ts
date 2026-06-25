@@ -91,6 +91,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/blog') ||
     pathname.startsWith('/inscrire') ||
     pathname.startsWith('/pwa') ||
+    pathname.startsWith('/pwa-passager') ||
+    pathname.startsWith('/pwa-controleur') ||
     pathname.startsWith('/driver') ||
     pathname.startsWith('/scan') ||
     pathname.startsWith('/arrivee') ||

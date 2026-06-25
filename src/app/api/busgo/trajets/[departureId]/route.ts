@@ -169,17 +169,30 @@ export async function PATCH(
 
     let newStatus = departure.status;
     let newDelayMinutes = departure.delayMinutes;
+    const updateData: Record<string, unknown> = {};
 
     switch (action) {
       case 'start-boarding':
         newStatus = 'BOARDING';
+        updateData.status = newStatus;
+        updateData.boardingStartedAt = new Date();
+        updateData.delayMinutes = newDelayMinutes;
         break;
       case 'depart':
         newStatus = 'DEPARTED';
+        updateData.status = newStatus;
+        updateData.departedAt = new Date();
+        updateData.delayMinutes = newDelayMinutes;
         break;
       case 'delay':
         newStatus = 'DELAYED';
         newDelayMinutes = delayMinutes ?? departure.delayMinutes;
+        updateData.status = newStatus;
+        updateData.delayMinutes = newDelayMinutes;
+        break;
+      case 'set-agent':
+        updateData.agentName = body.agentName || null;
+        updateData.agentPhone = body.agentPhone || null;
         break;
       default:
         return NextResponse.json({ error: 'Action invalide' }, { status: 400 });
@@ -187,7 +200,7 @@ export async function PATCH(
 
     const updated = await db.departure.update({
       where: { id: departureId },
-      data: { status: newStatus, delayMinutes: newDelayMinutes },
+      data: updateData,
     });
 
     return NextResponse.json({
@@ -195,6 +208,10 @@ export async function PATCH(
         id: updated.id,
         status: updated.status,
         delayMinutes: updated.delayMinutes,
+        agentName: updated.agentName,
+        agentPhone: updated.agentPhone,
+        boardingStartedAt: updated.boardingStartedAt?.toISOString() || null,
+        departedAt: updated.departedAt?.toISOString() || null,
       },
     });
   } catch (error) {
