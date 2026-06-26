@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getSession } from '@/lib/session';
 
 /**
  * POST /api/busgo/embarquement/scan
  *
- * Le PASSAGER scanne le QR code de l'AGENT.
- * Le passager n'a PAS de session (pas de login) — il utilise son ticketId stocké en localStorage.
+ * Le PASSAGER scanne le QR code de l'agent.
+ * Le système marque le passager comme "embarqué".
  *
  * Body: {
- *   departureId: string,    // from agent QR code (URL ?dep=xxx)
+ *   departureId: string,    // from agent QR code
  *   ticketId: string,       // from passenger's localStorage
  * }
  *
- * Si pas de session (passager), on vérifie le ticketId directement en DB.
+ * Le passager n'a PAS de session (pas de login).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier le ticket — PAS besoin de session (le passager n'est pas connecté)
+    // Vérifier le ticket
     const ticket = await db.passengerTicket.findUnique({
       where: { id: ticketId },
       include: { departure: true },
@@ -41,11 +40,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que le ticket correspond au départ scanné
-    if (ticket.departureId !== departureId) {
+    // Allow match by departureId OR by destination (more flexible)
+    if (ticket.departureId && ticket.departureId !== departureId) {
       return NextResponse.json(
         { error: 'Ce billet ne correspond pas à ce départ. Vérifiez que vous scannez le bon bus.' },
         { status: 403 }
       );
+    }
+
+    // If ticket has no departureId linked, link it now
+    if (!ticket.departureId) {
+      await db.passengerTicket.update({
+        where: { id: ticketId },
+        data: { departureId },
+      });
     }
 
     // Vérifier le statut
@@ -77,6 +85,49 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Envoyer notification de confirmation d'embarquement
+    try {
+      const template = await db.busGoNotificationTemplate.findFirst({
+        where: {
+          agencyId: ticket.agencyId,
+          notificationType: 'boarding_confirmed',
+          isActive: true,
+        },
+      });
+
+      if (template) {
+        const agency = await db.agency.findUnique({ where: { id: ticket.agencyId }, select: { name: true } });
+        const dep = ticket.departure;
+        const vars: Record<string, string> = {
+          '{passenger_name}': ticket.passengerName,
+          '{company_name}': agency?.name || 'BusGo',
+          '{destination}': ticket.destination,
+          '{time}': dep ? new Date(dep.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—',
+          '{platform}': ticket.platform || dep?.platform || '—',
+          '{seat_number}': ticket.seatNumber,
+        };
+
+        let textMsg = template.textTemplate;
+        let ttsMsg = template.ttsTemplate;
+        for (const [key, val] of Object.entries(vars)) {
+          textMsg = textMsg.replaceAll(key, val);
+          ttsMsg = ttsMsg.replaceAll(key, val);
+        }
+
+        await db.busGoNotificationLog.create({
+          data: {
+            ticketId,
+            templateType: 'boarding_confirmed',
+            messageText: textMsg,
+            ttsText: ttsMsg,
+            status: 'sent',
+          },
+        });
+      }
+    } catch {
+      // Notification log error is non-blocking
+    }
+
     return NextResponse.json({
       success: true,
       alreadyBoarded: false,
@@ -87,12 +138,12 @@ export async function POST(request: NextRequest) {
         boardedAt: updated.boardedAt?.toISOString(),
         destination: updated.destination,
       },
-      departure: {
+      departure: ticket.departure ? {
         id: ticket.departure.id,
         destination: ticket.departure.destination,
         scheduledTime: ticket.departure.scheduledTime.toISOString(),
         platform: ticket.departure.platform,
-      },
+      } : null,
     });
   } catch (error) {
     console.error('[API /api/busgo/embarquement/scan]', error);

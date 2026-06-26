@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * PWA Passager — Scanner QR de l'agent
+ *
+ * Le passager scanne le QR code affiché par l'agent (contient l'ID du départ).
+ * Si pas de caméra, saisie manuelle du code.
+ */
+
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ScanLine, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Bus } from 'lucide-react';
@@ -33,12 +40,7 @@ function ScanComponent() {
       : null;
 
     if (!ticketId) {
-      setResult({ success: false, message: 'Aucun billet trouvé. Réinstallez la PWA.' });
-      return;
-    }
-
-    if (!departureId) {
-      setResult({ success: false, message: 'Code de départ manquant' });
+      router.push('/pwa-passager/install');
       return;
     }
 
@@ -58,10 +60,20 @@ function ScanComponent() {
         setResult({
           success: true,
           message: data.alreadyBoarded
-            ? 'Vous êtes déjà embarqué ✓'
+            ? 'Vous êtes déjà embarqué'
             : `Embarqué ✓ Siège ${data.ticket.seatNumber}`,
           alreadyBoarded: data.alreadyBoarded,
         });
+        // Play TTS welcome message
+        if ('speechSynthesis' in window && !data.alreadyBoarded) {
+          window.speechSynthesis.cancel();
+          const tts = new SpeechSynthesisUtterance(
+            `Embarquement confirmé. Bienvenue à bord. Votre siège est le numéro ${data.ticket.seatNumber}. Bon voyage.`
+          );
+          tts.lang = 'fr-FR';
+          tts.rate = 0.9;
+          window.speechSynthesis.speak(tts);
+        }
         setTimeout(() => router.push('/pwa-passager'), 3000);
       } else {
         setResult({
@@ -76,9 +88,17 @@ function ScanComponent() {
     }
   };
 
+  // Handle manual code entry
+  const handleManualSubmit = () => {
+    if (manualCode.trim()) {
+      handleScan(manualCode.trim());
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4">
       <div className="max-w-md mx-auto space-y-4">
+        {/* Header */}
         <div className="flex items-center gap-3 pt-4">
           <Button variant="ghost" size="icon" onClick={() => router.push('/pwa-passager')}>
             <ArrowLeft className="h-5 w-5" />
@@ -89,6 +109,7 @@ function ScanComponent() {
           </div>
         </div>
 
+        {/* Result */}
         {result && (
           <Card className={result.success ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}>
             <CardContent className="p-6 text-center">
@@ -107,33 +128,33 @@ function ScanComponent() {
           </Card>
         )}
 
+        {/* Scanner area */}
         {!result?.success && (
           <Card>
             <CardContent className="p-6">
               <div className="text-center mb-4">
                 <ScanLine className="h-16 w-16 text-amber-600 mx-auto mb-2" />
-                <p className="font-medium">Scannez le QR code de l'agent</p>
+                <p className="font-medium">Scannez le QR code affiché par l'agent</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Le QR est affiché sur le téléphone de l'agent à l'entrée du bus.
-                  Vous pouvez aussi saisir le code manuellement.
+                  Le QR code est affiché sur le téléphone de l'agent à l'entrée du bus
                 </p>
               </div>
 
-              {/* Saisie manuelle */}
+              {/* Manual code entry */}
               <div className="space-y-2 mt-6">
                 <p className="text-xs text-muted-foreground text-center">
-                  Saisissez le code affiché par l'agent:
+                  Ou saisissez le code affiché par l'agent:
                 </p>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Code départ"
                     value={manualCode}
                     onChange={(e) => setManualCode(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleScan(manualCode.trim())}
+                    onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
                     className="text-center font-mono"
                   />
                   <Button
-                    onClick={() => handleScan(manualCode.trim())}
+                    onClick={handleManualSubmit}
                     disabled={scanning || !manualCode.trim()}
                     className="bg-amber-600 hover:bg-amber-700"
                   >
@@ -156,17 +177,9 @@ function ScanComponent() {
   );
 }
 
-function ScanLoading() {
-  return (
-    <div className="min-h-screen bg-amber-50 flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-    </div>
-  );
-}
-
 export default function PwaPassagerScanPage() {
   return (
-    <Suspense fallback={<ScanLoading />}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-amber-50"><Loader2 className="h-8 w-8 animate-spin text-amber-600" /></div>}>
       <ScanComponent />
     </Suspense>
   );

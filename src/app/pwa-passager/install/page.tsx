@@ -89,6 +89,17 @@ function InstallForm() {
 
       localStorage.setItem('busgo_ticket_id', data.ticket.id);
       localStorage.setItem('busgo_departure_id', data.departure.id);
+
+      // Play welcome TTS message immediately
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const welcomeText = `Bonjour ${data.ticket.passengerName}. Bienvenue. Votre billet est confirmé. Embarquement prévu à ${new Date(data.departure.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}. Votre siège est le numéro ${data.ticket.seatNumber}.`;
+        const utterance = new SpeechSynthesisUtterance(welcomeText);
+        utterance.lang = 'fr-FR';
+        utterance.rate = 0.9;
+        utterance.volume = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
       setTicketId(data.ticket.id);
       setDepartureId(data.departure.id);
       setStep(2); // Go to notifications step
