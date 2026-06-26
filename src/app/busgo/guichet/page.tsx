@@ -32,7 +32,7 @@ export default function BusGoGuichetPage() {
   const [selectedDep, setSelectedDep] = useState<Departure | null>(null);
   const [form, setForm] = useState({ paperTicketNumber: '', passengerName: '', passengerPhone: '', seatNumber: '' });
   const [selling, setSelling] = useState(false);
-  const [qrResult, setQrResult] = useState<{ qrData: string; installUrl: string; ticket: { passengerName: string; seatNumber: string; controlCode: string } } | null>(null);
+  const [qrResult, setQrResult] = useState<{ qrData: string; installUrl: string; ticket: { passengerName: string; seatNumber: string; controlCode: string; paperTicketNumber: string } } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
@@ -136,6 +136,7 @@ export default function BusGoGuichetPage() {
                 fgColor="#000000"
               />
               <p className="text-sm font-medium mt-3">{qrResult.ticket.passengerName} — Siège {qrResult.ticket.seatNumber}</p>
+              <p className="text-xs text-muted-foreground font-mono">Ticket papier: {qrResult.ticket.paperTicketNumber}</p>
               <p className="text-xs text-muted-foreground font-mono">Code: {qrResult.ticket.controlCode}</p>
             </div>
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 text-sm">

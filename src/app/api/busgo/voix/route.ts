@@ -63,22 +63,25 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    // Filter body to only valid fields (avoid Prisma errors from unknown fields)
+    const validFields = {
+      ...(body.dingDongUrl !== undefined && { dingDongUrl: body.dingDongUrl }),
+      ...(body.messageH130Text !== undefined && { messageH130Text: body.messageH130Text }),
+      ...(body.messageH130AudioUrl !== undefined && { messageH130AudioUrl: body.messageH130AudioUrl }),
+      ...(body.messageH5Text !== undefined && { messageH5Text: body.messageH5Text }),
+      ...(body.messageH5AudioUrl !== undefined && { messageH5AudioUrl: body.messageH5AudioUrl }),
+      ...(body.messageDepartText !== undefined && { messageDepartText: body.messageDepartText }),
+      ...(body.messageDepartAudioUrl !== undefined && { messageDepartAudioUrl: body.messageDepartAudioUrl }),
+      ...(body.messageAbsentText !== undefined && { messageAbsentText: body.messageAbsentText }),
+      ...(body.messageAbsentAudioUrl !== undefined && { messageAbsentAudioUrl: body.messageAbsentAudioUrl }),
+    };
+
     const config = await db.busGoVoiceConfig.upsert({
       where: { agencyId },
-      update: {
-        ...(body.dingDongUrl !== undefined && { dingDongUrl: body.dingDongUrl }),
-        ...(body.messageH130Text !== undefined && { messageH130Text: body.messageH130Text }),
-        ...(body.messageH130AudioUrl !== undefined && { messageH130AudioUrl: body.messageH130AudioUrl }),
-        ...(body.messageH5Text !== undefined && { messageH5Text: body.messageH5Text }),
-        ...(body.messageH5AudioUrl !== undefined && { messageH5AudioUrl: body.messageH5AudioUrl }),
-        ...(body.messageDepartText !== undefined && { messageDepartText: body.messageDepartText }),
-        ...(body.messageDepartAudioUrl !== undefined && { messageDepartAudioUrl: body.messageDepartAudioUrl }),
-        ...(body.messageAbsentText !== undefined && { messageAbsentText: body.messageAbsentText }),
-        ...(body.messageAbsentAudioUrl !== undefined && { messageAbsentAudioUrl: body.messageAbsentAudioUrl }),
-      },
+      update: validFields,
       create: {
         agencyId,
-        ...body,
+        ...validFields,
       },
     });
 
