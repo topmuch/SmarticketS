@@ -925,3 +925,33 @@ model BusGoMessage {
   @@index([ticketId])
   @@index([createdAt])
 }
+
+// BusGo Notification Template — per agency, per type, per language
+model BusGoNotificationTemplate {
+  id              String   @id @default(cuid())
+  agencyId        String
+  notificationType String   // "purchase_confirm" | "reminder_1h" | "bags_45min" | "boarding_30min" | "departure_5min"
+  language        String   @default("fr")
+  textTemplate    String   // with variables: {passenger_name}, {company_name}, {time}, {platform}, etc.
+  ttsTemplate     String   // TTS version (spoken aloud)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([agencyId, notificationType, language])
+  @@index([agencyId])
+}
+
+// BusGo Notification Log — tracks sent notifications
+model BusGoNotificationLog {
+  id              String   @id @default(cuid())
+  ticketId        String
+  templateType    String   // "purchase_confirm" | "reminder_1h" etc.
+  messageText     String
+  ttsText         String
+  sentAt          DateTime @default(now())
+  status          String   @default("sent") // "sent" | "failed" | "pending"
+
+  @@index([ticketId])
+  @@index([templateType])
+}
