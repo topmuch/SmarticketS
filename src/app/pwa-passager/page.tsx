@@ -20,6 +20,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { BusGoSWRegistration } from '@/components/busgo/pwa-sw-registration';
 
 interface PassengerData {
   ticket: {
@@ -191,6 +192,7 @@ export default function PwaPassagerDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+      <BusGoSWRegistration />
       <div className="max-w-md mx-auto space-y-4">
         {/* Header */}
         <div className="text-center pt-4">

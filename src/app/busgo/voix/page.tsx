@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { VocalSettingsPanel } from '@/components/busgo/vocal-settings-panel';
 
 interface VoiceConfig {
   id?: string;
@@ -236,6 +237,12 @@ export default function BusGoVoixPage() {
         {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
         Enregistrer la configuration
       </Button>
+
+      {/* Agent Vocal Settings Panel (TTS alerts configuration) */}
+      <div className="pt-6 border-t">
+        <h2 className="text-lg font-bold mb-4">🔧 Configuration alertes vocales agent</h2>
+        <VocalSettingsPanel />
+      </div>
     </div>
   );
 }
