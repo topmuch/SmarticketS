@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Ticket, Plus, Loader2, Bus, MapPin, QrCode, CheckCircle2, Copy } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { BusGoGuichetOnboarding } from '@/components/busgo/guichet-onboarding';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,22 @@ export default function BusGoGuichetPage() {
   const [form, setForm] = useState({ paperTicketNumber: '', passengerName: '', passengerPhone: '', seatNumber: '' });
   const [selling, setSelling] = useState(false);
   const [qrResult, setQrResult] = useState<{ qrData: string; installUrl: string; ticket: { passengerName: string; seatNumber: string; controlCode: string } } | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const seen = localStorage.getItem('busgo_guichet_seen');
+      if (!seen) {
+        const timer = setTimeout(() => setShowOnboarding(true), 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+  const dismissOnboarding = () => {
+    localStorage.setItem('busgo_guichet_seen', 'true');
+    setShowOnboarding(false);
+  };
 
   const fetchDepartures = useCallback(async () => {
     try {
@@ -94,6 +111,7 @@ export default function BusGoGuichetPage() {
 
   return (
     <div className="space-y-6">
+      <BusGoGuichetOnboarding open={showOnboarding} onDismiss={dismissOnboarding} />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Guichet</h1>
         <p className="text-muted-foreground">Vendez un billet à partir d'un ticket papier.</p>

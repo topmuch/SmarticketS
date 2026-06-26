@@ -51,6 +51,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { BusGoOnboarding } from '@/components/busgo/onboarding-wizard';
 
 interface NavItem {
   href: string;
@@ -75,6 +76,17 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
   const { user, logout, isAuthenticated, loading } = useAuth();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding on first visit
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading || !isAuthenticated || !user) return;
+    const onboarded = localStorage.getItem('busgo_onboarded');
+    if (!onboarded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowOnboarding(true);
+    }
+  }, [loading, isAuthenticated, user]);
 
   const { config, toggleMuted, announceCustom } = useAgentVocalAlerts();
 
@@ -137,6 +149,7 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-dvh flex flex-col bg-background">
+      <BusGoOnboarding open={showOnboarding} onClose={() => setShowOnboarding(false)} />
       {/* ─── Header ──────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-amber-600 to-orange-600 text-white">
         <div className="flex h-14 items-center px-4 md:px-6 gap-3">
