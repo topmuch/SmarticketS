@@ -30,7 +30,8 @@ import {
   Newspaper,
   Activity,
   Monitor,
-  Tv
+  Tv,
+  Tag
 } from "lucide-react";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -83,6 +84,9 @@ function Sidebar({
 
     // BusGo — independent bus transport space (superadmin only)
     { label: "BusGo", icon: <Bus className="w-5 h-5" />, href: "/admin/busgo-compagnies", roles: ['superadmin'] },
+
+    // BusGo Offres Sponsorisées
+    { label: "Offres Sponsorisées", icon: <Tag className="w-5 h-5" />, href: "/admin/busgo-offres", roles: ['superadmin', 'admin'] },
 
     // Products Category
     { label: "PRODUITS", icon: null, isCategory: true },

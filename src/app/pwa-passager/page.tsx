@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QRCodeSVG } from 'qrcode.react';
 import { BusGoSWRegistration } from '@/components/busgo/pwa-sw-registration';
+import { OfferList, useSponsoredOffers } from '@/components/busgo/offer-card';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -116,6 +117,7 @@ function DashboardInner() {
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { offers: sponsoredOffers } = useSponsoredOffers('passenger');
   const [welcomeShown, setWelcomeShown] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -451,6 +453,14 @@ function DashboardInner() {
             </button>
           )}
         </div>
+
+        {/* Sponsored offers */}
+        {sponsoredOffers.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Offres du moment</p>
+            <OfferList offers={sponsoredOffers} variant="card" />
+          </div>
+        )}
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground pt-4">

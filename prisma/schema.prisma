@@ -955,3 +955,35 @@ model BusGoNotificationLog {
   @@index([ticketId])
   @@index([templateType])
 }
+
+// BusGo Sponsored Offer — publicités partenaires
+model BusGoSponsoredOffer {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  imageUrl        String?
+  partnerName     String
+  actionUrl       String   // wa.me link, website, or tel:
+  actionLabel     String   @default("Voir") // "Voir", "WhatsApp", "Réserver"
+  targetAudience  String   @default("all") // "all" | "passenger" | "agent" | "controller"
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  isActive        Boolean  @default(true)
+  priority        Int      @default(0) // higher = shown first
+  clicksCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive, targetAudience])
+  @@index([priority])
+}
+
+// BusGo Offer Click — tracking analytics
+model BusGoOfferClick {
+  id          String   @id @default(cuid())
+  offerId     String
+  userAgent   String?
+  clickedAt   DateTime @default(now())
+
+  @@index([offerId])
+}
