@@ -911,3 +911,17 @@ model BusGoPushSubscription {
 
   @@index([passengerTicketId])
 }
+
+// BusGo Message — Communication between passenger and driver/agent
+model BusGoMessage {
+  id              String   @id @default(cuid())
+  ticketId        String   // PassengerTicket ID
+  senderType      String   // "passenger" | "agent" | "system"
+  senderName      String
+  message         String
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
