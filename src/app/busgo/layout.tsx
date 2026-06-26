@@ -163,12 +163,30 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
             {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
 
-          {/* Logo BusGo */}
+          {/* Logo — company logo if available, else BusGo default */}
           <Link href="/busgo" className="flex items-center gap-2 font-bold text-lg text-white">
-            <div className="bg-white/20 rounded-lg p-1">
-              <Bus className="h-5 w-5" />
-            </div>
-            <span className="hidden sm:inline">BusGo</span>
+            {user?.agency?.id ? (
+              // Try to load company logo — fallback to Bus icon
+              <img
+                src={`/api/agency/logo/${user.agency.id}`}
+                alt={user.agency.name || 'BusGo'}
+                className="h-8 w-8 rounded-lg object-cover bg-white/20"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="bg-white/20 rounded-lg p-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2L21 4H4a2 2 0 0 0-2 2v11h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg></div>';
+                  }
+                }}
+              />
+            ) : (
+              <div className="bg-white/20 rounded-lg p-1">
+                <Bus className="h-5 w-5" />
+              </div>
+            )}
+            <span className="hidden sm:inline">
+              {user?.agency?.name || 'BusGo'}
+            </span>
           </Link>
 
           {/* Agency name */}

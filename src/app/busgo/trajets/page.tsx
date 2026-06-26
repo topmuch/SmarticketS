@@ -1,22 +1,28 @@
 'use client';
 
 /**
- * BusGo Trajets — Liste + Création de trajets.
+ * BusGo Trajets — Liste + Création + Actions (modifier, supprimer, retarder, annuler).
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Clock, MapPin, Loader2, AlertCircle, Bus, Calendar, Plus, User, Phone,
+  Pencil, Trash2, XCircle, AlertTriangle, MoreVertical,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 
 interface Departure {
@@ -47,14 +53,18 @@ export default function BusGoTrajetsPage() {
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editTarget, setEditTarget] = useState<Departure | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Departure | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
-    lineNumber: '',
-    destination: '',
-    scheduledTime: '',
-    platform: '',
-    totalSeats: 45,
-    agentName: '',
-    agentPhone: '',
+    lineNumber: '', destination: '', scheduledTime: '', platform: '',
+    totalSeats: 45, agentName: '', agentPhone: '',
+  });
+  const [editForm, setEditForm] = useState({
+    lineNumber: '', destination: '', scheduledTime: '', platform: '',
+    totalSeats: 45, agentName: '', agentPhone: '',
   });
 
   const fetchDepartures = useCallback(async () => {
@@ -67,8 +77,7 @@ export default function BusGoTrajetsPage() {
         throw new Error(err.error || `Erreur ${res.status}`);
       }
       const data = await res.json();
-      const list = Array.isArray(data) ? data : data.data || [];
-      setDepartures(list);
+      setDepartures(Array.isArray(data) ? data : data.data || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement');
     } finally {
@@ -103,6 +112,85 @@ export default function BusGoTrajetsPage() {
       toast.error(e instanceof Error ? e.message : 'Erreur');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openEdit = (dep: Departure) => {
+    // Format scheduledTime for datetime-local input
+    const dt = new Date(dep.scheduledTime);
+    const localDT = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setEditForm({
+      lineNumber: dep.lineNumber,
+      destination: dep.destination,
+      scheduledTime: localDT,
+      platform: dep.platform || '',
+      totalSeats: dep.totalSeats,
+      agentName: dep.agentName || '',
+      agentPhone: dep.agentPhone || '',
+    });
+    setEditTarget(dep);
+    setEditOpen(true);
+  };
+
+  const handleEdit = async () => {
+    if (!editTarget) return;
+    setEditing(true);
+    try {
+      const res = await fetch(`/api/busgo/trajets/${editTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'edit', ...editForm }),
+      });
+      if (!res.ok) throw new Error('Erreur');
+      toast.success('Trajet modifié !');
+      setEditOpen(false);
+      fetchDepartures();
+    } catch {
+      toast.error('Erreur');
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleAction = async (dep: Departure, action: string, extra?: Record<string, unknown>) => {
+    try {
+      const res = await fetch(`/api/busgo/trajets/${dep.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action, ...extra }),
+      });
+      if (!res.ok) throw new Error('Erreur');
+      const labels: Record<string, string> = {
+        'cancel': 'Trajet annulé',
+        'delay': `Retard de ${extra?.delayMinutes || 15}min signalé`,
+        'start-boarding': 'Embarquement démarré',
+        'depart': 'Départ confirmé',
+      };
+      toast.success(labels[action] || 'Action effectuée');
+      fetchDepartures();
+    } catch {
+      toast.error('Erreur');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/busgo/trajets/${deleteTarget.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Erreur');
+      toast.success('Trajet supprimé');
+      setDeleteTarget(null);
+      fetchDepartures();
+    } catch {
+      toast.error('Erreur');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -150,9 +238,8 @@ export default function BusGoTrajetsPage() {
               {departures.map((departure) => {
                 const statusInfo = STATUS_LABELS[departure.status] || { label: departure.status, variant: 'outline' as const };
                 return (
-                  <Link
+                  <div
                     key={departure.id}
-                    href={`/busgo/embarquement/${departure.id}`}
                     className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -173,11 +260,67 @@ export default function BusGoTrajetsPage() {
                               <Phone className="h-2.5 w-2.5" /> {departure.agentName || 'Agent'}
                             </span>
                           )}
+                          {departure.delayMinutes > 0 && (
+                            <span className="text-xs text-rose-600">+{departure.delayMinutes}min retard</span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <Badge variant={statusInfo.variant} className="capitalize">{statusInfo.label}</Badge>
-                  </Link>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={statusInfo.variant} className="capitalize">{statusInfo.label}</Badge>
+                      <Link href={`/busgo/embarquement/${departure.id}`}>
+                        <Button variant="ghost" size="sm" className="text-amber-600">
+                          Embarquer
+                        </Button>
+                      </Link>
+                      {/* Actions dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(departure)}>
+                            <Pencil className="h-4 w-4 mr-2" /> Modifier
+                          </DropdownMenuItem>
+                          {departure.status === 'SCHEDULED' && (
+                            <DropdownMenuItem onClick={() => handleAction(departure, 'start-boarding')}>
+                              <Clock className="h-4 w-4 mr-2" /> Démarrer embarquement
+                            </DropdownMenuItem>
+                          )}
+                          {(departure.status === 'SCHEDULED' || departure.status === 'BOARDING') && (
+                            <DropdownMenuItem onClick={() => handleAction(departure, 'delay', { delayMinutes: 15 })}>
+                              <AlertTriangle className="h-4 w-4 mr-2" /> Retard +15min
+                            </DropdownMenuItem>
+                          )}
+                          {(departure.status === 'BOARDING' || departure.status === 'DELAYED') && (
+                            <DropdownMenuItem onClick={() => handleAction(departure, 'depart')}>
+                              <Bus className="h-4 w-4 mr-2" /> Confirmer départ
+                            </DropdownMenuItem>
+                          )}
+                          {departure.status !== 'CANCELLED' && departure.status !== 'DEPARTED' && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleAction(departure, 'cancel')}
+                                className="text-rose-600"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" /> Annuler
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setDeleteTarget(departure)}
+                            className="text-rose-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -185,7 +328,7 @@ export default function BusGoTrajetsPage() {
         </CardContent>
       </Card>
 
-      {/* Dialog Créer un trajet */}
+      {/* Dialog Créer */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -238,6 +381,78 @@ export default function BusGoTrajetsPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Modifier */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier le trajet</DialogTitle>
+            <DialogDescription>Ligne {editTarget?.lineNumber} → {editTarget?.destination}</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleEdit(); }}>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Numéro de ligne</Label>
+                <Input value={editForm.lineNumber} onChange={(e) => setEditForm({ ...editForm, lineNumber: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Destination</Label>
+                <Input value={editForm.destination} onChange={(e) => setEditForm({ ...editForm, destination: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Date et heure</Label>
+                <Input type="datetime-local" value={editForm.scheduledTime} onChange={(e) => setEditForm({ ...editForm, scheduledTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Quai</Label>
+                <Input value={editForm.platform} onChange={(e) => setEditForm({ ...editForm, platform: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Sièges</Label>
+              <Input type="number" min="1" max="200" value={editForm.totalSeats} onChange={(e) => setEditForm({ ...editForm, totalSeats: parseInt(e.target.value) || 45 })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Nom agent</Label>
+                <Input value={editForm.agentName} onChange={(e) => setEditForm({ ...editForm, agentName: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Téléphone agent</Label>
+                <Input value={editForm.agentPhone} onChange={(e) => setEditForm({ ...editForm, agentPhone: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Annuler</Button>
+              <Button type="submit" disabled={editing} className="bg-amber-600 hover:bg-amber-700">
+                {editing ? 'Modification...' : 'Enregistrer'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Supprimer */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le trajet ?</DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. Tous les billets associés seront supprimés.
+              <br />
+              <strong>Ligne {deleteTarget?.lineNumber} → {deleteTarget?.destination}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Annuler</Button>
+            <Button onClick={handleDelete} disabled={deleting} className="bg-rose-600 hover:bg-rose-700">
+              {deleting ? 'Suppression...' : 'Supprimer définitivement'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

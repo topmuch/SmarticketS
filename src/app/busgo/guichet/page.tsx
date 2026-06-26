@@ -65,7 +65,11 @@ export default function BusGoGuichetPage() {
   useEffect(() => { fetchDepartures(); }, [fetchDepartures]);
 
   const handleSell = async () => {
-    if (!selectedDep || !form.paperTicketNumber || !form.passengerName || !form.passengerPhone || !form.seatNumber) {
+    if (!selectedDep) {
+      toast.error('Sélectionnez un départ');
+      return;
+    }
+    if (!form.paperTicketNumber || !form.passengerName || !form.passengerPhone || !form.seatNumber) {
       toast.error('Tous les champs sont requis');
       return;
     }

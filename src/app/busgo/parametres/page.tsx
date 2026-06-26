@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Save, Loader2, Bus, MapPin, Clock } from 'lucide-react';
+import { User, Phone, Save, Loader2, Bus, MapPin, Clock, Upload, Image as ImageIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,8 @@ export default function BusGoParametresPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, { agentName: string; agentPhone: string }>>({});
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   const fetchDepartures = useCallback(async () => {
     try {
@@ -89,12 +91,82 @@ export default function BusGoParametresPage() {
     );
   }
 
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/agency/logo', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Erreur');
+      }
+      const data = await res.json();
+      setLogoUrl(data.url);
+      toast.success('Logo mis à jour !');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Paramètres</h1>
-        <p className="text-muted-foreground">Assignez un agent à chaque départ.</p>
+        <p className="text-muted-foreground">Personnalisez votre compagnie et assignez des agents.</p>
       </div>
+
+      {/* Logo société */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-amber-600" />
+            Logo de la société
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-16 w-16 rounded-lg object-cover border" />
+            ) : (
+              <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                <Bus className="h-8 w-8 text-muted-foreground" />
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium">Logo affiché dans le dashboard et la PWA</p>
+              <p className="text-xs text-muted-foreground mt-1">PNG, JPEG, WebP ou SVG · Max 2MB</p>
+            </div>
+          </div>
+          <Label className="cursor-pointer">
+            <div className="border-2 border-dashed border-amber-200 rounded-lg p-4 text-center hover:bg-amber-50 transition-colors">
+              {uploadingLogo ? (
+                <p className="text-sm text-amber-600 flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Upload...
+                </p>
+              ) : (
+                <>
+                  <Upload className="h-6 w-6 text-amber-600 mx-auto mb-1" />
+                  <p className="text-sm">Uploader un logo</p>
+                </>
+              )}
+            </div>
+            <Input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              className="hidden"
+              disabled={uploadingLogo}
+              onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
+            />
+          </Label>
+        </CardContent>
+      </Card>
 
       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-300">
         <p className="font-medium mb-1">📱 Numéro de l'agent</p>

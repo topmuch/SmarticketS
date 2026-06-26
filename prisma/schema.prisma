@@ -150,6 +150,7 @@ model Agency {
   address   String?
   active    Boolean   @default(true)
   settings  String?   // JSON: { defaultPermissions, whatsappTemplate }
+  logoUrl    String?   // URL du logo de la compagnie (pour personnalisation BusGo)
   createdAt DateTime  @default(now())
   baggages        Baggage[]
   routes          Route[]
