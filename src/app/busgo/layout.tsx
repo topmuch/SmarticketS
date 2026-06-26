@@ -37,6 +37,7 @@ import {
   BarChart3,
   Cog,
   Smartphone,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentVocalAlerts } from '@/hooks/use-agent-vocal-alerts';
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
   { href: '/busgo/scanner', label: 'Scanner', icon: ScanLine },
   { href: '/busgo/guichet', label: 'Guichet', icon: Ticket },
   { href: '/busgo/billets', label: 'Billets', icon: Ticket },
+  { href: '/busgo/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/busgo/equipe', label: 'Équipe', icon: Users },
   { href: '/busgo/voix', label: 'Voix & Annonces', icon: Volume2 },
   { href: '/busgo/notifications', label: 'Notifications', icon: Bell },
