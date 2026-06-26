@@ -130,93 +130,94 @@ export default function BusGoDashboard() {
     <div className="space-y-6">
       {/* ═══ ZONE B: KPIs actionnables ═══ */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {/* Carte 1: Prochain départ */}
+        {/* Carte 1: Prochain départ — VIOLET */}
         {nextDep ? (
           <Card className={cn(
-            'border-2 transition-all hover:-translate-y-0.5 cursor-pointer',
-            isUrgent
-              ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20 animate-pulse'
-              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+            'border-2 transition-all hover:-translate-y-0.5 cursor-pointer border-violet-300 dark:border-violet-700',
+            isUrgent ? 'bg-violet-100 dark:bg-violet-900/30 animate-pulse' : 'bg-violet-50 dark:bg-violet-900/20'
           )} onClick={() => router.push(`/busgo/embarquement/${nextDep.id}`)}>
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Prochain départ</span>
-                {isUrgent && <Badge className="bg-orange-500 text-white text-xs animate-pulse">URGENT</Badge>}
+                <span className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wide">Prochain départ</span>
+                {isUrgent && <Badge className="bg-violet-500 text-white text-xs animate-pulse">URGENT</Badge>}
               </div>
-              <div className="text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-100">
+              <div className="text-2xl font-bold tabular-nums text-violet-900 dark:text-violet-100">
                 {new Date(nextDep.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
               </div>
-              <p className="text-sm font-medium mt-1 text-slate-700 dark:text-slate-300">
+              <p className="text-sm font-medium mt-1 text-violet-800 dark:text-violet-200">
                 Ligne {nextDep.lineNumber} → {nextDep.destination}
               </p>
-              <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-3 mt-1 text-xs text-violet-500 dark:text-violet-400">
                 {nextDep.platform && <span>Quai {nextDep.platform}</span>}
-                {nextDepMin !== null && nextDepMin > 0 && <span className="font-bold text-orange-500">Dans {nextDepMin} min</span>}
+                {nextDepMin !== null && nextDepMin > 0 && <span className="font-bold">Dans {nextDepMin} min</span>}
                 {nextDep.delayMinutes > 0 && <span className="text-rose-500">+{nextDep.delayMinutes}min retard</span>}
               </div>
-              <Button size="sm" className={cn('w-full mt-3', isUrgent ? 'bg-orange-500 hover:bg-orange-600' : 'bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600')}>
+              <Button size="sm" className="w-full mt-3 bg-violet-500 hover:bg-violet-600 text-white">
                 <Play className="h-3 w-3 mr-1" /> Gérer l'embarquement
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <Card className="border-2 border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20">
             <CardContent className="p-5 text-center">
-              <Bus className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">Aucun départ à venir</p>
-              <Link href="/busgo/trajets" className="text-xs text-orange-500 hover:underline mt-2 inline-block">→ Créer un trajet</Link>
+              <Bus className="h-8 w-8 text-violet-300 dark:text-violet-700 mx-auto mb-2" />
+              <p className="text-sm text-violet-500 dark:text-violet-400">Aucun départ à venir</p>
+              <Link href="/busgo/trajets" className="text-xs text-violet-600 hover:underline mt-2 inline-block">→ Créer un trajet</Link>
             </CardContent>
           </Card>
         )}
 
-        {/* Carte 2: Embarquement en cours */}
+        {/* Carte 2: Embarquement en cours — EMERALD */}
         {activeBoarding ? (
-          <Card className="border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800 hover:-translate-y-0.5 transition-all cursor-pointer"
+          <Card className="border-2 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 hover:-translate-y-0.5 transition-all cursor-pointer"
             onClick={() => router.push(`/busgo/embarquement/${activeBoarding.id}`)}>
             <CardContent className="p-5">
-              <span className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide">Embarquement en cours</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Embarquement en cours</span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{boardedCount}</span>
-                <span className="text-sm text-slate-500 dark:text-slate-400">/ {totalCount} passagers</span>
+                <span className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{boardedCount}</span>
+                <span className="text-sm text-emerald-600 dark:text-emerald-400">/ {totalCount} passagers</span>
               </div>
-              <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
-                <div className={cn('h-full rounded-full transition-all duration-500', occupancyRate === 100 ? 'bg-emerald-500' : 'bg-amber-500')} style={{ width: `${occupancyRate}%` }} />
+              <div className="w-full h-2.5 bg-emerald-200 dark:bg-emerald-800 rounded-full overflow-hidden mt-2">
+                <div className={cn('h-full rounded-full transition-all duration-500', occupancyRate === 100 ? 'bg-emerald-600' : 'bg-emerald-500')} style={{ width: `${occupancyRate}%` }} />
               </div>
-              <p className="text-sm font-medium mt-2 text-slate-700 dark:text-slate-300">{activeBoarding.lineNumber} → {activeBoarding.destination}</p>
-              <Button size="sm" variant="outline" className="w-full mt-3 border-amber-300 text-amber-700 dark:text-amber-400">
+              <p className="text-sm font-medium mt-2 text-emerald-800 dark:text-emerald-200">{activeBoarding.lineNumber} → {activeBoarding.destination}</p>
+              <Button size="sm" variant="outline" className="w-full mt-3 border-emerald-400 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800">
                 Voir liste passagers
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
             <CardContent className="p-5 text-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">Aucun embarquement actif</p>
+              <CheckCircle2 className="h-8 w-8 text-emerald-400 dark:text-emerald-600 mx-auto mb-2" />
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">Aucun embarquement actif</p>
             </CardContent>
           </Card>
         )}
 
-        {/* Carte 3: Alertes */}
+        {/* Carte 3: Alertes — ROSE/RED */}
         <Card className={cn(
           'border-2 transition-all hover:-translate-y-0.5 cursor-pointer',
           delayedCount > 0
-            ? 'border-rose-300 bg-rose-50 dark:bg-rose-900/10 dark:border-rose-800'
-            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+            ? 'border-rose-400 dark:border-rose-600 bg-rose-50 dark:bg-rose-900/20'
+            : 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20'
         )} onClick={() => router.push('/busgo/incidents')}>
           <CardContent className="p-5">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Alertes</span>
+            <span className={cn(
+              'text-xs font-bold uppercase tracking-wide',
+              delayedCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-sky-600 dark:text-sky-400'
+            )}>Alertes</span>
             {delayedCount > 0 ? (
               <>
                 <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-2">{delayedCount}</div>
                 <p className="text-sm text-rose-600 dark:text-rose-400">retard{delayedCount > 1 ? 's' : ''} signalé{delayedCount > 1 ? 's' : ''}</p>
-                <Button size="sm" variant="outline" className="w-full mt-3 border-rose-300 text-rose-600 dark:text-rose-400">Voir détails</Button>
+                <Button size="sm" variant="outline" className="w-full mt-3 border-rose-400 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-800">Voir détails</Button>
               </>
             ) : (
               <>
-                <CheckCircle2 className="h-8 w-8 text-emerald-400 mt-2" />
-                <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">✅ Tout va bien</p>
-                <p className="text-xs text-slate-400 mt-1">{boardedPassengers}/{totalPassengers} passagers embarqués</p>
+                <CheckCircle2 className="h-8 w-8 text-sky-500 dark:text-sky-600 mt-2" />
+                <p className="text-sm text-sky-600 dark:text-sky-400 mt-1 font-medium">✅ Tout va bien</p>
+                <p className="text-xs text-sky-500 dark:text-sky-500 mt-1">{boardedPassengers}/{totalPassengers} passagers embarqués</p>
               </>
             )}
           </CardContent>

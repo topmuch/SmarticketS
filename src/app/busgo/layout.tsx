@@ -259,7 +259,7 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
       {/* ═══ Body: Sidebar + Main ═══ */}
       <div className="flex-1 flex min-h-0">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-60 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+        <aside className="hidden md:flex w-60 flex-col border-r border-slate-200 dark:border-slate-800 bg-[#EFBF04] dark:bg-[#EFBF04] p-3">
           <nav className="flex flex-col gap-0.5">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -271,8 +271,8 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
                     className={cn(
                       'w-full justify-start gap-2.5 text-sm h-10 rounded-lg transition-all',
                       isActive
-                        ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-medium'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                        ? 'bg-white text-slate-900 font-bold shadow-sm'
+                        : 'text-slate-800 hover:bg-white/30 hover:text-slate-900'
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -287,7 +287,7 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
         {/* Mobile sidebar */}
         {mobileNavOpen && (
           <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileNavOpen(false)}>
-            <div className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute left-0 top-0 bottom-0 w-64 bg-[#EFBF04] p-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-6">
                 <span className="font-bold flex items-center gap-2">
                   <Bus className="h-5 w-5 text-orange-500" /> {user.agency?.name || 'BusGo'}
