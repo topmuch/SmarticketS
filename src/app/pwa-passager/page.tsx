@@ -14,8 +14,8 @@
  *   - Installation PWA (beforeinstallprompt)
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Bus, Ticket, Clock, Phone, MapPin, ScanLine, Volume2, VolumeX,
   AlertCircle, CheckCircle2, User, Loader2, Timer, Bell, Settings,
@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QRCodeSVG } from 'qrcode.react';
 import { BusGoSWRegistration } from '@/components/busgo/pwa-sw-registration';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface PassengerData {
@@ -100,13 +101,22 @@ function getVoyageStatus(data: PassengerData, now: number): {
 }
 
 export default function PwaPassagerDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-amber-50"><Loader2 className="h-8 w-8 animate-spin text-amber-600" /></div>}>
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<PassengerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [welcomeShown, setWelcomeShown] = useState(false);
 
   const fetchData = useCallback(async () => {
     const ticketId = localStorage.getItem('busgo_ticket_id');
@@ -182,6 +192,45 @@ export default function PwaPassagerDashboard() {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Welcome message + TTS on first load after install
+  useEffect(() => {
+    const welcome = searchParams.get('welcome');
+    if (welcome === '1' && data && !welcomeShown) {
+      setWelcomeShown(true);
+
+      // Fetch the welcome notification from the log
+      fetch(`/api/busgo/notifications/log?ticketId=${data.ticket.id}&type=purchase_confirm`)
+        .then(res => res.json())
+        .then(logData => {
+          if (logData.data && logData.data.length > 0) {
+            const notif = logData.data[0];
+            // Display notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('BusGo — Bienvenue', {
+                body: notif.messageText,
+                icon: '/icons/icon-192.png',
+                tag: 'busgo-welcome',
+              });
+            }
+
+            // TTS
+            if ('speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(notif.ttsText);
+              u.lang = 'fr-FR';
+              u.rate = 0.9;
+              u.volume = 1.0;
+              window.speechSynthesis.speak(u);
+            }
+
+            // Toast
+            toast.success(notif.messageText);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [searchParams, data, welcomeShown]);
 
   useEffect(() => {
     const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };

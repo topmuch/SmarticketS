@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 /**
  * POST /api/pwa-passager/install
@@ -68,8 +69,10 @@ export async function POST(request: NextRequest) {
             agentName: true,
             boardingStartedAt: true,
             departedAt: true,
+            route: { select: { origin: true, destination: true, price: true, durationMinutes: true } },
           },
         },
+        agency: { select: { id: true, name: true } },
       },
     });
 
@@ -97,6 +100,54 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Envoyer le message de bienvenue (notification purchase_confirm)
+    try {
+      const template = await db.busGoNotificationTemplate.findFirst({
+        where: {
+          agencyId: ticket.agency.id,
+          notificationType: 'purchase_confirm',
+          language: 'fr',
+          isActive: true,
+        },
+      });
+
+      if (template) {
+        // Replace variables
+        const departureTime = ticket.departure?.scheduledTime || ticket.departureTime;
+        const vars: Record<string, string> = {
+          '{passenger_name}': ticket.passengerName,
+          '{company_name}': ticket.agency.name,
+          '{departure_city}': ticket.departure?.route?.origin || '—',
+          '{arrival_city}': ticket.destination,
+          '{date}': departureTime ? new Date(departureTime).toLocaleDateString('fr-FR') : '—',
+          '{time}': departureTime ? new Date(departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—',
+          '{platform}': ticket.platform || ticket.departure?.platform || '—',
+          '{ticket_number}': ticket.paperTicketNumber || ticket.controlCode,
+        };
+
+        let textMessage = template.textTemplate;
+        let ttsMessage = template.ttsTemplate;
+        for (const [key, value] of Object.entries(vars)) {
+          textMessage = textMessage.replaceAll(key, value);
+          ttsMessage = ttsMessage.replaceAll(key, value);
+        }
+
+        // Log the welcome notification
+        await db.busGoNotificationLog.create({
+          data: {
+            ticketId: ticket.id,
+            templateType: 'purchase_confirm',
+            messageText: textMessage,
+            ttsText: ttsMessage,
+            status: 'sent',
+          },
+        });
+      }
+    } catch (notifError) {
+      console.error('[PWA install] Failed to send welcome notification:', notifError);
+      // Non-blocking — installation still succeeds
+    }
+
     // Enregistrer la push subscription si fournie
     if (pushSubscription) {
       await db.busGoPushSubscription.create({
@@ -107,6 +158,56 @@ export async function POST(request: NextRequest) {
           userAgent: request.headers.get('user-agent') || null,
         },
       });
+    }
+
+    // 🔔 Envoyer notification purchase_confirm immédiatement
+    try {
+      const template = await db.busGoNotificationTemplate.findFirst({
+        where: {
+          agencyId: ticket.agency.id,
+          notificationType: 'purchase_confirm',
+          language: 'fr',
+          isActive: true,
+        },
+      });
+
+      if (template) {
+        const agency = await db.agency.findUnique({
+          where: { id: ticket.agencyId },
+          select: { name: true },
+        });
+
+        const depTime = ticket.departure?.scheduledTime || ticket.departureTime;
+        const vars: Record<string, string> = {
+          '{passenger_name}': ticket.passengerName,
+          '{company_name}': agency?.name || 'BusGo',
+          '{departure_city}': '—',
+          '{arrival_city}': ticket.destination,
+          '{date}': depTime ? new Date(depTime).toLocaleDateString('fr-FR') : '—',
+          '{time}': depTime ? new Date(depTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—',
+          '{platform}': ticket.platform || ticket.departure?.platform || '—',
+          '{ticket_number}': ticket.paperTicketNumber || ticket.controlCode,
+        };
+
+        let textMessage = template.textTemplate;
+        let ttsMessage = template.ttsTemplate;
+        for (const [key, value] of Object.entries(vars)) {
+          textMessage = textMessage.replaceAll(key, value);
+          ttsMessage = ttsMessage.replaceAll(key, value);
+        }
+
+        await db.busGoNotificationLog.create({
+          data: {
+            ticketId: ticket.id,
+            templateType: 'purchase_confirm',
+            messageText: textMessage,
+            ttsText: ttsMessage,
+            status: 'sent',
+          },
+        });
+      }
+    } catch (e) {
+      console.error('[install] Notification error:', e);
     }
 
     return NextResponse.json({

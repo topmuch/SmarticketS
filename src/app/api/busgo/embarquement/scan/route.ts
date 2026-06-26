@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 /**
  * POST /api/busgo/embarquement/scan
  *
- * Le PASSAGER scanne le QR code de l'AGENT (qui contient juste l'ID du départ).
- * Le système marque le passager comme "embarqué".
+ * Le PASSAGER scanne le QR code de l'AGENT.
+ * Le passager n'a PAS de session (pas de login) — il utilise son ticketId stocké en localStorage.
  *
  * Body: {
- *   departureId: string,    // from agent QR code
- *   ticketId: string,       // from passenger's session/PWA
+ *   departureId: string,    // from agent QR code (URL ?dep=xxx)
+ *   ticketId: string,       // from passenger's localStorage
  * }
+ *
+ * Si pas de session (passager), on vérifie le ticketId directement en DB.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier le ticket
+    // Vérifier le ticket — PAS besoin de session (le passager n'est pas connecté)
     const ticket = await db.passengerTicket.findUnique({
       where: { id: ticketId },
       include: { departure: true },
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Vérifier que le ticket correspond au départ scanné
     if (ticket.departureId !== departureId) {
       return NextResponse.json(
-        { error: 'Ce billet ne correspond pas à ce départ' },
+        { error: 'Ce billet ne correspond pas à ce départ. Vérifiez que vous scannez le bon bus.' },
         { status: 403 }
       );
     }
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
       data: {
         boardedAt: new Date(),
         ticketStatus: 'BOARDED',
-        isLate: false, // Reset late flag — passenger showed up
+        isLate: false,
       },
     });
 

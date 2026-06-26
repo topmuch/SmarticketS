@@ -146,15 +146,25 @@ export default function BusGoGuichetPage() {
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 text-sm">
               <p className="font-medium text-amber-800 dark:text-amber-300 mb-1">📱 Faites scanner ce QR par le passager</p>
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Le passager scanne le QR → la PWA s'installe sur son téléphone → il reçoit les notifications vocales.
+                Le passager scanne le QR → la PWA s'installe sur son téléphone → il reçoit immédiatement un message de bienvenue + les notifications vocales.
               </p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={copyInstallUrl}>
                 <Copy className="h-4 w-4 mr-2" /> Copier le lien
               </Button>
+              <a
+                href={typeof window !== 'undefined' ? `${window.location.origin}${qrResult.installUrl}` : '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1"
+              >
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                  <QrCode className="h-4 w-4 mr-2" /> Ouvrir PWA
+                </Button>
+              </a>
               <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={() => setQrResult(null)}>
-                Vendre un autre billet
+                Vendre un autre
               </Button>
             </div>
           </CardContent>
