@@ -1,43 +1,18 @@
 'use client';
 
 /**
- * BusGo Layout — Espace BusGo indépendant.
+ * BusGo Layout — Espace BusGo indépendant avec thème dynamique.
  *
- * BusGo est un module autonome de gestion de transport en bus.
- * Accessible via /busgo/* pour les compagnies créées par le SuperAdmin.
- *
- * Routes:
- *   /busgo                    — Dashboard (trajets du jour, KPIs)
- *   /busgo/trajets            — Tous les trajets
- *   /busgo/embarquement       — Embarquement (scan QR)
- *   /busgo/guichet            — Vente de billets
- *   /busgo/bus                — Gestion flotte de bus
- *   /busgo/voix               — Configuration annonces vocales
- *   /busgo/rapports           — Rapports et statistiques
+ * Refonte: header contextuel + live clock + theme toggle + palette Slate.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Bus,
-  LayoutDashboard,
-  Clock,
-  ScanLine,
-  Ticket,
-  Users,
-  Volume2,
-  VolumeX,
-  LogOut,
-  Menu,
-  X,
-  WifiOff,
-  Wifi,
-  Bell,
-  BarChart3,
-  Cog,
-  Smartphone,
-  AlertTriangle,
+  Bus, LayoutDashboard, Clock, ScanLine, Ticket, Users, Volume2,
+  LogOut, Menu, X, WifiOff, Wifi, Bell, BarChart3, Smartphone,
+  AlertTriangle, Moon, Sun, Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentVocalAlerts } from '@/hooks/use-agent-vocal-alerts';
@@ -45,11 +20,8 @@ import { useKioskSocket } from '@/hooks/use-kiosk-socket';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { BusGoOnboarding } from '@/components/busgo/onboarding-wizard';
@@ -75,6 +47,15 @@ const navItems: NavItem[] = [
   { href: '/busgo/rapports', label: 'Rapports', icon: BarChart3 },
 ];
 
+type Theme = 'light' | 'dark';
+
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark';
+  const saved = localStorage.getItem('busgo-theme') as Theme | null;
+  if (saved) return saved;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 export default function BusGoLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -82,16 +63,36 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [theme, setTheme] = useState<Theme>('dark');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Show onboarding on first visit
+  // Apply theme to document
+  const applyTheme = useCallback((t: Theme) => {
+    const root = document.documentElement;
+    if (t === 'dark') { root.classList.add('dark'); root.style.colorScheme = 'dark'; }
+    else { root.classList.remove('dark'); root.style.colorScheme = 'light'; }
+  }, []);
+
+  // Theme initialization
   useEffect(() => {
-    if (typeof window === 'undefined' || loading || !isAuthenticated || !user) return;
-    const onboarded = localStorage.getItem('busgo_onboarded');
-    if (!onboarded) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setShowOnboarding(true);
-    }
-  }, [loading, isAuthenticated, user]);
+    const initial = getInitialTheme();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTheme(initial);
+    applyTheme(initial);
+  }, [applyTheme]);
+
+  // Live clock
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleTheme = () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    applyTheme(next);
+    localStorage.setItem('busgo-theme', next);
+  };
 
   const { config, toggleMuted, announceCustom } = useAgentVocalAlerts();
 
@@ -101,10 +102,7 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
     onEvent: (event, data) => {
       if (!config.autoTTS) return;
       if (event === 'passenger:missing' && data.passengerName && data.seatNumber) {
-        announceCustom(
-          `Passager manquant : ${data.passengerName}, siège ${data.seatNumber}.`,
-          'high'
-        );
+        announceCustom(`Passager manquant: ${data.passengerName}, siège ${data.seatNumber}.`, 'high');
       } else if (event === 'announcement' && data.message) {
         announceCustom(data.message, 'normal');
       }
@@ -124,6 +122,15 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || loading || !isAuthenticated || !user) return;
+    const onboarded = localStorage.getItem('busgo_onboarded');
+    if (!onboarded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowOnboarding(true);
+    }
+  }, [loading, isAuthenticated, user]);
+
+  useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/busgo/connexion');
     }
@@ -131,111 +138,101 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto" />
-          <p className="mt-4 text-sm text-muted-foreground">Chargement BusGo...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto" />
+          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Chargement BusGo...</p>
         </div>
       </div>
     );
   }
 
   const initials = (user.name || user.email || 'B')
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+    .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+    router.push('/busgo/connexion');
   };
 
+  const greeting = (() => {
+    const h = currentTime.getHours();
+    if (h < 12) return 'Bonjour';
+    if (h < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  })();
+
   return (
-    <div className="min-h-dvh flex flex-col bg-background">
+    <div className="min-h-dvh flex flex-col bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
       <BusGoOnboarding open={showOnboarding} onClose={() => setShowOnboarding(false)} />
-      {/* ─── Header ──────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-amber-600 to-orange-600 text-white">
-        <div className="flex h-14 items-center px-4 md:px-6 gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden text-white hover:bg-white/20"
-            onClick={() => setMobileNavOpen(!mobileNavOpen)}
-          >
+
+      {/* ═══ ZONE A: En-tête contextuel (Sticky) ═══ */}
+      <header className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-slate-900/80">
+        <div className="flex h-16 items-center px-4 md:px-6 gap-3">
+          {/* Mobile hamburger */}
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
             {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
 
-          {/* Logo — company logo if available, else BusGo default */}
-          <Link href="/busgo" className="flex items-center gap-2 font-bold text-lg text-white">
-            {user?.agency?.id ? (
-              // Try to load company logo — fallback to Bus icon
-              <img
-                src={`/api/agency/logo/${user.agency.id}`}
-                alt={user.agency.name || 'BusGo'}
-                className="h-8 w-8 rounded-lg object-cover bg-white/20"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                  const parent = (e.target as HTMLImageElement).parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="bg-white/20 rounded-lg p-1"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2L21 4H4a2 2 0 0 0-2 2v11h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg></div>';
-                  }
-                }}
-              />
-            ) : (
-              <div className="bg-white/20 rounded-lg p-1">
-                <Bus className="h-5 w-5" />
-              </div>
-            )}
-            <span className="hidden sm:inline">
-              {user?.agency?.name || 'BusGo'}
-            </span>
+          {/* Logo + Greeting */}
+          <Link href="/busgo" className="flex items-center gap-3">
+            <div className="bg-orange-500 dark:bg-orange-600 rounded-xl p-2">
+              <Bus className="h-5 w-5 text-white" />
+            </div>
+            <div className="hidden sm:block">
+              <p className="font-bold text-lg leading-none">{user.agency?.name || 'BusGo'}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {greeting}, {user.name?.split(' ')[0] || 'Agent'}
+              </p>
+            </div>
           </Link>
 
-          {/* Agency name */}
-          {user.agency && (
-            <span className="hidden md:inline text-sm text-white/80 ml-2">
-              — {user.agency.name}
+          {/* Live clock — center */}
+          <div className="hidden md:flex items-center gap-2 ml-6 text-sm text-slate-500 dark:text-slate-400">
+            <Calendar className="h-4 w-4" />
+            <span>{currentTime.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' })}</span>
+            <span className="font-mono font-bold text-slate-700 dark:text-slate-200 tabular-nums">
+              {currentTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
-          )}
+          </div>
 
-          {/* Status indicators */}
+          {/* Right side */}
           <div className="ml-auto flex items-center gap-2">
-            <div
-              className={cn(
-                'hidden sm:flex items-center gap-1 text-xs px-2 py-1 rounded',
-                isOnline
-                  ? 'bg-white/20 text-white'
-                  : 'bg-rose-500/30 text-white'
-              )}
-            >
+            {/* Network status */}
+            <div className={cn(
+              'hidden sm:flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium',
+              isOnline
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+            )}>
               {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
               <span>{isOnline ? 'Online' : 'Offline'}</span>
             </div>
 
+            {/* WS status */}
             {wsConnected && (
-              <div className="hidden sm:flex items-center gap-1 text-xs px-2 py-1 rounded bg-white/20 text-white">
+              <div className="hidden sm:flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium">
                 <Bell className="h-3 w-3" />
                 <span>Live</span>
               </div>
             )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMuted}
-              className="text-white hover:bg-white/20"
-              title={config.muted ? 'Activer le son' : 'Couper le son'}
-            >
-              {config.muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            {/* Theme toggle */}
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-slate-600 dark:text-slate-300">
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
+            {/* Mute toggle */}
+            <Button variant="ghost" size="icon" onClick={toggleMuted} className="text-slate-600 dark:text-slate-300">
+              {config.muted ? <Volume2 className="h-4 w-4 opacity-50" /> : <Volume2 className="h-4 w-4 text-orange-500" />}
+            </Button>
+
+            {/* Avatar */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-white/20">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-white text-amber-700 text-xs font-bold">
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-orange-500 text-white text-xs font-bold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -245,18 +242,12 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
                 <div className="flex flex-col gap-1 p-2">
                   <p className="text-sm font-medium">{user.name}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
-                  {user.agency && (
-                    <p className="text-xs text-muted-foreground">{user.agency.name}</p>
-                  )}
+                  {user.agency && <p className="text-xs text-muted-foreground">{user.agency.name}</p>}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <button
-                    onClick={handleLogout}
-                    className="cursor-pointer w-full flex items-center text-rose-600"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Déconnexion
+                  <button onClick={handleLogout} className="cursor-pointer w-full flex items-center text-rose-600">
+                    <LogOut className="mr-2 h-4 w-4" /> Déconnexion
                   </button>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -265,11 +256,11 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
         </div>
       </header>
 
-      {/* ─── Body: Sidebar + Main ────────────────────────────────── */}
+      {/* ═══ Body: Sidebar + Main ═══ */}
       <div className="flex-1 flex min-h-0">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-56 flex-col border-r bg-amber-50/50 dark:bg-amber-950/10 p-4">
-          <nav className="flex flex-col gap-1">
+        <aside className="hidden md:flex w-60 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+          <nav className="flex flex-col gap-0.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -278,11 +269,13 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
                   <Button
                     variant="ghost"
                     className={cn(
-                      'w-full justify-start gap-2 text-sm',
-                      isActive && 'bg-amber-200/50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 font-medium'
+                      'w-full justify-start gap-2.5 text-sm h-10 rounded-lg transition-all',
+                      isActive
+                        ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-medium'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4 shrink-0" />
                     {item.label}
                   </Button>
                 </Link>
@@ -294,38 +287,26 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
         {/* Mobile sidebar */}
         {mobileNavOpen && (
           <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileNavOpen(false)}>
-            <div
-              className="absolute left-0 top-0 bottom-0 w-64 bg-background p-4 border-r"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 p-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-6">
                 <span className="font-bold flex items-center gap-2">
-                  <Bus className="h-5 w-5 text-amber-600" />
-                  BusGo
+                  <Bus className="h-5 w-5 text-orange-500" /> {user.agency?.name || 'BusGo'}
                 </span>
                 <Button variant="ghost" size="icon" onClick={() => setMobileNavOpen(false)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              <nav className="flex flex-col gap-1">
+              <nav className="flex flex-col gap-0.5">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href;
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileNavOpen(false)}
-                    >
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          'w-full justify-start gap-2 text-sm',
-                          isActive && 'bg-amber-200/50 dark:bg-amber-900/30 font-medium'
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {item.label}
+                    <Link key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)}>
+                      <Button variant="ghost" className={cn(
+                        'w-full justify-start gap-2 text-sm',
+                        isActive && 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-medium'
+                      )}>
+                        <Icon className="h-4 w-4" /> {item.label}
                       </Button>
                     </Link>
                   );
@@ -335,26 +316,23 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
           </div>
         )}
 
+        {/* Main content */}
         <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto">
           {children}
         </main>
       </div>
 
-      {/* ─── Mobile bottom navigation ────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur">
+      {/* ═══ Mobile bottom navigation ═══ */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur">
         <div className="flex items-center justify-around h-16 px-2">
-          {navItems.slice(0, 4).map((item) => {
+          {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 min-w-[60px] transition-colors',
-                  isActive ? 'text-amber-600' : 'text-muted-foreground hover:text-amber-600'
-                )}
-              >
+              <Link key={item.href} href={item.href} className={cn(
+                'flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 min-w-[60px] transition-colors',
+                isActive ? 'text-orange-500' : 'text-slate-500 dark:text-slate-400'
+              )}>
                 <Icon className="h-5 w-5" />
                 <span className="text-[10px] font-medium leading-tight">{item.label}</span>
               </Link>
