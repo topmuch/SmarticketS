@@ -82,6 +82,8 @@ export default function RealtimeAlertListener() {
 
       const socket = io(ALERT_SERVICE_URL, {
         transports: ['polling', 'websocket'],
+        // W14 fix: try all transports to work around Caddy gateway quirks
+        tryAllTransports: true,
         reconnection: false,
         timeout: 10_000,
       });

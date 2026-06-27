@@ -40,25 +40,31 @@ export async function POST(req: NextRequest) {
     if (result.created > 0 && result.alerts.length > 0) {
       try {
         const alertServiceUrl = `http://localhost:3003/api/internal/evaluate`;
-        const internalSecret = process.env.INTERNAL_SECRET || 'smartickets-dev-only';
-        const forwardRes = await fetch(alertServiceUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${internalSecret}`,
-          },
-          body: JSON.stringify({
-            eventType,
-            agencyId: targetAgencyId,
-            payload,
-          }),
-          signal: AbortSignal.timeout(5000),
-        });
+        // W15 fix: removed hardcoded dev fallback 'smartickets-dev-only'
+        // If INTERNAL_SECRET is not set, skip forwarding (safer than using a known secret)
+        const internalSecret = process.env.INTERNAL_SECRET;
+        if (!internalSecret) {
+          console.warn('[alerts/evaluate] INTERNAL_SECRET not set — skipping alert-service forward');
+        } else {
+          const forwardRes = await fetch(alertServiceUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${internalSecret}`,
+            },
+            body: JSON.stringify({
+              eventType,
+              agencyId: targetAgencyId,
+              payload,
+            }),
+            signal: AbortSignal.timeout(5000),
+          });
 
-        if (!forwardRes.ok) {
-          console.warn(
-            `[/api/alerts/evaluate] Failed to forward to alert-service: ${forwardRes.status}`
-          );
+          if (!forwardRes.ok) {
+            console.warn(
+              `[/api/alerts/evaluate] Failed to forward to alert-service: ${forwardRes.status}`
+            );
+          }
         }
       } catch (forwardError) {
         // Non-blocking: don't fail the main request if alert-service is down

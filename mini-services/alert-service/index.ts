@@ -312,16 +312,19 @@ async function evaluateAllRulesForAgency(agencyId: string): Promise<{
 
 const PORT = 3003;
 const startTime = Date.now();
+// W15 fix: removed hardcoded dev fallback 'smartickets-dev-only'
+// In dev, INTERNAL_SECRET is optional but internal endpoints will reject auth
+// (safer than using a known public secret). In production, it's required.
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 if (!INTERNAL_SECRET) {
   if (process.env.NODE_ENV === 'production') {
     process.stderr.write('[AlertEngine] FATAL: INTERNAL_SECRET env var is required in production\n');
     process.exit(1);
   } else {
-    process.stderr.write('[AlertEngine] WARN: INTERNAL_SECRET not set — using dev fallback\n');
+    process.stderr.write('[AlertEngine] WARN: INTERNAL_SECRET not set — internal endpoints will reject auth in dev\n');
   }
 }
-const effectiveInternalSecret = INTERNAL_SECRET || 'smartickets-dev-only';
+const effectiveInternalSecret = INTERNAL_SECRET || null;
 
 const httpServer = createServer((req, res) => {
   // Health check
@@ -349,8 +352,9 @@ const httpServer = createServer((req, res) => {
     req.on('end', async () => {
       try {
         // API key authentication
+        // W15 fix: if INTERNAL_SECRET is not set, reject all internal requests
         const authHeader = req.headers.authorization;
-        if (!authHeader || authHeader !== `Bearer ${effectiveInternalSecret}`) {
+        if (!effectiveInternalSecret || !authHeader || authHeader !== `Bearer ${effectiveInternalSecret}`) {
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Unauthorized' }));
           return;
@@ -520,6 +524,44 @@ setTimeout(() => {
   cronEvaluateAllAgencies();
 }, 3000);
 
+// ─── W1 fix: Trigger Next.js cron routes every minute ───
+// The /api/cron/departure-reminders route was created to fix BUG #5 (T-5min
+// notifications) but had no external trigger. Since alert-service already
+// runs a 60s loop, we piggyback on it to call the Next.js cron endpoint.
+// This works for self-hosted deployments (Coolify, Docker) without Vercel.
+const NEXTJS_BASE_URL = process.env.NEXTJS_BASE_URL || 'http://localhost:3000';
+const CRON_SECRET = process.env.CRON_SECRET;
+let departureRemindersCounter = 0;
+
+async function triggerDepartureReminders() {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (CRON_SECRET) {
+      headers['Authorization'] = `Bearer ${CRON_SECRET}`;
+    }
+    const res = await fetch(`${NEXTJS_BASE_URL}/api/cron/departure-reminders`, {
+      method: 'POST',
+      headers,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.stats?.notificationsSent > 0) {
+        console.log(`[Cron-Trigger] departure-reminders: sent ${data.stats.notificationsSent}, checked ${data.stats.checked}`);
+      }
+    }
+  } catch (err) {
+    // Non-fatal — the alert-service must keep running even if Next.js is down
+    if (departureRemindersCounter % 60 === 0) {
+      console.warn('[Cron-Trigger] departure-reminders failed (non-fatal, will retry):', err instanceof Error ? err.message : String(err));
+    }
+  }
+  departureRemindersCounter++;
+}
+
+// Call departure-reminders every 60s (aligned with alert-service cron)
+setInterval(triggerDepartureReminders, 60_000);
+console.log(`[Cron-Trigger] departure-reminders scheduler started (60s interval → ${NEXTJS_BASE_URL})`);
+
 // ─── Start Server ────────────────────────────────────────────
 
 httpServer.listen(PORT, () => {
@@ -527,4 +569,5 @@ httpServer.listen(PORT, () => {
   console.log(`[AlertEngine] Health: http://localhost:${PORT}/api/internal/health`);
   console.log(`[AlertEngine] Evaluate: POST http://localhost:${PORT}/api/internal/evaluate`);
   console.log(`[AlertEngine] Socket.io: ws://localhost:${PORT}`);
+  console.log(`[AlertEngine] Cron-Trigger: → ${NEXTJS_BASE_URL}/api/cron/departure-reminders (60s)`);
 });

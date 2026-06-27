@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyCronSecret } from '@/lib/cron-auth';
 
 // POST - Cleanup expired tokens and old logs
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
-      );
-    }
+    // W2 fix: use shared cron auth helper (consistent with cleanup-sessions + departure-reminders)
+    const authError = verifyCronSecret(request);
+    if (authError) return authError;
 
     const now = new Date();
     const results = {

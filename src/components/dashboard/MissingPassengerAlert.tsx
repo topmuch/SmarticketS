@@ -380,10 +380,12 @@ export default function MissingPassengerAlert({ agencyId }: { agencyId?: string 
 
   const fetchAlerts = useCallback(async () => {
     try {
+      // W11 fix: use authenticated /api/dashboard/missing-alerts endpoint
+      // (was hitting /api/demo/missing-passengers which is public and demo-only)
       const url = agencyId
-        ? `/api/demo/missing-passengers?agencyId=${encodeURIComponent(agencyId)}`
-        : '/api/demo/missing-passengers';
-      const res = await fetch(url);
+        ? `/api/dashboard/missing-alerts?agencyId=${encodeURIComponent(agencyId)}`
+        : '/api/dashboard/missing-alerts';
+      const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const json: ApiResponse = await res.json();

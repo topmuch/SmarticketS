@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyCronSecret } from '@/lib/cron-auth';
 
 /**
  * POST /api/cron/departure-reminders
@@ -35,12 +36,9 @@ const TOLERANCE_MS = 60 * 1000;
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
 
-  // Verify cron secret (optional in dev)
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-  }
+  // W2 fix: use shared cron auth helper (consistent policy)
+  const authError = verifyCronSecret(request);
+  if (authError) return authError;
 
   const now = new Date();
   const stats = {
@@ -204,10 +202,6 @@ export async function POST(request: NextRequest) {
 
             stats.notificationsSent++;
             stats.byType[reminder.type]++;
-
-            console.log(
-              `[departure-reminders] ${reminder.label} → ticket ${ticket.id} (${ticket.passengerName}) — ${subscriptions.length} push subs`
-            );
           } catch (err) {
             stats.errors++;
             console.error(
@@ -220,9 +214,12 @@ export async function POST(request: NextRequest) {
     }
 
     const durationMs = Date.now() - startedAt;
-    console.log(
-      `[departure-reminders] ✅ Done in ${durationMs}ms — checked: ${stats.checked}, sent: ${stats.notificationsSent}, skipped: ${stats.notificationsSkipped}, errors: ${stats.errors}`
-    );
+    // W8 fix: only log if there were notifications sent or errors (avoids spam every minute)
+    if (stats.notificationsSent > 0 || stats.errors > 0) {
+      console.log(
+        `[departure-reminders] Done in ${durationMs}ms — sent: ${stats.notificationsSent}, skipped: ${stats.notificationsSkipped}, errors: ${stats.errors}`
+      );
+    }
 
     return NextResponse.json({
       success: true,

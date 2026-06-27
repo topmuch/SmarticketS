@@ -375,6 +375,13 @@ model Notification {
   read        Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // W6 fix: add indexes for common query patterns
+  // Without these, every /api/notifications GET does a full table scan
+  @@index([agencyId, read])     // Most common: agency's unread notifications
+  @@index([userId, read])       // User-specific unread
+  @@index([createdAt])          // Pagination + ordering
+  @@index([type])               // Filter by notification type
 }
 
 // EmailSettings model - SMTP configuration
@@ -701,7 +708,6 @@ model PassengerTicket {
   @@index([controlCode])
   @@index([ticketStatus])
   @@index([passengerPhone])
-  busGoNotifications   BusGoNotification[]
   busGoPushSubscriptions BusGoPushSubscription[]
 }
 
@@ -881,23 +887,10 @@ model BusGoVoiceConfig {
   updatedAt       DateTime @updatedAt
 }
 
-// BusGo Notification Log — tracks all notifications sent to passengers
-model BusGoNotification {
-  id              String   @id @default(cuid())
-  passengerTicketId String
-  passengerTicket PassengerTicket @relation(fields: [passengerTicketId], references: [id], onDelete: Cascade)
-  departureId     String?
-
-  type            String   // "H130" | "H5" | "DEPART" | "ABSENT" | "LATE"
-  message         String?  // Texte envoyé
-  audioUrl        String?  // MP3 joué (si uploadé)
-  sentAt          DateTime @default(now())
-  status          String   @default("sent") // "sent" | "failed" | "pending"
-
-  @@index([passengerTicketId])
-  @@index([departureId])
-  @@index([type])
-}
+// W4 fix: BusGoNotification model REMOVED — was a dead table (written but never read).
+// All notification logs now use BusGoNotificationLog (the live table).
+// The /api/busgo/embarquement/retard route was the last writer; it now writes
+// to BusGoNotificationLog with templateType: "delay_notice".
 
 // BusGo Push Subscription — Web Push subscriptions for passenger PWA
 model BusGoPushSubscription {
@@ -946,14 +939,18 @@ model BusGoNotificationTemplate {
 model BusGoNotificationLog {
   id              String   @id @default(cuid())
   ticketId        String
-  templateType    String   // "purchase_confirm" | "reminder_1h" etc.
+  templateType    String   // "purchase_confirm" | "reminder_1h" | "delay_notice" etc.
   messageText     String
   ttsText         String
   sentAt          DateTime @default(now())
   status          String   @default("sent") // "sent" | "failed" | "pending"
 
+  // W5 fix: composite index for the cron's idempotency check
+  // (findFirst where ticketId + templateType) — was scanning all rows for that ticket
+  @@index([ticketId, templateType])
   @@index([ticketId])
   @@index([templateType])
+  @@index([sentAt])
 }
 
 // BusGo Sponsored Offer — publicités partenaires
