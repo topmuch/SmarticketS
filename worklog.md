@@ -1818,3 +1818,193 @@ Stage Summary:
 - Connection status visible to admin in page header
 - Better error messages when kiosk-service unreachable
 
+
+---
+Task ID: EXPLORE-BUSGO
+Agent: Explore Agent
+Task: Map BUSGO sub-application architecture
+
+Work Log:
+- Read worklog.md (first 100 lines) for project context — SmarticketS multi-tenant SaaS with BUSGO sub-app for bus companies
+- Mapped all BUSGO routes under `src/app/busgo/` (dashboard, trajets, embarquement, scanner, guichet, billets, incidents, equipe, voix, notifications, pwa-terrain, rapports, parametres, bus, connexion)
+- Mapped all BUSGO components under `src/components/busgo/` (9 files: onboarding-wizard, guichet-onboarding, departure-timer, missing-passenger-modal, offer-card, seat-map, vocal-settings-panel, pwa-sw-registration, retard-notifications)
+- Mapped all BUSGO API routes under `src/app/api/busgo/` (17 files: voix, scan, billets, notification-templates, notifications/log, notifications/send, embarquement/scan, embarquement/retard, guichet/sell, trajets, trajets/[departureId], equipe, upload, incidents, offers, offers/click, messages)
+- Investigated QR code generation:
+  - `src/app/busgo/guichet/page.tsx` uses `QRCodeSVG` from `qrcode.react` to render QR for passengers (encodes `/pwa-passager/install?data=${base64Json}`)
+  - `src/app/busgo/embarquement/[departureId]/page.tsx` uses `QRCodeSVG` to render agent QR (encodes `${origin}/pwa-passager/scan?dep=${departureId}`)
+  - `src/app/busgo/pwa-terrain/page.tsx` uses `QRCodeSVG` for PWA install QR codes
+  - `src/app/api/busgo/guichet/sell/route.ts` builds the QR payload (JSON with ticket info, base64-encoded) and returns `installUrl: /pwa-passager/install?data=${qrData}`
+  - `src/lib/qr.ts`, `src/lib/hmac.ts`, `src/lib/codes.ts` exist but are used for parcel/baggage QR codes (SmarticketS core), NOT for BUSGO tickets
+  - No "smarticket" (lowercase) string appears in BUSGO QR generation code — the only lowercase occurrences are in `/src/lib/audioSystem.ts` localStorage keys (`smartickets_mute`, `smartickets_volume`)
+- Investigated TTS/Audio system:
+  - `src/lib/audioSystem.ts` (1480 lines) — full audio system with `playDingDong()` using Web Audio API oscillators (880 Hz ding → 660 Hz dong), priority queue, VocalManager singleton
+  - `src/hooks/use-vocal-alerts.ts` — React hook for TTS alerts (passager:manquant, timer:5min, etc.) using Web Speech API directly
+  - `src/hooks/use-agent-vocal-alerts.ts` — React hook that wraps VocalManager from audioSystem.ts; calls `manager.enqueue(text, priority, undefined, undefined)` — 3rd arg `customAudioUrl` is ALWAYS `undefined`
+  - `src/components/busgo/vocal-settings-panel.tsx` — UI for vocal alerts config (toggles, sliders, test button)
+  - `/public/sounds/busgo/ding-dong.mp3` file EXISTS but is NEVER actually played by any code (only listed in `sw-busgo-passenger.js` STATIC_ASSETS)
+  - `BusGoVoiceConfig.dingDongUrl` (uploaded MP3) is stored in DB but NEVER passed to VocalManager
+- Investigated notification scheduler:
+  - `src/app/api/cron/` folder has ONLY 2 routes: `cleanup-sessions/route.ts` and `cleanup/route.ts` — both for cleanup, NO departure reminders
+  - `src/lib/notification-queue.ts` — in-memory retry queue for WhatsApp wa.me links (NOT for scheduling T-5min)
+  - `src/lib/notifications.ts` — exists
+  - `src/lib/notification-dispatch.ts` — dispatches WhatsApp notifications + agency bell alerts (NOT for scheduled departure reminders)
+  - `src/lib/reminderManager.ts` — Kiosk display cyclic reminders (BAGAGES, VALEURS, CLOTURE) — NOT for BUSGO departure notifications
+  - `src/lib/alertEngine.ts` — evaluates 5 business alert rules (BUS_PRESQUE_PLEIN, RECETTE_ANORMALE, RETARD_DETECTE, etc.) — NOT a scheduler
+  - NO cron job exists that checks "departure in 5 minutes → fire notification"
+  - `/api/busgo/notifications/send` endpoint exists but only fires when manually called with `templateType: "departure_5min"`
+- Checked PWA manifest:
+  - `public/manifest.json` — root manifest with `"short_name": "SmarticketS"`, `"start_url": "/"`, SmarticketS branding
+  - `public/sw-busgo-passenger.js` — BusGo passenger service worker (registered with `scope: '/'` from `pwa-sw-registration.tsx`)
+  - `public/manifest-controller.json` — separate manifest for controller PWA
+  - NO BusGo-specific manifest exists for `/pwa-passager/` route
+  - Root `src/app/layout.tsx` line 174: `manifest: "/manifest.json"` — applies SmarticketS manifest to ALL routes including /pwa-passager
+  - No `layout.tsx` exists in `src/app/pwa-passager/` to override manifest
+- Read Prisma schema:
+  - `PassengerTicket` model (line 652) — has `controlCode`, `ticketStatus`, `paperTicketNumber`, `pwaInstalled`, `pwaInstalledAt`, `boardedAt`, `isLate`, `lateMinutes` — NO `reminderSent` or `notification_5min_sent` field
+  - `Departure` model (line 752) — has `boardingStartedAt`, `departedAt`, `agentName`, `agentPhone` — NO reminder tracking field
+  - `BusGoVoiceConfig` model (line 856) — stores `dingDongUrl`, `messageH130Text`, `messageH5Text`, `messageDepartText`, `messageAbsentText` (+ audio URL variants)
+  - `BusGoNotificationTemplate` model (line 930) — per-agency templates with `notificationType` (purchase_confirm, reminder_1h, bags_45min, boarding_30min, departure_5min)
+  - `BusGoNotificationLog` model (line 946) — tracks sent notifications
+  - `BusGoPushSubscription` model (line 903) — Web Push subscriptions for passenger PWA
+- Cross-referenced findings with the 5 reported bugs and identified root causes (see Stage Summary)
+
+Stage Summary:
+
+=== BUSGO ARCHITECTURE MAP ===
+
+BUSGO is a sub-application of SmarticketS for bus companies. It provides:
+- Agent dashboard (trajets, embarquement, scanner, guichet, billets, incidents, equipe, voix, notifications)
+- Passenger PWA at `/pwa-passager/` (separate from /busgo)
+- Controller PWA at `/pwa-controleur`
+- Service worker at `/sw-busgo-passenger.js`
+
+The BUSGO flow:
+1. Agent creates a departure (trajet) via `/busgo/trajets` → POST `/api/busgo/trajets`
+2. Agent sells a ticket at the guichet via `/busgo/guichet` → POST `/api/busgo/guichet/sell` (generates QR code with ticket info)
+3. Passenger scans the QR code → opens `/pwa-passager/install?data=${base64}` → installs PWA + receives welcome notification
+4. Passenger opens PWA dashboard at `/pwa-passager` → sees ticket, chronometer, agent contact
+5. Agent starts boarding via `/busgo/embarquement/[departureId]` → displays agent QR code (encodes `/pwa-passager/scan?dep=${departureId}`)
+6. Passenger scans agent QR at `/pwa-passager/scan` → POST `/api/busgo/embarquement/scan` → marks ticket as BOARDED
+7. Agent can mark passengers late, signal delays, etc.
+
+=== 5 BUGS ROOT CAUSE ANALYSIS ===
+
+**Bug 1: Save/Test/Validate buttons in Voix page do nothing**
+- ROOT CAUSE: Toast system mismatch
+- All BUSGO pages import `toast` from `sonner` (30 files total)
+- BUT the root layout `src/app/layout.tsx` (line 4, 334) mounts `Toaster` from `@/components/ui/toaster` (shadcn toast) — a DIFFERENT toast system
+- The sonner `<Toaster />` component exists at `src/components/ui/sonner.tsx` but is NEVER mounted anywhere
+- Result: `toast.success(...)` / `toast.error(...)` calls are silently swallowed — no visible feedback
+- The save handlers DO fire and DO make API calls, but the user sees no confirmation
+- FIX: Mount sonner's `<Toaster />` in `src/app/layout.tsx` (or in `src/app/busgo/layout.tsx`)
+
+**Bug 2: QR code opens "Smarticket" instead of BUSGO PWA**
+- ROOT CAUSE: Missing BusGo-specific PWA manifest
+- `src/app/layout.tsx` line 174: `manifest: "/manifest.json"`
+- `public/manifest.json` lines 2-5: `"short_name": "SmarticketS"`, `"start_url": "/"`
+- NO `layout.tsx` exists in `src/app/pwa-passager/` to override the manifest
+- When passenger scans QR at `/pwa-passager/install?data=...`, browser sees SmarticketS manifest and offers to install "SmarticketS"
+- The QR code URL itself is CORRECT (`/pwa-passager/install?data=...`), but the install prompt shows SmarticketS branding
+- FIX: Create `public/manifest-busgo.json` with BusGo branding + add `src/app/pwa-passager/layout.tsx` that overrides `manifest` metadata
+
+**Bug 3: QR Scanner page shows "Oups! Une erreur est survenue"**
+- ROOT CAUSE: Missing `const router = useRouter()` call in dashboard
+- `src/app/busgo/page.tsx` line 370: `import { useRouter } from 'next/navigation';` (imported)
+- BUT `const router = useRouter();` is NEVER called inside the component body
+- JSX at lines 138, 173, 204 references `router.push(...)` in onClick handlers
+- When user clicks any KPI card → `ReferenceError: router is not defined` → caught by `src/app/error.tsx` → shows "Oups ! Une erreur est survenue"
+- Note: The actual scanner page `src/app/busgo/scanner/page.tsx` line 70 DOES call `useRouter()` correctly
+- Additional issue in scanner page: line 94 expects `localStorage.getItem('busgo_ticket_id')` which is a PASSENGER value — agents don't have it → "Aucun billet trouvé. Installez la PWA d'abord." (agent scanner is misconfigured to expect passenger ticket ID)
+- FIX: Add `const router = useRouter();` inside `BusGoDashboard()` component in `src/app/busgo/page.tsx`
+
+**Bug 4: Ding-Dong sound doesn't play**
+- ROOT CAUSE: Uploaded dingDongUrl MP3 is never wired to the audio system
+- `src/lib/audioSystem.ts` `playDingDong()` (line 274) uses Web Audio API oscillators (synthesized 880Hz/660Hz tones), NOT the `/sounds/busgo/ding-dong.mp3` file
+- `src/hooks/use-agent-vocal-alerts.ts` `speak()` (line 118) calls `manager.enqueue(text, priority, undefined, undefined)` — 3rd arg `customAudioUrl` is ALWAYS `undefined`
+- `BusGoVoiceConfig.dingDongUrl` (uploaded MP3) is stored in DB but NEVER passed to VocalManager
+- `/public/sounds/busgo/ding-dong.mp3` exists but is only listed in `sw-busgo-passenger.js` STATIC_ASSETS — never played
+- Additional issue: AudioContext requires user gesture on mobile; `ensureAudioContext()` (line 133) creates context but `audioCtx.resume()` may not resume without prior interaction
+- FIX: In `use-agent-vocal-alerts.ts`, fetch the agency's `dingDongUrl` from `/api/busgo/voix` and pass it as 3rd arg to `manager.enqueue()`. Also add user-gesture unlock for AudioContext (e.g., on first click anywhere)
+
+**Bug 5: T-5min departure notification doesn't fire**
+- ROOT CAUSE: No scheduler/cron job exists to fire departure reminders
+- `src/app/api/cron/` has ONLY `cleanup-sessions` and `cleanup` — NO departure reminder cron
+- `src/lib/notification-queue.ts` is for WhatsApp retry (wa.me links), not scheduling
+- `src/lib/reminderManager.ts` is for Kiosk cyclic reminders (BAGAGES, VALEURS), not BUSGO departure
+- `src/lib/alertEngine.ts` evaluates business rules but doesn't schedule
+- `/api/busgo/notifications/send` endpoint exists but only fires when manually called
+- Prisma schema has NO `reminderSent` / `notification_5min_sent` field on `PassengerTicket` or `Departure` to track sent state
+- The `BusGoNotificationTemplate` with `notificationType: "departure_5min"` exists in DB but nothing queries for departures happening in 5 min and calls the send endpoint
+- FIX: Create `src/app/api/cron/departure-reminders/route.ts` that queries departures scheduled in ~5 min, finds passengers with active tickets, calls the notification dispatch logic, and marks them as sent (requires adding a `reminderSent5min` field to PassengerTicket or a log in BusGoNotificationLog)
+
+=== KEY FILES REFERENCE ===
+
+Pages:
+- `src/app/busgo/layout.tsx` — BusGo layout (sidebar nav, theme toggle, vocal alerts hook, kiosk socket)
+- `src/app/busgo/page.tsx` — Dashboard (BUGGY: missing `useRouter()` call)
+- `src/app/busgo/voix/page.tsx` — Voix & Annonces (client templates + agent config + VocalSettingsPanel)
+- `src/app/busgo/scanner/page.tsx` — QR Scanner (uses html5-qrcode, expects passenger ticketId in localStorage)
+- `src/app/busgo/billets/page.tsx` — Tickets grouped by destination
+- `src/app/busgo/notifications/page.tsx` — Notification templates editor
+- `src/app/busgo/embarquement/page.tsx` — Departure list with dynamic statuses
+- `src/app/busgo/embarquement/[departureId]/page.tsx` — Boarding management (agent QR + passenger list)
+- `src/app/busgo/guichet/page.tsx` — Ticket sales (paper ticket → QR generation)
+- `src/app/busgo/pwa-terrain/page.tsx` — PWA install QR codes (passenger, agent, controller)
+
+API Routes:
+- `src/app/api/busgo/voix/route.ts` — GET/POST agent voice config (dingDongUrl, message texts)
+- `src/app/api/busgo/scan/route.ts` — POST/PATCH ticket scan via controlCode (agent scanner)
+- `src/app/api/busgo/billets/route.ts` — GET tickets grouped by destination
+- `src/app/api/busgo/notification-templates/route.ts` — GET/POST templates (5 types)
+- `src/app/api/busgo/notifications/send/route.ts` — POST manual notification send
+- `src/app/api/busgo/notifications/log/route.ts` — GET notification log
+- `src/app/api/busgo/embarquement/scan/route.ts` — POST passenger scans agent QR (no auth required)
+- `src/app/api/busgo/embarquement/retard/route.ts` — POST mark passenger late
+- `src/app/api/busgo/guichet/sell/route.ts` — POST sell ticket + generate QR payload
+- `src/app/api/busgo/trajets/route.ts` — GET/POST departures
+- `src/app/api/busgo/trajets/[departureId]/route.ts` — GET/PATCH/DELETE departure
+- `src/app/api/busgo/upload/route.ts` — POST audio MP3 upload
+- `src/app/api/busgo/equipe/route.ts` — GET/POST team members
+
+Components:
+- `src/components/busgo/vocal-settings-panel.tsx` — UI for vocal alert config (uses `useVocalAlerts` hook)
+- `src/components/busgo/pwa-sw-registration.tsx` — Registers `/sw-busgo-passenger.js` + handles TTS messages from SW
+- `src/components/busgo/departure-timer.tsx` — Countdown timer with phase callbacks (T-15, T-5, T-2, departed)
+- `src/components/busgo/onboarding-wizard.tsx` — 4-step first-run onboarding
+- `src/components/busgo/guichet-onboarding.tsx` — Guichet feature onboarding
+- `src/components/busgo/retard-notifications.tsx` — Delay notification cards + `useDelayNotifications` hook
+- `src/components/busgo/missing-passenger-modal.tsx` — Missing passenger modal
+- `src/components/busgo/seat-map.tsx` — Bus seat map
+- `src/components/busgo/offer-card.tsx` — Sponsored offers + `useSponsoredOffers` hook
+
+Libs:
+- `src/lib/audioSystem.ts` (1480 lines) — VocalManager singleton, playDingDong (Web Audio API), priority queue, TTS
+- `src/lib/qr.ts` — SmarticketS QR helpers (not used by BUSGO)
+- `src/lib/hmac.ts` — HMAC-SHA256 QR signing (not used by BUSGO tickets)
+- `src/lib/codes.ts` — Control code + PIN generation
+- `src/lib/notification-queue.ts` — WhatsApp retry queue (in-memory)
+- `src/lib/notification-dispatch.ts` — WhatsApp + alert dispatch
+- `src/lib/reminderManager.ts` — Kiosk cyclic reminders
+- `src/lib/alertEngine.ts` — Business alert rules
+
+Hooks:
+- `src/hooks/use-vocal-alerts.ts` — TTS alerts hook (Web Speech API directly)
+- `src/hooks/use-agent-vocal-alerts.ts` — Agent vocal alerts hook (wraps VocalManager)
+- `src/hooks/use-kiosk-socket.ts` — Socket.io client for kiosk events
+
+PWA:
+- `public/manifest.json` — SmarticketS root manifest (BUG: applied to /pwa-passager too)
+- `public/manifest-controller.json` — Controller PWA manifest
+- `public/sw-busgo-passenger.js` — BusGo passenger service worker (push, notificationclick, TTS relay)
+- `public/sw.js` — Root service worker
+- `public/sounds/busgo/ding-dong.mp3` — Ding-dong MP3 (exists, never played)
+- `public/sounds/busgo/notification-company.mp3` — Company notification sound
+
+Prisma:
+- `prisma/schema.prisma` lines 652-706: PassengerTicket model
+- `prisma/schema.prisma` lines 752-791: Departure model
+- `prisma/schema.prisma` lines 856-882: BusGoVoiceConfig model
+- `prisma/schema.prisma` lines 903-913: BusGoPushSubscription model
+- `prisma/schema.prisma` lines 930-943: BusGoNotificationTemplate model
+- `prisma/schema.prisma` lines 946-957: BusGoNotificationLog model
+
