@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { randomBytes } from 'crypto';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/busgo/guichet/sell
@@ -29,6 +30,12 @@ export async function POST(request: NextRequest) {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    // FIX (audit #9): rate limit — 30 ticket sales / minute per user
+    const { allowed } = rateLimit(`sell-ticket:${session.userId}`, { maxRequests: 30, windowMs: 60 * 1000 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de ventes. Attendez 1 minute.' }, { status: 429 });
     }
 
     // Superadmin without agency → use first agency
@@ -73,6 +80,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
+    // FIX (audit W2): vérifier le statut du départ — ne pas vendre sur DEPARTED/CANCELLED
+    if (['DEPARTED', 'CANCELLED'].includes(departure.status)) {
+      return NextResponse.json(
+        { error: `Impossible de vendre un billet pour un départ ${departure.status}` },
+        { status: 409 }
+      );
+    }
+
+    if (departure.availableSeats <= 0) {
+      return NextResponse.json({ error: 'Plus aucune place disponible' }, { status: 409 });
+    }
+
     // Vérifier siège disponible
     const existingSeat = await db.passengerTicket.findFirst({
       where: {
@@ -104,44 +123,66 @@ export async function POST(request: NextRequest) {
     // Générer controlCode unique
     const controlCode = `BG-${randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // Créer le baggage (requis par le schéma)
-    const baggage = await db.baggage.create({
-      data: {
-        reference: `BG${Date.now().toString(36).toUpperCase()}`,
-        type: 'voyageur',
-        category: 'ticket',
-        status: 'ACTIVE',
-        agencyId: agencyId,
-      },
+    // FIX (audit #4): wrap baggage + ticket + decrement in a single transaction
+    // Previously 3 separate writes — if ticket creation failed, baggage was orphaned;
+    // if decrement failed, ticket existed but seats weren't updated.
+    const { baggage, ticket } = await db.$transaction(async (tx) => {
+      // 1. Créer le baggage (requis par le schéma)
+      const baggage = await tx.baggage.create({
+        data: {
+          reference: `BG${Date.now().toString(36).toUpperCase()}`,
+          type: 'voyageur',
+          category: 'ticket',
+          status: 'ACTIVE',
+          agencyId: agencyId,
+        },
+      });
+
+      // 2. Créer le ticket
+      const ticket = await tx.passengerTicket.create({
+        data: {
+          baggageId: baggage.id,
+          agencyId: agencyId,
+          departureId,
+          passengerName,
+          passengerPhone,
+          passengerAge: 0,
+          documentType: 'NONE',
+          documentNumber: 'N/A',
+          destination: departure.destination,
+          seatNumber,
+          platform: departure.platform,
+          departureTime: departure.scheduledTime,
+          controlCode,
+          ticketStatus: 'ACTIVE',
+          paperTicketNumber,
+          activatedAt: new Date(),
+        },
+      });
+
+      // 3. Décrémenter availableSeats
+      await tx.departure.update({
+        where: { id: departureId },
+        data: { availableSeats: { decrement: 1 } },
+      });
+
+      return { baggage, ticket };
     });
 
-    // Créer le ticket avec le numéro de ticket papier
-    const ticket = await db.passengerTicket.create({
-      data: {
-        baggageId: baggage.id,
-        agencyId: agencyId,
-        departureId,
-        passengerName,
-        passengerPhone,
-        passengerAge: 0,
-        documentType: 'NONE',
-        documentNumber: 'N/A',
-        destination: departure.destination,
-        seatNumber,
-        platform: departure.platform,
-        departureTime: departure.scheduledTime,
-        controlCode,
-        ticketStatus: 'ACTIVE',
-        paperTicketNumber,
-        activatedAt: new Date(),
-      },
-    });
-
-    // Décrémenter availableSeats
-    await db.departure.update({
-      where: { id: departureId },
-      data: { availableSeats: { decrement: 1 } },
-    });
+    // FIX (audit #9): audit log for ticket sale
+    try {
+      await db.auditLog.create({
+        data: {
+          action: 'SELL_TICKET',
+          entity: 'PassengerTicket',
+          entityId: ticket.id,
+          userId: session.userId || undefined,
+          details: `Sold ticket ${paperTicketNumber} to ${passengerName} (seat ${seatNumber}, departure ${departureId})`,
+        },
+      });
+    } catch {
+      // Audit log failure is non-fatal
+    }
 
     // Construire le payload du QR code (toutes les infos)
     const qrPayload = {

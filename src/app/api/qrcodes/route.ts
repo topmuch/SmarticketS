@@ -1,13 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
+
+/**
+ * FIX (audit #2): previously NO auth on GET/DELETE/POST — anyone on the internet
+ * could list every baggage across every agency, or delete entire QR sets.
+ * Now requires a valid session + role check (superadmin/admin/agent).
+ * Agency isolation: admin/agent see only their agency's QR codes.
+ */
 
 // GET - List all QR code sets, optionally filtered by type and grouped by agency
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    const allowedRoles = ['superadmin', 'admin', 'agent'];
+    if (!allowedRoles.includes(session.role)) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'hajj' or 'voyageur'
     const search = searchParams.get('search');
     const agencyId = searchParams.get('agencyId');
+
+    // Agency isolation: non-superadmin can only see their own agency's QR codes
+    const effectiveAgencyId = session.role === 'superadmin' ? agencyId : session.agencyId;
 
     // Build where clause
     const where: Record<string, unknown> = {};
@@ -16,8 +36,8 @@ export async function GET(request: NextRequest) {
       where.type = type;
     }
     
-    if (agencyId) {
-      where.agencyId = agencyId;
+    if (effectiveAgencyId) {
+      where.agencyId = effectiveAgencyId;
     }
     
     if (search) {
@@ -110,6 +130,15 @@ export async function GET(request: NextRequest) {
 // DELETE - Delete a QR code set
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    // Only admin/superadmin can delete QR sets
+    if (!['superadmin', 'admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const setId = searchParams.get('setId');
 
@@ -174,6 +203,14 @@ export async function DELETE(request: NextRequest) {
 // POST - Bulk delete multiple QR code sets
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+    if (!['superadmin', 'admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { setIds } = body as { setIds?: string[] };
 

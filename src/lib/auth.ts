@@ -94,23 +94,42 @@ export { handler as GET, handler as POST };
 
 // ─── JWT Helpers (for multi-tenant route compatibility) ───
 // These are used by remote-imported routes (login-phone, auth-guard, etc.)
+//
+// FIX (audit #7): removed hardcoded fallback secrets — if env vars are missing,
+// JWT operations will throw (safer than using a known public secret).
+const JWT_ACCESS_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
-const JWT_ACCESS_SECRET = process.env.JWT_SECRET || 'smartickets-field-secret-2024';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'smartickets-staff-refresh-secret';
+if (!JWT_ACCESS_SECRET || !JWT_REFRESH_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[auth] FATAL: JWT_SECRET or JWT_REFRESH_SECRET not configured in production');
+  } else {
+    console.warn('[auth] WARN: JWT_SECRET or JWT_REFRESH_SECRET not set — JWT routes will fail');
+  }
+}
 
 export async function generateToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): Promise<{ token: string; expiresIn: number }> {
+  if (!JWT_ACCESS_SECRET) {
+    throw new Error('JWT_SECRET not configured');
+  }
   const expiresIn = 15 * 60; // 15 minutes
   const token = jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn });
   return { token, expiresIn };
 }
 
 export async function generateRefreshToken(payload: { userId: string }): Promise<{ token: string; expiresIn: number }> {
+  if (!JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET not configured');
+  }
   const expiresIn = 30 * 24 * 60 * 60; // 30 days
   const token = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn });
   return { token, expiresIn };
 }
 
 export function verifyToken(token: string): JwtPayload {
+  if (!JWT_ACCESS_SECRET) {
+    throw new Error('JWT_SECRET not configured');
+  }
   try {
     return jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload;
   } catch {

@@ -2,8 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { generateControlCode } from '@/lib/qr';
 import { z } from 'zod';
+import { rateLimit } from '@/lib/rate-limit';
 
-// PUBLIC ENDPOINT — intentionally unauthenticated for ticket activation
+/**
+ * POST /api/activate/ticket
+ *
+ * FIX (audit #1): previously fully unauthenticated — anyone with a baggageId
+ * could create a ticket. Now applies IP-based rate limiting (5 attempts / 15 min)
+ * to prevent brute-force on baggageIds (CUIDs are guessable-enough to be a risk).
+ *
+ * The endpoint remains public (passengers activate pre-printed QR stock without
+ * a session), but the rate limiter + the `pending_activation` status check
+ * (a baggage can only be activated once) make brute-force impractical.
+ */
 
 // Zod schema pour validation
 const activateTicketSchema = z.object({
@@ -29,6 +40,16 @@ const activateTicketSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // FIX (audit #1): Rate limit by IP (5 activations / 15 min)
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const { allowed } = rateLimit(`activate-ticket:${ip}`, { maxRequests: 5, windowMs: 15 * 60 * 1000 });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Réessayez dans 15 minutes.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const parsed = activateTicketSchema.safeParse(body);
 

@@ -1,7 +1,7 @@
 [kiosk-service] Installing dependencies...
 bun install v1.3.14 (0d9b296a)
 
-Checked 22 installs across 23 packages (no changes) [3.00ms]
+Checked 22 installs across 23 packages (no changes) [2.00ms]
 [kiosk-service] Running bun run dev...
 $ bun --hot index.ts
 46 |     }

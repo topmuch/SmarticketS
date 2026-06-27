@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { hashPassword } from '@/lib/auth';
+import { z } from 'zod';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * GET /api/busgo/equipe
@@ -34,15 +36,38 @@ export async function GET() {
   }
 }
 
+// FIX (audit #5): Zod validation for member creation
+const createMemberSchema = z.object({
+  name: z.string().min(2, 'Nom requis (min 2 caractères)'),
+  email: z.string().email('Email invalide'),
+  phone: z.string().optional(),
+  password: z.string().min(8, 'Mot de passe requis (min 8 caractères)'),
+  role: z.enum(['agent', 'controller'], { errorMap: () => ({ message: 'Rôle invalide (agent ou controller)' }) }),
+});
+
 /**
  * POST /api/busgo/equipe
  * Crée un guichetier ou contrôleur.
+ *
+ * FIX (audit #5): previously any authenticated user (incl. agent) could create
+ * team members. Now requires admin/superadmin role + Zod validation + rate limiting.
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    // FIX (audit #5): RBAC — only admin/superadmin can create team members
+    if (!['admin', 'superadmin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Accès refusé — réservé aux admins' }, { status: 403 });
+    }
+
+    // Rate limit: 10 members / hour per admin
+    const { allowed } = rateLimit(`create-member:${session.userId}`, { maxRequests: 10, windowMs: 60 * 60 * 1000 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de créations. Réessayez dans 1h.' }, { status: 429 });
     }
 
     let agencyId = session.agencyId;
@@ -56,17 +81,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, phone, password, role } = body as {
-      name: string; email: string; phone?: string; password: string; role: string;
-    };
-
-    if (!name || !email || !password || !role) {
-      return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 });
+    const parsed = createMemberSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
+        { status: 400 }
+      );
     }
 
-    if (!['agent', 'controller'].includes(role)) {
-      return NextResponse.json({ error: 'Rôle invalide (agent ou controller)' }, { status: 400 });
-    }
+    const { name, email, phone, password, role } = parsed.data;
 
     const existing = await db.user.findUnique({ where: { email: email.toLowerCase() } });
     if (existing) {
@@ -87,13 +110,29 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // FIX (audit #5): audit log
+    try {
+      await db.auditLog.create({
+        data: {
+          action: 'CREATE_TEAM_MEMBER',
+          entity: 'User',
+          entityId: user.id,
+          userId: session.userId,
+          details: `Created ${role} "${name}" (${email})`,
+        },
+      });
+    } catch {
+      // Audit log failure is non-fatal
+    }
+
     return NextResponse.json({
       data: { id: user.id, email: user.email, name: user.name, role: user.role },
     }, { status: 201 });
   } catch (error) {
     console.error('[API /api/busgo/equipe POST]', error);
+    // FIX (audit W11): don't leak server internals
     return NextResponse.json(
-      { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },
+      { error: 'Erreur serveur' },
       { status: 500 }
     );
   }

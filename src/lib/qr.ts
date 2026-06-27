@@ -1,16 +1,23 @@
 import { db } from './db';
+import { randomInt } from 'crypto';
 
-// Generate random alphanumeric string
+// Generate random alphanumeric string (cryptographically secure)
 export function generateRandomCode(length: number = 6): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars: I, O, 0, 1
   let result = '';
   for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(randomInt(0, chars.length));
   }
   return result;
 }
 
-// Generate unique control code for ticket validation (6-8 digits)
+/**
+ * Generate unique control code for ticket validation (6-8 digits).
+ *
+ * FIX (audit #3): previously used Math.random() which is NOT cryptographically
+ * secure — brute-forceable for ticket validation. Now uses crypto.randomInt()
+ * which is CSPRNG (cryptographically secure pseudo-random number generator).
+ */
 export async function generateControlCode(length: number = 6): Promise<string> {
   let code = '';
   let attempts = 0;
@@ -19,8 +26,9 @@ export async function generateControlCode(length: number = 6): Promise<string> {
   while (attempts < maxAttempts) {
     const min = 10 ** length;
     const max = 10 ** (length + 1);
-    code = String(Math.floor(Math.random() * (max - min)) + min);
-    
+    // FIX (audit #3): crypto.randomInt instead of Math.random
+    code = String(randomInt(min, max));
+
     const existing = await db.passengerTicket.findUnique({
       where: { controlCode: code },
     });

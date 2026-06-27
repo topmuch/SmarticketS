@@ -4,11 +4,11 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { getSession } from '@/lib/session';
 
-// Validation schema
+// Validation schema — FIX (audit W19): password min 8 chars (was 6)
 const userSchema = z.object({
   email: z.string().email(),
   name: z.string().optional(),
-  password: z.string().min(6),
+  password: z.string().min(8, 'Mot de passe min 8 caractères'),
   role: z.enum(['superadmin', 'admin', 'agent', 'agency']),
   agencyId: z.string().optional(),
 });
@@ -74,6 +74,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = userSchema.parse(body);
 
+    // FIX (audit #6): prevent privilege escalation
+    // - admin (non-superadmin) CANNOT create superadmin accounts
+    // - admin (non-superadmin) can only create users for their OWN agency
+    if (currentUser.role !== 'superadmin') {
+      // Block superadmin creation by non-superadmin
+      if (validatedData.role === 'superadmin') {
+        return NextResponse.json(
+          { error: 'Seul un superadmin peut créer un compte superadmin' },
+          { status: 403 }
+        );
+      }
+      // Force agencyId to the creator's agency (prevent cross-tenant)
+      if (validatedData.agencyId && validatedData.agencyId !== currentUser.agencyId) {
+        return NextResponse.json(
+          { error: 'Vous ne pouvez créer des utilisateurs que pour votre agence' },
+          { status: 403 }
+        );
+      }
+      validatedData.agencyId = currentUser.agencyId || undefined;
+    }
+
     // Check if email already exists
     const existing = await db.user.findUnique({
       where: { email: validatedData.email }
@@ -96,6 +117,21 @@ export async function POST(request: NextRequest) {
         agencyId: validatedData.agencyId || null,
       }
     });
+
+    // FIX (audit #6): audit log
+    try {
+      await db.auditLog.create({
+        data: {
+          action: 'CREATE_USER',
+          entity: 'User',
+          entityId: user.id,
+          userId: currentUser.userId || undefined,
+          details: `Created ${validatedData.role} "${validatedData.email}"`,
+        },
+      });
+    } catch {
+      // Audit log failure is non-fatal
+    }
 
     // Remove password from response
     const { password, ...safeUser } = user;
