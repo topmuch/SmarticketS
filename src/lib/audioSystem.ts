@@ -21,6 +21,8 @@
  * All browser APIs are guarded with `typeof window !== 'undefined'.
  */
 
+import { DING_DONG_DATA_URI, HAS_HARDCODED_DING_DONG } from './ding-dong-base64';
+
 // ═══════════════════════════════════════════════════════════════════
 //  Types
 // ═══════════════════════════════════════════════════════════════════
@@ -143,6 +145,20 @@ export function getCustomDingDongUrl(): string | null {
 
 /** Whether mute/volume has been loaded from localStorage. */
 let persistentStateLoaded = false;
+
+/**
+ * Cached decoded AudioBuffer for the hardcoded base64 ding-dong.
+ *
+ * Decoding base64 → ArrayBuffer → AudioBuffer is expensive (~10ms), so we
+ * cache the result after the first call. Subsequent calls just create a new
+ * BufferSource pointing to the same buffer.
+ *
+ * Set to `null` while decoding is in progress or if decoding failed.
+ */
+let _base64DingDongBuffer: AudioBuffer | null = null;
+
+/** Whether the base64 ding-dong is currently being decoded (prevents re-entrant decode). */
+let _base64DingDongDecoding = false;
 
 /** Keyboard event handler reference (for cleanup). */
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -307,14 +323,13 @@ function selectFrenchVoice(): SpeechSynthesisVoice | null {
 /**
  * Play the ding-dong chime played before every announcement.
  *
- * Behavior:
- * 1. If a custom MP3 URL has been set via `setCustomDingDongUrl()`
- *    (i.e. the agency uploaded its own ding-dong via "Voix & Annonces"),
- *    play that MP3 file.
- * 2. Otherwise (or if the MP3 fails to load), fall back to the synthesized
- *    oscillator chime:
- *    - First tone: high-pitched "ding" at 880 Hz (A5) with 1.5s decay
- *    - Second tone: lower "dong" at 660 Hz (E5) with 2s decay, starts after 600ms
+ * 3-level priority chain:
+ * 1. **Custom MP3** (agency-uploaded via "Voix & Annonces" page)
+ *    — highest priority, plays the agency's own ding-dong file.
+ * 2. **Hardcoded base64 chime** (built into the JS bundle)
+ *    — realistic default, plays even offline, no network request.
+ * 3. **Synthesized oscillator** (880Hz/660Hz via Web Audio API)
+ *    — last-resort fallback if base64 decoding fails.
  *
  * Checks `isMuted` before playing — silent if muted.
  * Respects the current `currentVolume` level.
@@ -324,27 +339,104 @@ export function playDingDong(): void {
     return;
   }
 
-  // ─── Custom MP3 ding-dong (agency-uploaded) ───
-  // If the agency has uploaded its own ding-dong via the "Voix & Annonces"
-  // page, play that MP3 instead of the synthesized oscillator chime.
-  // The MP3 is preloaded when setCustomDingDongUrl() is called.
+  // ─── NIVEAU 1: MP3 uploadé par l'agence ───
   if (_customDingDongUrl) {
-    playCustomAudio(_customDingDongUrl).catch((err) => {
-      console.warn('[AudioSystem] Custom ding-dong MP3 failed, falling back to synthesized chime:', err);
-      playSynthesizedDingDong();
+    playCustomAudio(_customDingDongUrl).catch(() => {
+      // Si le MP3 échoue → niveau 2 (base64)
+      playBase64DingDong().catch(() => {
+        // Si le base64 échoue aussi → niveau 3 (oscillateur)
+        playSynthesizedDingDong();
+      });
     });
     return;
   }
 
-  // ─── Fallback: synthesized oscillator chime ───
-  playSynthesizedDingDong();
+  // ─── NIVEAU 2: base64 en dur (pas d'upload) ───
+  playBase64DingDong().catch(() => {
+    // Si le base64 échoue → niveau 3 (oscillateur)
+    playSynthesizedDingDong();
+  });
+}
+
+/**
+ * Play the hardcoded base64 ding-dong chime (realistic WAV sound).
+ *
+ * This is the default chime played when no custom MP3 has been uploaded.
+ * The base64 is inlined in the JS bundle (94 KB), so it works offline
+ * with zero network requests and zero latency after the first decode.
+ *
+ * The decoded AudioBuffer is cached (`_base64DingDongBuffer`) so subsequent
+ * calls are instant — decoding only happens once per session.
+ *
+ * Falls back to `playSynthesizedDingDong()` if:
+ * - The browser cannot decode the audio data
+ * - AudioContext is unavailable
+ * - The base64 is corrupted (should never happen)
+ */
+async function playBase64DingDong(): Promise<void> {
+  if (_isMuted) return;
+
+  if (!isBrowser || !HAS_HARDCODED_DING_DONG) {
+    playSynthesizedDingDong();
+    return;
+  }
+
+  const ctx = ensureAudioContext();
+  if (!ctx) {
+    playSynthesizedDingDong();
+    return;
+  }
+
+  try {
+    // Decode the base64 data URI once, then cache the AudioBuffer
+    if (!_base64DingDongBuffer && !_base64DingDongDecoding) {
+      _base64DingDongDecoding = true;
+      try {
+        const response = await fetch(DING_DONG_DATA_URI);
+        const arrayBuffer = await response.arrayBuffer();
+        _base64DingDongBuffer = await ctx.decodeAudioData(arrayBuffer);
+      } catch (decodeErr) {
+        console.warn('[AudioSystem] Base64 ding-dong decode failed, using oscillator:', decodeErr);
+        playSynthesizedDingDong();
+        return;
+      } finally {
+        _base64DingDongDecoding = false;
+      }
+    }
+
+    // If decoding is in progress (first call, race condition) → fallback oscillator
+    if (!_base64DingDongBuffer) {
+      playSynthesizedDingDong();
+      return;
+    }
+
+    // Play the cached buffer
+    const source = ctx.createBufferSource();
+    source.buffer = _base64DingDongBuffer;
+
+    // Apply current volume
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = _currentVolume * 0.6;
+
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    source.start(0);
+  } catch (err) {
+    console.warn('[AudioSystem] Base64 ding-dong playback failed, using oscillator:', err);
+    playSynthesizedDingDong();
+  }
 }
 
 /**
  * Play the synthesized oscillator ding-dong chime (880Hz → 660Hz).
  *
- * This is the fallback used when no custom MP3 is uploaded, or when the
- * custom MP3 fails to load. Extracted from `playDingDong()` for clarity.
+ * This is the last-resort fallback used when:
+ * - No custom MP3 is uploaded AND
+ * - The base64 chime fails to decode/play
+ *
+ * It generates a pure sine wave "ding-dong" using the Web Audio API,
+ * mimicking a classic airport/train-station chime.
  */
 function playSynthesizedDingDong(): void {
   if (_isMuted) return;

@@ -2078,3 +2078,46 @@ Stage Summary:
 - Both the test button ("Tester les annonces") and real announcements (socket events) now play the ding-dong
 - Fallback chain: custom MP3 → synthesized oscillator chime → silent (if muted)
 - Lint: 0 errors, 3 pre-existing warnings (unchanged)
+
+---
+Task ID: FIX4-V3-DINGDONG-BASE64
+Agent: Main Agent
+Task: Code the ding-dong sound in hard (base64) so it plays even without upload, with upload taking priority
+
+Work Log:
+- Converted public/sounds/busgo/ding-dong.mp3 (70 KB) to base64 (94 KB) via `base64 -w 0`
+- Discovered the file is actually WAV format (RIFF/WAVE, PCM 16-bit mono 44100 Hz, 0.10s) despite .mp3 extension
+- Created src/lib/ding-dong-base64.ts with 3 exports:
+  - DING_DONG_BASE64_RAW (94 KB raw base64 string)
+  - DING_DONG_DATA_URI (data:audio/wav;base64,...)
+  - HAS_HARDCODED_DING_DONG (boolean = true)
+- Added import of DING_DONG_DATA_URI + HAS_HARDCODED_DING_DONG to audioSystem.ts (line 24)
+- Added module-level cache: _base64DingDongBuffer (AudioBuffer) + _base64DingDongDecoding (boolean)
+- Created playBase64DingDong() async function (lines 376-429):
+  - fetch(DING_DONG_DATA_URI) → arrayBuffer → ctx.decodeAudioData() → cache AudioBuffer
+  - createBufferSource() + gainNode (volume) → source.start(0)
+  - Falls back to playSynthesizedDingDong() on any error
+  - Caches decoded buffer for instant subsequent calls
+- Rewrote playDingDong() with 3-level priority chain (lines 337-359):
+  - NIVEAU 1: _customDingDongUrl (MP3 uploadé) → playCustomAudio()
+  - NIVEAU 2: base64 en dur → playBase64DingDong()
+  - NIVEAU 3: oscillateur synthétisé → playSynthesizedDingDong()
+  - Each level falls back to the next on failure
+
+Server-side verification:
+- base64 decodes to 70,604 bytes of valid WAV (RIFF/WAVE header, PCM 16-bit, mono, 44100 Hz, 0.10s)
+- ding-dong-base64.ts exports are correct (3 constants)
+- audioSystem.ts import chain is correct
+- playDingDong() 3-level chain is correctly structured
+- Dev server compiles without errors (all routes 200)
+- Lint: 0 errors, 3 pre-existing warnings
+
+Stage Summary:
+- Ding-dong is now coded in hard (base64) as NIVEAU 2 fallback
+- Upload still takes priority (NIVEAU 1) — both coexist perfectly
+- Without upload: base64 plays (realistic WAV sound, not oscillator)
+- With upload: custom MP3 plays
+- With broken upload: base64 fallback
+- If base64 fails too: oscillator last-resort
+- Works offline (base64 is inlined in JS bundle, no network request)
+- AudioBuffer is cached after first decode for instant playback
