@@ -4206,3 +4206,268 @@ https://react.dev/link/hydration-mismatch
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 4ms, application-code: 9ms)
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET / 200 in 206ms (next.js: 3ms, application-code: 204ms)
+ GET / 200 in 98ms (next.js: 3ms, application-code: 95ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET / 200 in 106ms (next.js: 3ms, application-code: 104ms)
+ GET /api/auth/session 200 in 9ms (next.js: 3ms, application-code: 6ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"11.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "11.943161063085972%"
+-                               left: "28.5984%"
++                               top: "68.84992746010859%"
+-                               top: "44.3889%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"43.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "43.41071070883344%"
+-                               left: "78.3052%"
++                               top: "77.38269377943595%"
+-                               top: "83.4103%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"48.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "48.74137820706254%"
+-                               left: "1.91904%"
++                               top: "78.19125812002288%"
+-                               top: "30.7708%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"20.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "20.842381114731047%"
+-                               left: "85.2169%"
++                               top: "9.947434407984145%"
+-                               top: "18.2278%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"46.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "46.98932632040157%"
+-                               left: "21.1217%"
++                               top: "82.45604934164767%"
+-                               top: "52.8443%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"47.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "47.61341034550458%"
+-                               left: "17.9376%"
++                               top: "68.5080990982096%"
+-                               top: "5.84314%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"96.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "96.93629309895077%"
+-                               left: "87.9379%"
++                               top: "34.76989527739768%"
+-                               top: "93.4419%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"2.14...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "2.1448183132735776%"
+-                               left: "16.9763%"
++                               top: "28.405354500476754%"
+-                               top: "27.6588%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"82.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "82.84646723063999%"
+-                               left: "81.5724%"
++                               top: "10.131097611245298%"
+-                               top: "25.0839%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"79.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "79.74614399860201%"
+-                               left: "68.1122%"
++                               top: "4.281273893373294%"
+-                               top: "41.5875%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"29.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "29.53613301218657%"
+-                               left: "0.222989%"
++                               top: "11.172877478600917%"
+-                               top: "72.4543%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"59.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "59.21386887506147%"
+-                               left: "95.3751%"
++                               top: "24.48849441477856%"
+-                               top: "60.0845%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"90.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "90.32215319756645%"
+-                               left: "27.9386%"
++                               top: "35.705562857115794%"
+-                               top: "88.2666%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"72.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "72.39862345353316%"
+-                               left: "67.8291%"
++                               top: "53.67793982550457%"
+-                               top: "58.8386%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"58.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "58.67600710953824%"
+-                               left: "13.2446%"
++                               top: "92.32742983883726%"
+-                               top: "60.3065%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"55.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "55.745319934969714%"
+-                               left: "29.8915%"
++                               top: "5.465596353110902%"
+-                               top: "11.8613%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"20.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "20.911210340464258%"
+-                               left: "65.6983%"
++                               top: "37.022122744399475%"
+-                               top: "29.9876%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"56.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "56.603915882123914%"
+-                               left: "33.5866%"
++                               top: "42.942674707994364%"
+-                               top: "9.75798%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"79.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "79.62952255261523%"
+-                               left: "34.989%"
++                               top: "53.11978567376393%"
+-                               top: "80.7513%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"96.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "96.25089482605826%"
+-                               left: "17.2064%"
++                               top: "14.854842886295838%"
+-                               top: "60.1315%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 15ms (next.js: 2ms, application-code: 13ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 2ms, application-code: 10ms)
