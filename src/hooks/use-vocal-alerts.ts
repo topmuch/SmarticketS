@@ -17,6 +17,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { toast } from 'sonner';
+import { playDingDong } from '@/lib/audioSystem';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -278,6 +279,18 @@ export function useVocalAlerts() {
   }, [updateConfig]);
 
   const testVoice = useCallback(() => {
+    // ─── BUG #4 fix: play ding-dong chime BEFORE the TTS test message ───
+    // This uses the same playDingDong() as the real announcements, so if the
+    // agency uploaded a custom MP3, it will be played here too.
+    // The ding-dong is played asynchronously — we don't wait for it to finish
+    // before speaking, because the real announcement flow (via VocalManager)
+    // waits 3s between ding-dong and TTS. Here we keep it simple: ding-dong
+    // starts, then TTS speaks immediately (the ding-dong is short enough).
+    try {
+      playDingDong();
+    } catch {
+      /* ignore — ding-dong is best-effort */
+    }
     speak('Test des annonces vocales BusGo. Le système fonctionne correctement. Embarquement pour Saint-Louis à huit heures.', undefined);
   }, [speak]);
 

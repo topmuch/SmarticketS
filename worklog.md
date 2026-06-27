@@ -2047,3 +2047,34 @@ Stage Summary:
 - 3 files created: public/manifest-busgo.json, src/app/pwa-passager/layout.tsx, src/app/api/cron/departure-reminders/route.ts
 - No schema migration needed (reused BusGoNotificationLog for idempotency tracking)
 - Screenshots: bug-proof/fix1-toast-visible.png, bug-proof/fix3-scanner-fixed.png
+
+---
+Task ID: FIX4-V2-DINGDONG
+Agent: Main Agent
+Task: Correct the Bug #4 fix — previous attempt passed dingDongUrl as customAudioUrl (which REPLACES TTS instead of playing before it)
+
+Work Log:
+- Identified the bug in the first fix: `speakAnnouncement(text, customAudioUrl?)` plays `customAudioUrl` INSTEAD of TTS, not BEFORE it. The ding-dong chime is played separately by `playDingDong()` at line 345, which uses oscillators (880Hz/660Hz), NOT the uploaded MP3.
+- Added module-level `_customDingDongUrl` state + `setCustomDingDongUrl(url)` / `getCustomDingDongUrl()` exports to `src/lib/audioSystem.ts` (lines 100-142)
+- Rewrote `playDingDong()` (lines 318-337) to check `_customDingDongUrl` first:
+  - If set → `playCustomAudio(mp3Url)` with fallback to synthesized chime on error
+  - If null → synthesized oscillator chime (880Hz/660Hz) as before
+- Extracted synthesized chime into `playSynthesizedDingDong()` helper for clarity
+- Reverted the incorrect `customAudioUrl` change in `useAgentVocalAlerts.speak()` — it now passes `undefined` again so TTS speaks the announcement text (not replaced by MP3)
+- Updated `useAgentVocalAlerts` to call `setCustomDingDongUrl(url)` instead of storing in a ref — the URL is now registered module-level so `playDingDong()` can access it
+- Added `playDingDong()` call to `useVocalAlerts.testVoice()` so the "Tester les annonces" button plays ding-dong + TTS (previously it only did TTS without chime)
+
+Runtime verification (Agent Browser):
+1. Uploaded ding-dong.mp3 via `/api/busgo/upload` → got URL `/sounds/busgo/adc61c34-...mp3`
+2. Saved to agency config via `POST /api/busgo/voix` → `dingDongUrl` persisted in DB
+3. Navigated to `/busgo/voix` → hook fetched `/api/busgo/voix → 200` + MP3 preloaded (HTTP 206, proves `setCustomDingDongUrl()` was called)
+4. Instrumented `HTMLAudioElement.prototype.play` to track MP3 plays
+5. Clicked "Tester les annonces" button → `Audio.play()` called with `http://localhost:3000/sounds/busgo/adc61c34-...mp3` ✅
+6. The uploaded ding-dong MP3 is now actually played!
+
+Stage Summary:
+- Bug #4 is now TRULY fixed: the uploaded ding-dong MP3 plays before announcements
+- Flow: `playDingDong()` → if MP3 uploaded, play MP3; else synthesized chime → wait 3s → TTS speaks message (×2)
+- Both the test button ("Tester les annonces") and real announcements (socket events) now play the ding-dong
+- Fallback chain: custom MP3 → synthesized oscillator chime → silent (if muted)
+- Lint: 0 errors, 3 pre-existing warnings (unchanged)

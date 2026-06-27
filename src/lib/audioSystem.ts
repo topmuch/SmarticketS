@@ -97,6 +97,50 @@ let _isMuted = false;
 /** Current volume level (0.0 – 1.0). */
 let _currentVolume = 1.0;
 
+/**
+ * Optional custom ding-dong audio URL (MP3/WAV).
+ *
+ * When set (via `setCustomDingDongUrl`), `playDingDong()` will play this
+ * file instead of the synthesized oscillator chime (880Hz/660Hz).
+ *
+ * This allows each agency to upload its own ding-dong sound via the
+ * "Voix & Annonces" page, and have it played before every announcement.
+ *
+ * Set to `null` to revert to the synthesized oscillator chime.
+ */
+let _customDingDongUrl: string | null = null;
+
+/**
+ * Set the custom ding-dong audio URL.
+ *
+ * Called by `useAgentVocalAlerts` hook when the agency config is fetched
+ * from `/api/busgo/voix`. The URL is stored module-level so that
+ * `playDingDong()` (which is called deep inside `speakAnnouncement`)
+ * can access it without threading the URL through every function call.
+ *
+ * @param url - The MP3/WAV URL, or `null` to use the synthesized chime.
+ */
+export function setCustomDingDongUrl(url: string | null): void {
+  _customDingDongUrl = url;
+  if (url && typeof window !== 'undefined') {
+    // Preload the audio file so it plays instantly on first call
+    try {
+      const audio = new Audio(url);
+      audio.preload = 'auto';
+      audio.load();
+    } catch {
+      /* ignore preload errors */
+    }
+  }
+}
+
+/**
+ * Get the current custom ding-dong URL (if any).
+ */
+export function getCustomDingDongUrl(): string | null {
+  return _customDingDongUrl;
+}
+
 /** Whether mute/volume has been loaded from localStorage. */
 let persistentStateLoaded = false;
 
@@ -261,12 +305,16 @@ function selectFrenchVoice(): SpeechSynthesisVoice | null {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Play a pleasant ding-dong chime using Web Audio API oscillators.
+ * Play the ding-dong chime played before every announcement.
  *
- * The chime mimics a classic airport / train-station announcement chime:
- * - First tone: high-pitched "ding" at 880 Hz (A5) with 1.5s decay
- * - Second tone: lower "dong" at 660 Hz (E5) with 2s decay, starts after 600ms
- * - Each tone has a short attack and exponential decay envelope
+ * Behavior:
+ * 1. If a custom MP3 URL has been set via `setCustomDingDongUrl()`
+ *    (i.e. the agency uploaded its own ding-dong via "Voix & Annonces"),
+ *    play that MP3 file.
+ * 2. Otherwise (or if the MP3 fails to load), fall back to the synthesized
+ *    oscillator chime:
+ *    - First tone: high-pitched "ding" at 880 Hz (A5) with 1.5s decay
+ *    - Second tone: lower "dong" at 660 Hz (E5) with 2s decay, starts after 600ms
  *
  * Checks `isMuted` before playing — silent if muted.
  * Respects the current `currentVolume` level.
@@ -275,6 +323,31 @@ export function playDingDong(): void {
   if (_isMuted) {
     return;
   }
+
+  // ─── Custom MP3 ding-dong (agency-uploaded) ───
+  // If the agency has uploaded its own ding-dong via the "Voix & Annonces"
+  // page, play that MP3 instead of the synthesized oscillator chime.
+  // The MP3 is preloaded when setCustomDingDongUrl() is called.
+  if (_customDingDongUrl) {
+    playCustomAudio(_customDingDongUrl).catch((err) => {
+      console.warn('[AudioSystem] Custom ding-dong MP3 failed, falling back to synthesized chime:', err);
+      playSynthesizedDingDong();
+    });
+    return;
+  }
+
+  // ─── Fallback: synthesized oscillator chime ───
+  playSynthesizedDingDong();
+}
+
+/**
+ * Play the synthesized oscillator ding-dong chime (880Hz → 660Hz).
+ *
+ * This is the fallback used when no custom MP3 is uploaded, or when the
+ * custom MP3 fails to load. Extracted from `playDingDong()` for clarity.
+ */
+function playSynthesizedDingDong(): void {
+  if (_isMuted) return;
 
   const ctx = ensureAudioContext();
   if (!ctx) return;
@@ -290,7 +363,7 @@ export function playDingDong(): void {
     playTone(ctx, 660, 2.0, 'sine', now + 0.6, vol);
 
   } catch (err) {
-    console.error('[AudioSystem] Failed to play ding-dong:', err);
+    console.error('[AudioSystem] Failed to play synthesized ding-dong:', err);
   }
 }
 

@@ -28,6 +28,7 @@ import {
   preloadVoices,
   toggleMute,
   setVolume as setSystemVolume,
+  setCustomDingDongUrl,
   getIsMuted,
   getCurrentVolume,
   isAlreadyAnnounced,
@@ -76,9 +77,14 @@ export function useAgentVocalAlerts() {
   const managerRef = useRef<VocalManager | null>(null);
 
   // ─── BUG #4 fix: fetch agency's dingDongUrl from /api/busgo/voix ───
-  // The uploaded MP3 was stored in DB but never passed to the audio system.
-  // We keep it in a ref so `speak()` can pass it as customAudioUrl to enqueue().
-  const dingDongUrlRef = useRef<string | null>(null);
+  // The uploaded MP3 was stored in DB but never played. We now fetch it on
+  // mount and register it module-level via setCustomDingDongUrl() so that
+  // playDingDong() (called inside speakAnnouncement) plays the MP3 instead
+  // of the synthesized oscillator chime.
+  //
+  // IMPORTANT: dingDongUrl is the chime played BEFORE the TTS message.
+  // It is NOT passed as `customAudioUrl` to enqueue() — that would REPLACE
+  // the TTS message text with the MP3 (wrong behavior).
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   // Keep ref synced with state for use in event handlers
@@ -103,26 +109,20 @@ export function useAgentVocalAlerts() {
     // Get VocalManager singleton
     managerRef.current = VocalManager.getInstance();
 
-    // ─── BUG #4 fix: fetch dingDongUrl from agency config ───
+    // ─── BUG #4 fix: fetch dingDongUrl and register it module-level ───
     // This runs once on mount. If the admin updates the ding-dong, the user
     // needs to reload the page (acceptable trade-off vs. polling).
     fetch('/api/busgo/voix', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.data?.dingDongUrl) {
-          dingDongUrlRef.current = data.data.dingDongUrl;
-          // Preload the audio file so it plays instantly when needed
-          try {
-            const audio = new Audio(data.data.dingDongUrl);
-            audio.preload = 'auto';
-            audio.load();
-          } catch {
-            /* ignore preload errors */
-          }
-        }
+        const url = data?.data?.dingDongUrl || null;
+        // Register the MP3 URL with the audio system. playDingDong() will
+        // now play this MP3 instead of the synthesized 880Hz/660Hz chime.
+        // setCustomDingDongUrl() also preloads the audio file.
+        setCustomDingDongUrl(url);
       })
       .catch(() => {
-        /* ignore — fallback to synthesized ding-dong */
+        /* ignore — fallback to synthesized ding-dong (already the default) */
       });
 
     return () => {
@@ -189,12 +189,16 @@ export function useAgentVocalAlerts() {
     const manager = managerRef.current ?? VocalManager.getInstance();
     managerRef.current = manager;
 
-    // ─── BUG #4 fix: pass dingDongUrl as customAudioUrl ───
     // VocalManager.enqueue signature: (text, priority, customAudioUrl?, departureKey?)
-    // - If dingDongUrl is set (admin uploaded MP3), play it BEFORE the TTS.
-    // - If null, the audioSystem falls back to its synthesized oscillator ding-dong.
-    const customAudioUrl = dingDongUrlRef.current || undefined;
-    manager.enqueue(text, priority, customAudioUrl, undefined);
+    //
+    // `customAudioUrl` is intentionally `undefined` here:
+    // - The ding-dong chime (custom MP3 or synthesized) is played AUTOMATICALLY
+    //   by `speakAnnouncement()` via `playDingDong()`, which reads the URL from
+    //   the module-level `_customDingDongUrl` set by `setCustomDingDongUrl()`.
+    // - If we passed dingDongUrl here as customAudioUrl, it would REPLACE the
+    //   TTS message text with the MP3 — the announcement text would never be
+    //   spoken. That was the bug in the first fix attempt.
+    manager.enqueue(text, priority, undefined, undefined);
   }, []);
 
   // Higher-level helpers — use the build* functions from audioSystem
