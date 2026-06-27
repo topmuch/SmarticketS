@@ -64,7 +64,7 @@ export interface UseKioskSocketResult {
   reconnect: () => void;
 }
 
-const KIOSK_WS_PATH = '/'; // Caddy route WS requests to kiosk-service via XTransformPort=3004
+const KIOSK_WS_PATH = '/socket.io/'; // FIX (audit #2): was '/' which returns 404. kiosk-service uses default socket.io path.
 
 export function useKioskSocket(options: UseKioskSocketOptions): UseKioskSocketResult {
   const { stationSlug, onEvent, enabled = true } = options;
@@ -87,6 +87,8 @@ export function useKioskSocket(options: UseKioskSocketOptions): UseKioskSocketRe
       path: KIOSK_WS_PATH,
       query: { XTransformPort: '3004' },
       transports: ['websocket', 'polling'],
+      // FIX (audit #2): try all transports to work around Caddy gateway quirks
+      tryAllTransports: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,

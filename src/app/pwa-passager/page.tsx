@@ -134,48 +134,47 @@ function DashboardInner() {
     }
 
     try {
-      const res = await fetch(`/api/busgo/trajets/${departureId}`, { credentials: 'include' });
+      // FIX (audit #1): use passenger-dedicated route (no staff auth required)
+      // Previously called /api/busgo/trajets/${departureId} which requires a staff session → 401
+      const controlCode = typeof window !== 'undefined' ? localStorage.getItem('busgo_control_code') : null;
+      const ccParam = controlCode ? `&controlCode=${encodeURIComponent(controlCode)}` : '';
+      const res = await fetch(`/api/pwa-passager/ticket/${ticketId}?${ccParam}`.replace('?&', '?'));
       if (!res.ok) {
         setError('Impossible de charger les données');
         setLoading(false);
         return;
       }
       const result = await res.json();
-      const dep = result.data;
-      const ticket = dep.tickets?.find((t: { id: string }) => t.id === ticketId);
-      if (!ticket) {
-        setError('Billet non trouvé');
-        setLoading(false);
-        return;
-      }
 
       setData({
         ticket: {
-          id: ticket.id,
-          paperTicketNumber: ticket.paperTicketNumber || null,
-          passengerName: ticket.passengerName,
-          seatNumber: ticket.seatNumber,
-          destination: ticket.destination,
-          controlCode: ticket.controlCode,
-          ticketStatus: ticket.status,
-          boardedAt: ticket.validatedAt || null,
-          isLate: ticket.isLate || false,
-          lateMinutes: ticket.lateMinutes || 0,
+          id: result.ticket.id,
+          paperTicketNumber: result.ticket.paperTicketNumber || null,
+          passengerName: result.ticket.passengerName,
+          seatNumber: result.ticket.seatNumber,
+          destination: result.ticket.destination,
+          controlCode: result.ticket.controlCode,
+          ticketStatus: result.ticket.ticketStatus,
+          boardedAt: result.ticket.boardedAt || null,
+          isLate: result.ticket.isLate || false,
+          lateMinutes: result.ticket.lateMinutes || 0,
         },
-        departure: {
-          id: dep.id,
-          destination: dep.destination,
-          scheduledTime: dep.scheduledTime,
-          platform: dep.platform,
-          lineNumber: dep.lineNumber,
-          status: dep.status,
-          delayMinutes: dep.delayMinutes || 0,
-          agentPhone: dep.agentPhone || null,
-          agentName: dep.agentName || null,
-          boardingStartedAt: dep.boardingStartedAt || null,
-          departedAt: dep.departedAt || null,
-        },
-        route: dep.route || null,
+        departure: result.departure
+          ? {
+              id: result.departure.id,
+              destination: result.departure.destination,
+              scheduledTime: result.departure.scheduledTime,
+              platform: result.departure.platform,
+              lineNumber: result.departure.lineNumber,
+              status: result.departure.status,
+              delayMinutes: result.departure.delayMinutes || 0,
+              agentPhone: result.departure.agentPhone || null,
+              agentName: result.departure.agentName || null,
+              boardingStartedAt: result.departure.boardingStartedAt || null,
+              departedAt: result.departure.departedAt || null,
+            }
+          : null,
+        route: result.departure?.route || null,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
@@ -196,13 +195,36 @@ function DashboardInner() {
   }, []);
 
   // Welcome message + TTS on first load after install
+  // Also handles SW cold-open TTS (?tts=1&ttsMessage=...&alertType=...)
   useEffect(() => {
     const welcome = searchParams.get('welcome');
+    const ttsParam = searchParams.get('tts');
+    const ttsMessage = searchParams.get('ttsMessage');
+    const alertType = searchParams.get('alertType');
+
+    // FIX (audit bonus): auto-play TTS when SW opens PWA from a push notification click
+    // The SW sets ?tts=1&ttsMessage=...&alertType=... when user taps "🔊 Écouter"
+    if (ttsParam === '1' && ttsMessage && !welcomeShown) {
+      setWelcomeShown(true);
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(decodeURIComponent(ttsMessage));
+        u.lang = 'fr-FR';
+        u.rate = 0.9;
+        u.volume = 1.0;
+        window.speechSynthesis.speak(u);
+      }
+      toast.info(`🔊 ${alertType || 'Annonce'}: ${decodeURIComponent(ttsMessage).substring(0, 80)}`);
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
     if (welcome === '1' && data && !welcomeShown) {
       setWelcomeShown(true);
 
-      // Fetch the welcome notification from the log
-      fetch(`/api/busgo/notifications/log?ticketId=${data.ticket.id}&type=purchase_confirm`)
+      // Fetch the welcome notification from the log (passenger-dedicated route, no auth)
+      fetch(`/api/pwa-passager/notifications/log?ticketId=${data.ticket.id}&type=purchase_confirm`)
         .then(res => res.json())
         .then(logData => {
           if (logData.data && logData.data.length > 0) {

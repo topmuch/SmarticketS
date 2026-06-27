@@ -202,6 +202,37 @@ export async function POST(request: NextRequest) {
 
             stats.notificationsSent++;
             stats.byType[reminder.type]++;
+
+            // FIX (audit #3): emit passenger:missing to kiosk-service for agent vocal alerts
+            // When a departure is at T-5min and the passenger hasn't boarded, emit a socket
+            // event so the agent's PWA hears the ding-dong + TTS announcement.
+            if (reminder.type === 'departure_5min' && ticket.ticketStatus === 'ACTIVE' && !ticket.boardedAt) {
+              try {
+                const stationSlug = departure.originStation?.slug || departure.agency?.slug;
+                if (stationSlug) {
+                  const kioskServiceUrl = process.env.KIOSK_SERVICE_URL || 'http://localhost:3004';
+                  await fetch(`${kioskServiceUrl}/api/push/${encodeURIComponent(stationSlug)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      event: 'passenger:missing',
+                      broadcast: false,
+                      data: {
+                        passengerName: ticket.passengerName,
+                        seatNumber: ticket.seatNumber,
+                        phone: ticket.passengerPhone,
+                        destination: ticket.destination,
+                        departureId: departure.id,
+                        minutesLeft: 5,
+                      },
+                    }),
+                  });
+                }
+              } catch (emitErr) {
+                // Non-fatal — push was already sent
+                console.warn(`[departure-reminders] passenger:missing emit failed for ticket ${ticket.id}:`, emitErr);
+              }
+            }
           } catch (err) {
             stats.errors++;
             console.error(

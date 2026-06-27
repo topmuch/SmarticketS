@@ -87,6 +87,31 @@ export default function EmbarquementPage() {
     return () => clearInterval(interval);
   }, [fetchDeparture]);
 
+  // FIX (audit #5): announce missing passengers via TTS when departure is imminent (T-5min)
+  // This is a polling-based fallback that works even if the kiosk socket is broken.
+  // The audioSystem's announcedSet dedup prevents repeat announcements.
+  useEffect(() => {
+    if (!departure) return;
+
+    const minutesUntilDeparture = Math.floor(
+      (new Date(departure.scheduledTime).getTime() - Date.now()) / 60000
+    );
+
+    // Only announce when 5 minutes or less before departure (and not departed yet)
+    if (minutesUntilDeparture > 5 || minutesUntilDeparture < -2) return;
+    if (departure.status === 'DEPARTED' || departure.status === 'CANCELLED') return;
+
+    // Find passengers who haven't boarded (status ACTIVE, no validatedAt)
+    const missingPassengers = departure.tickets.filter(
+      (t) => t.status === 'ACTIVE' && !t.validatedAt
+    );
+
+    // Announce each missing passenger (dedup is handled by audioSystem.isAlreadyAnnounced)
+    for (const p of missingPassengers) {
+      announceMissingPassenger(p.passengerName, p.seatNumber);
+    }
+  }, [departure, announceMissingPassenger]);
+
   const handleRetard = async (ticketId: string, passengerName: string, seatNumber: string) => {
     setRetardingId(ticketId);
     try {

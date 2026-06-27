@@ -376,7 +376,61 @@ export async function ensureSeeded(): Promise<boolean> {
       });
     }
 
-    // 11. Mark as seeded
+    // 11. FIX (audit #4): Seed default BusGoNotificationTemplate for the demo agency
+    // Without this, /api/cron/departure-reminders silently skips ALL reminders
+    // (the cron checks `if (!template) { stats.notificationsSkipped++; continue; }`)
+    // until an agent manually visits /busgo/notifications or /busgo/voix.
+    const defaultTemplates = [
+      {
+        notificationType: 'purchase_confirm',
+        textTemplate: 'Bonjour {passenger_name}! Bienvenue chez {company_name}. Votre billet est confirmé. Trajet: {departure_city} → {arrival_city}. Date: {date} à {time}. Quai: {platform}.',
+        ttsTemplate: 'Bonjour, bienvenue chez {company_name}. Votre billet a été confirmé avec succès. Votre bus partira à {time} depuis le quai {platform}.',
+      },
+      {
+        notificationType: 'reminder_1h',
+        textTemplate: '🚌 Rappel: Votre bus {company_name} part dans 1h! Embarquement en cours au quai {platform}.',
+        ttsTemplate: 'Attention passager. Votre bus part dans une heure. L\'embarquement est en cours au quai {platform}.',
+      },
+      {
+        notificationType: 'bags_45min',
+        textTemplate: '⚠️ N\'oubliez pas vos bagages! Départ dans 45 minutes.',
+        ttsTemplate: 'Rappel important. N\'oubliez pas vos bagages et objets personnels. Le départ est dans quarante-cinq minutes.',
+      },
+      {
+        notificationType: 'boarding_30min',
+        textTemplate: '🚨 URGENT: Embarquement en cours! Départ dans 30 minutes. Quai {platform}.',
+        ttsTemplate: 'Dernier appel. L\'embarquement est en cours. Le départ est imminent dans trente minutes. Rendez-vous au quai {platform}.',
+      },
+      {
+        notificationType: 'departure_5min',
+        textTemplate: '⏰ DÉPART DANS 5 MINUTES! Dernière chance pour embarquer. Le bus va partir.',
+        ttsTemplate: 'Attention! Le bus part dans cinq minutes. C\'est votre dernière chance pour embarquer.',
+      },
+    ];
+
+    for (const tpl of defaultTemplates) {
+      await db.busGoNotificationTemplate.upsert({
+        where: {
+          agencyId_notificationType_language: {
+            agencyId: 'demo-agency-1',
+            notificationType: tpl.notificationType,
+            language: 'fr',
+          },
+        },
+        update: {},
+        create: {
+          agencyId: 'demo-agency-1',
+          notificationType: tpl.notificationType,
+          language: 'fr',
+          textTemplate: tpl.textTemplate,
+          ttsTemplate: tpl.ttsTemplate,
+          isActive: true,
+        },
+      });
+    }
+    console.log(`[auto-seed] Seeded ${defaultTemplates.length} default BusGoNotificationTemplates`);
+
+    // 12. Mark as seeded
     await db.setting.upsert({
       where: { key: SEED_LOCK_KEY },
       update: { value: 'true' },

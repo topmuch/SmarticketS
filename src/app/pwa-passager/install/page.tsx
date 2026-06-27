@@ -105,6 +105,10 @@ function InstallForm() {
 
       localStorage.setItem('busgo_ticket_id', data.ticket.id);
       localStorage.setItem('busgo_departure_id', data.departure.id);
+      // Save controlCode for passenger-route auth (no session needed)
+      if (data.ticket.controlCode) {
+        localStorage.setItem('busgo_control_code', data.ticket.controlCode);
+      }
 
       // Play welcome TTS message immediately
       if ('speechSynthesis' in window) {

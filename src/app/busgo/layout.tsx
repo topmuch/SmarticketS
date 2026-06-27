@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { BusGoOnboarding } from '@/components/busgo/onboarding-wizard';
+import RealtimeAlertListener from '@/components/dashboard/RealtimeAlertListener';
 
 interface NavItem {
   href: string;
@@ -165,6 +166,9 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-dvh flex flex-col bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
       <BusGoOnboarding open={showOnboarding} onClose={() => setShowOnboarding(false)} />
+
+      {/* FIX (audit bonus): mount RealtimeAlertListener so agents get live alert toasts */}
+      <RealtimeAlertListener />
 
       {/* ═══ ZONE A: En-tête contextuel (Sticky) ═══ */}
       <header className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-slate-900/80">

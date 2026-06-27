@@ -160,55 +160,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 🔔 Envoyer notification purchase_confirm immédiatement
-    try {
-      const template = await db.busGoNotificationTemplate.findFirst({
-        where: {
-          agencyId: ticket.agency.id,
-          notificationType: 'purchase_confirm',
-          language: 'fr',
-          isActive: true,
-        },
-      });
-
-      if (template) {
-        const agency = await db.agency.findUnique({
-          where: { id: ticket.agencyId },
-          select: { name: true },
-        });
-
-        const depTime = ticket.departure?.scheduledTime || ticket.departureTime;
-        const vars: Record<string, string> = {
-          '{passenger_name}': ticket.passengerName,
-          '{company_name}': agency?.name || 'BusGo',
-          '{departure_city}': '—',
-          '{arrival_city}': ticket.destination,
-          '{date}': depTime ? new Date(depTime).toLocaleDateString('fr-FR') : '—',
-          '{time}': depTime ? new Date(depTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—',
-          '{platform}': ticket.platform || ticket.departure?.platform || '—',
-          '{ticket_number}': ticket.paperTicketNumber || ticket.controlCode,
-        };
-
-        let textMessage = template.textTemplate;
-        let ttsMessage = template.ttsTemplate;
-        for (const [key, value] of Object.entries(vars)) {
-          textMessage = textMessage.replaceAll(key, value);
-          ttsMessage = ttsMessage.replaceAll(key, value);
-        }
-
-        await db.busGoNotificationLog.create({
-          data: {
-            ticketId: ticket.id,
-            templateType: 'purchase_confirm',
-            messageText: textMessage,
-            ttsText: ttsMessage,
-            status: 'sent',
-          },
-        });
-      }
-    } catch (e) {
-      console.error('[install] Notification error:', e);
-    }
+    // FIX (audit bonus): removed duplicate busGoNotificationLog.create() block
+    // The first try block (lines 103-149) already logs the purchase_confirm notification.
+    // This second block was creating a duplicate log entry on every install.
 
     return NextResponse.json({
       success: true,
