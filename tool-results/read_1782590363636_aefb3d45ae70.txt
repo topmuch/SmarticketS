@@ -1,0 +1,939 @@
+     1→import { db } from './db';
+     2→import crypto from 'crypto';
+     3→import { randomInt } from 'crypto';
+     4→import nodemailer from 'nodemailer';
+     5→
+     6→/** Escape HTML entities to prevent XSS in email templates */
+     7→function escapeHtml(str: string): string {
+     8→  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+     9→}
+    10→
+    11→// Email provider types
+    12→export type EmailProvider = 'console' | 'smtp';
+    13→
+    14→// ── Lazy column migration (safety net if instrumentation.ts didn't run) ──
+    15→let _migrationRan = false;
+    16→const EMAIL_COLUMNS = [
+    17→  { column: 'recipientColisEmail', type: 'TEXT' },
+    18→  { column: 'recipientSystemEmail', type: 'TEXT' },
+    19→  { column: 'lastTestAt', type: 'DATETIME' },
+    20→  { column: 'lastTestStatus', type: 'TEXT' },
+    21→  { column: 'lastTestError', type: 'TEXT' },
+    22→  { column: 'isActive', type: 'BOOLEAN DEFAULT 1' },
+    23→];
+    24→
+    25→async function ensureEmailColumns() {
+    26→  if (_migrationRan) return;
+    27→  _migrationRan = true;
+    28→  try {
+    29→    const cols = await db.$queryRawUnsafe<Array<{ name: string }>>(
+    30→      `PRAGMA table_info("EmailSettings")`
+    31→    );
+    32→    const colSet = new Set(cols.map(c => c.name));
+    33→    for (const col of EMAIL_COLUMNS) {
+    34→      if (colSet.has(col.column)) continue;
+    35→      try {
+    36→        await db.$executeRawUnsafe(
+    37→          `ALTER TABLE "EmailSettings" ADD COLUMN "${col.column}" ${col.type}`
+    38→        );
+    39→        console.log(`[email:ensureColumns] Added EmailSettings.${col.column}`);
+    40→      } catch (e) {
+    41→        console.error(`[email:ensureColumns] Failed ${col.column}:`, e);
+    42→      }
+    43→    }
+    44→  } catch (e) {
+    45→    console.error('[email:ensureColumns] Error:', e);
+    46→  }
+    47→}
+    48→
+    49→// Email settings interface
+    50→export interface EmailConfig {
+    51→  provider: EmailProvider;
+    52→  fromEmail: string;
+    53→  fromName: string;
+    54→  recipientColisEmail?: string | null;
+    55→  recipientSystemEmail?: string | null;
+    56→  smtpHost?: string | null;
+    57→  smtpPort?: number | null;
+    58→  smtpUser?: string | null;
+    59→  smtpPassword?: string | null;
+    60→  smtpEncryption?: string;
+    61→}
+    62→
+    63→// Email data interface
+    64→export interface EmailData {
+    65→  to: string | string[];
+    66→  subject: string;
+    67→  html: string;
+    68→  text?: string;
+    69→  type?: string;
+    70→  userId?: string;
+    71→  agencyId?: string;
+    72→  data?: Record<string, unknown>;
+    73→}
+    74→
+    75→// Generate random token
+    76→export function generateToken(): string {
+    77→  return crypto.randomBytes(32).toString('hex');
+    78→}
+    79→
+    80→// Generate 6-digit code
+    81→export function generateCode(): string {
+    82→  return randomInt(100000, 1000000).toString();
+    83→}
+    84→
+    85→// Get email settings from database (auto-creates defaults if missing)
+    86→export async function getEmailSettings(): Promise<EmailConfig | null> {
+    87→  try {
+    88→    // Ensure columns exist before querying (lazy migration)
+    89→    await ensureEmailColumns();
+    90→    let settings = await db.emailSettings.findFirst();
+    91→    if (!settings) {
+    92→      // Auto-create default settings so the table is never empty
+    93→      console.log('📧 No email settings found, creating defaults...');
+    94→      settings = await db.emailSettings.create({
+    95→        data: {
+    96→          provider: 'console',
+    97→          fromEmail: 'noreply@smartickets.com',
+    98→          fromName: 'SmarticketS',
+    99→          smtpEncryption: 'tls',
+   100→        },
+   101→      });
+   102→      console.log('📧 Default email settings created:', settings.id);
+   103→    }
+   104→    return {
+   105→      provider: settings.provider as EmailProvider,
+   106→      fromEmail: settings.fromEmail,
+   107→      fromName: settings.fromName,
+   108→      recipientColisEmail: settings.recipientColisEmail || null,
+   109→      recipientSystemEmail: settings.recipientSystemEmail || null,
+   110→      smtpHost: settings.smtpHost,
+   111→      smtpPort: settings.smtpPort,
+   112→      smtpUser: settings.smtpUser,
+   113→      smtpPassword: settings.smtpPassword,
+   114→      smtpEncryption: settings.smtpEncryption || 'tls',
+   115→    };
+   116→  } catch (error) {
+   117→    console.error('❌ Error fetching email settings:', error);
+   118→    return null;
+   119→  }
+   120→}
+   121→
+   122→// Save email settings to database
+   123→export async function saveEmailSettings(config: Partial<EmailConfig>): Promise<EmailConfig | null> {
+   124→  try {
+   125→    // Ensure columns exist before querying (lazy migration)
+   126→    await ensureEmailColumns();
+   127→    const existing = await db.emailSettings.findFirst();
+   128→    
+   129→    if (existing) {
+   130→      // Build update data - only include fields that are explicitly provided
+   131→      const data: {
+   132→        provider?: string;
+   133→        fromEmail?: string;
+   134→        fromName?: string;
+   135→        recipientColisEmail?: string | null;
+   136→        recipientSystemEmail?: string | null;
+   137→        smtpHost?: string | null;
+   138→        smtpPort?: number | null;
+   139→        smtpUser?: string | null;
+   140→        smtpPassword?: string | null;
+   141→        smtpEncryption?: string;
+   142→      } = {};
+   143→      
+   144→      if (config.provider) data.provider = config.provider;
+   145→      if (config.fromEmail) data.fromEmail = config.fromEmail;
+   146→      if (config.fromName) data.fromName = config.fromName;
+   147→      if (config.recipientColisEmail !== undefined) data.recipientColisEmail = config.recipientColisEmail || null;
+   148→      if (config.recipientSystemEmail !== undefined) data.recipientSystemEmail = config.recipientSystemEmail || null;
+   149→      if (config.smtpEncryption) data.smtpEncryption = config.smtpEncryption;
+   150→      if (config.smtpHost !== undefined) data.smtpHost = config.smtpHost || null;
+   151→      if (config.smtpPort !== undefined) data.smtpPort = config.smtpPort || null;
+   152→      if (config.smtpUser !== undefined) data.smtpUser = config.smtpUser || null;
+   153→      if (config.smtpPassword !== undefined) data.smtpPassword = config.smtpPassword || null;
+   154→
+   155→      console.log('📧 Saving email settings, fields:', Object.keys(data).join(', '));
+   156→
+   157→      const updated = await db.emailSettings.update({
+   158→        where: { id: existing.id },
+   159→        data,
+   160→      });
+   161→      return {
+   162→        provider: updated.provider as EmailProvider,
+   163→        fromEmail: updated.fromEmail,
+   164→        fromName: updated.fromName,
+   165→        recipientColisEmail: updated.recipientColisEmail || null,
+   166→        recipientSystemEmail: updated.recipientSystemEmail || null,
+   167→        smtpHost: updated.smtpHost,
+   168→        smtpPort: updated.smtpPort,
+   169→        smtpUser: updated.smtpUser,
+   170→        smtpPassword: updated.smtpPassword,
+   171→        smtpEncryption: updated.smtpEncryption || 'tls',
+   172→      };
+   173→    } else {
+   174→      const created = await db.emailSettings.create({
+   175→        data: {
+   176→          provider: config.provider || 'console',
+   177→          fromEmail: config.fromEmail || 'noreply@smartickets.com',
+   178→          fromName: config.fromName || 'SmarticketS',
+   179→          recipientColisEmail: config.recipientColisEmail || null,
+   180→          recipientSystemEmail: config.recipientSystemEmail || null,
+   181→          smtpHost: config.smtpHost || null,
+   182→          smtpPort: config.smtpPort || null,
+   183→          smtpUser: config.smtpUser || null,
+   184→          smtpPassword: config.smtpPassword || null,
+   185→          smtpEncryption: config.smtpEncryption || 'tls',
+   186→        },
+   187→      });
+   188→      return {
+   189→        provider: created.provider as EmailProvider,
+   190→        fromEmail: created.fromEmail,
+   191→        fromName: created.fromName,
+   192→        recipientColisEmail: created.recipientColisEmail || null,
+   193→        recipientSystemEmail: created.recipientSystemEmail || null,
+   194→        smtpHost: created.smtpHost,
+   195→        smtpPort: created.smtpPort,
+   196→        smtpUser: created.smtpUser,
+   197→        smtpPassword: created.smtpPassword,
+   198→        smtpEncryption: created.smtpEncryption || 'tls',
+   199→      };
+   200→    }
+   201→  } catch (error) {
+   202→    console.error('❌ Error saving email settings:', error);
+   203→    if (error instanceof Error) {
+   204→      console.error('Error message:', error.message);
+   205→      console.error('Error stack:', error.stack);
+   206→    }
+   207→    // Re-throw so the caller (API route) can return the actual error to the user
+   208→    throw error;
+   209→  }
+   210→}
+   211→
+   212→// Log email to database
+   213→async function logEmail(
+   214→  to: string,
+   215→  subject: string,
+   216→  type: string,
+   217→  status: 'pending' | 'sent' | 'failed',
+   218→  error?: string,
+   219→  userId?: string,
+   220→  agencyId?: string,
+   221→  data?: Record<string, unknown>
+   222→): Promise<void> {
+   223→  try {
+   224→    await db.emailLog.create({
+   225→      data: {
+   226→        to,
+   227→        subject,
+   228→        type,
+   229→        status,
+   230→        error,
+   231→        userId,
+   232→        agencyId,
+   233→        data: data ? JSON.stringify(data) : null,
+   234→        sentAt: status === 'sent' ? new Date() : null,
+   235→      },
+   236→    });
+   237→  } catch (logError) {
+   238→    console.error('Error logging email:', logError);
+   239→  }
+   240→}
+   241→
+   242→// Update email test status
+   243→export async function updateTestStatus(success: boolean, error?: string): Promise<void> {
+   244→  try {
+   245→    const existing = await db.emailSettings.findFirst();
+   246→    if (existing) {
+   247→      await db.emailSettings.update({
+   248→        where: { id: existing.id },
+   249→        data: {
+   250→          lastTestAt: new Date(),
+   251→          lastTestStatus: success ? 'success' : 'failed',
+   252→          lastTestError: error || null,
+   253→        },
+   254→      });
+   255→    }
+   256→  } catch (updateError) {
+   257→    console.error('Error updating test status:', updateError);
+   258→  }
+   259→}
+   260→
+   261→// Send via SMTP using nodemailer
+   262→async function sendViaSMTP(config: EmailConfig, emailData: EmailData): Promise<{ success: boolean; error?: string }> {
+   263→  if (!config.smtpHost || !config.smtpPort) {
+   264→    return { success: false, error: 'Configuration SMTP incomplète (hôte ou port manquant)' };
+   265→  }
+   266→
+   267→  try {
+   268→    console.log('📧 SMTP Email — Connecting to:', config.smtpHost, 'port:', config.smtpPort);
+   269→
+   270→    const transporter = nodemailer.createTransport({
+   271→      host: config.smtpHost,
+   272→      port: Number(config.smtpPort),
+   273→      secure: config.smtpEncryption === 'ssl' || Number(config.smtpPort) === 465,
+   274→      auth: {
+   275→        user: config.smtpUser || '',
+   276→        pass: config.smtpPassword || '',
+   277→      },
+   278→      tls: {
+   279→        rejectUnauthorized: false,
+   280→      },
+   281→    });
+   282→
+   283→    // Verify transporter connection
+   284→    await transporter.verify();
+   285→    console.log('📧 SMTP Email — Connection verified successfully');
+   286→
+   287→    const toAddresses = Array.isArray(emailData.to) ? emailData.to : [emailData.to];
+   288→
+   289→    const mailOptions: nodemailer.SendMailOptions = {
+   290→      from: `"${config.fromName}" <${config.fromEmail}>`,
+   291→      to: toAddresses.join(', '),
+   292→      subject: emailData.subject,
+   293→      html: emailData.html,
+   294→      text: emailData.text,
+   295→    };
+   296→
+   297→    const info = await transporter.sendMail(mailOptions);
+   298→    console.log('📧 SMTP Email — Sent successfully, Message ID:', info.messageId);
+   299→
+   300→    return { success: true };
+   301→  } catch (error: unknown) {
+   302→    const err = error as Error;
+   303→    console.error('📧 SMTP Email — Failed:', err.message);
+   304→    return { success: false, error: `Erreur SMTP: ${err.message}` };
+   305→  }
+   306→}
+   307→
+   308→// Main send email function
+   309→export async function sendEmail(emailData: EmailData): Promise<{ success: boolean; error?: string }> {
+   310→  const config = await getEmailSettings();
+   311→  
+   312→  if (!config) {
+   313→    const error = 'Configuration email non trouvée';
+   314→    await logEmail(
+   315→      Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to,
+   316→      emailData.subject,
+   317→      emailData.type || 'general',
+   318→      'failed',
+   319→      error,
+   320→      emailData.userId,
+   321→      emailData.agencyId,
+   322→      emailData.data
+   323→    );
+   324→    return { success: false, error };
+   325→  }
+   326→
+   327→  const toEmail = Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to;
+   328→  let result: { success: boolean; error?: string };
+   329→
+   330→  switch (config.provider) {
+   331→    case 'smtp':
+   332→      result = await sendViaSMTP(config, emailData);
+   333→      break;
+   334→    case 'console':
+   335→    default:
+   336→      // Console mode - just log the email
+   337→      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+   338→      console.log('📧 EMAIL (Console Mode)');
+   339→      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+   340→      console.log(`From: ${config.fromName} <${config.fromEmail}>`);
+   341→      console.log(`To: ${toEmail}`);
+   342→      console.log(`Subject: ${emailData.subject}`);
+   343→      console.log(`Type: ${emailData.type || 'general'}`);
+   344→      console.log('────────────────────────────────────────────────');
+   345→      console.log(emailData.text || emailData.html?.replace(/<[^>]*>/g, ''));
+   346→      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+   347→      result = { success: true };
+   348→      break;
+   349→  }
+   350→
+   351→  // Log the email
+   352→  await logEmail(
+   353→    toEmail,
+   354→    emailData.subject,
+   355→    emailData.type || 'general',
+   356→    result.success ? 'sent' : 'failed',
+   357→    result.error,
+   358→    emailData.userId,
+   359→    emailData.agencyId,
+   360→    emailData.data
+   361→  );
+   362→
+   363→  return result;
+   364→}
+   365→
+   366→// ============ EMAIL TEMPLATES ============
+   367→
+   368→export function getVerificationEmailTemplate(name: string, verificationUrl: string, code: string): { html: string; text: string } {
+   369→  return {
+   370→    html: `
+   371→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   372→        <div style="text-align: center; margin-bottom: 30px;">
+   373→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   374→        </div>
+   375→        <div style="background: #f9f9f9; border-radius: 10px; padding: 30px;">
+   376→          <h2 style="color: #333; margin-top: 0;">Vérification de votre email</h2>
+   377→          <p style="color: #666;">Bonjour ${escapeHtml(name)},</p>
+   378→          <p style="color: #666;">Merci de vous être inscrit sur SmarticketS. Vérifiez votre adresse email en utilisant le code ci-dessous :</p>
+   379→          <div style="text-align: center; margin: 30px 0;">
+   380→            <div style="background: #fff; border: 2px solid #ff7f00; border-radius: 10px; padding: 20px; display: inline-block;">
+   381→              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff7f00;">${escapeHtml(code)}</span>
+   382→            </div>
+   383→          </div>
+   384→          <p style="color: #666; text-align: center;">Ou cliquez sur le bouton suivant :</p>
+   385→          <div style="text-align: center; margin: 20px 0;">
+   386→            <a href="${verificationUrl}" style="background: #ff7f00; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Vérifier mon email</a>
+   387→          </div>
+   388→          <p style="color: #999; font-size: 12px; text-align: center;">Ce code expire dans 24 heures. Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.</p>
+   389→        </div>
+   390→        <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
+   391→          <p>© SmarticketS - Tous droits réservés</p>
+   392→        </div>
+   393→      </div>
+   394→    `,
+   395→    text: `SmarticketS - Vérification de votre email\n\nBonjour ${name},\n\nMerci de vous être inscrit sur SmarticketS.\n\nVotre code de vérification : ${code}\n\nOu utilisez ce lien : ${verificationUrl}\n\nCe code expire dans 24 heures. Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.\n\n© SmarticketS`,
+   396→  };
+   397→}
+   398→
+   399→export function getPasswordResetEmailTemplate(name: string, resetUrl: string, code: string): { html: string; text: string } {
+   400→  return {
+   401→    html: `
+   402→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   403→        <div style="text-align: center; margin-bottom: 30px;">
+   404→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   405→        </div>
+   406→        <div style="background: #f9f9f9; border-radius: 10px; padding: 30px;">
+   407→          <h2 style="color: #333; margin-top: 0;">Réinitialisation de votre mot de passe</h2>
+   408→          <p style="color: #666;">Bonjour ${escapeHtml(name)},</p>
+   409→          <p style="color: #666;">Vous avez demandé la réinitialisation de votre mot de passe. Utilisez le code ci-dessous :</p>
+   410→          <div style="text-align: center; margin: 30px 0;">
+   411→            <div style="background: #fff; border: 2px solid #ff7f00; border-radius: 10px; padding: 20px; display: inline-block;">
+   412→              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ff7f00;">${escapeHtml(code)}</span>
+   413→            </div>
+   414→          </div>
+   415→          <p style="color: #666; text-align: center;">Ou cliquez sur le bouton suivant :</p>
+   416→          <div style="text-align: center; margin: 20px 0;">
+   417→            <a href="${resetUrl}" style="background: #ff7f00; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Réinitialiser mon mot de passe</a>
+   418→          </div>
+   419→          <p style="color: #999; font-size: 12px; text-align: center;">Ce code expire dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.</p>
+   420→        </div>
+   421→        <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
+   422→          <p>© SmarticketS - Tous droits réservés</p>
+   423→        </div>
+   424→      </div>
+   425→    `,
+   426→    text: `SmarticketS - Réinitialisation de votre mot de passe\n\nBonjour ${name},\n\nVous avez demandé la réinitialisation de votre mot de passe.\n\nVotre code : ${code}\n\nOu utilisez ce lien : ${resetUrl}\n\nCe code expire dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.\n\n© SmarticketS`,
+   427→  };
+   428→}
+   429→
+   430→export function getTestEmailTemplate(): { html: string; text: string } {
+   431→  const now = new Date().toLocaleString('fr-FR');
+   432→  return {
+   433→    html: `
+   434→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   435→        <div style="text-align: center; margin-bottom: 30px;">
+   436→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   437→        </div>
+   438→        <div style="background: #f9f9f9; border-radius: 10px; padding: 30px;">
+   439→          <h2 style="color: #333; margin-top: 0;">Email de test</h2>
+   440→          <p style="color: #666;">Ceci est un email de test envoyé depuis le panneau d'administration SmarticketS.</p>
+   441→          <p style="color: #666;">Si vous recevez cet email, votre configuration email fonctionne correctement !</p>
+   442→          <div style="background: #e8f5e9; border-radius: 5px; padding: 15px; margin-top: 20px;">
+   443→            <p style="color: #2e7d32; margin: 0; font-weight: bold;">✓ Configuration email valide</p>
+   444→            <p style="color: #666; margin: 5px 0 0 0; font-size: 12px;">Envoyé le ${now}</p>
+   445→          </div>
+   446→        </div>
+   447→        <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
+   448→          <p>© SmarticketS - Tous droits réservés</p>
+   449→        </div>
+   450→      </div>
+   451→    `,
+   452→    text: `SmarticketS - Email de test\n\nCeci est un email de test envoyé depuis le panneau d'administration SmarticketS.\n\nSi vous recevez cet email, votre configuration email fonctionne correctement !\n\n✓ Configuration email valide\nEnvoyé le ${now}\n\n© SmarticketS`,
+   453→  };
+   454→}
+   455→
+   456→// ============ EMAIL TOKEN MANAGEMENT ============
+   457→
+   458→export async function createEmailToken(email: string, type: 'email_verification' | 'password_reset'): Promise<{ token: string; code: string }> {
+   459→  // Normalize email to lowercase to prevent case-sensitivity mismatches
+   460→  const normalizedEmail = email.toLowerCase();
+   461→  const token = generateToken();
+   462→  const code = generateCode();
+   463→  const expiresHours = type === 'email_verification' ? 24 : 1;
+   464→  const expiresAt = new Date(Date.now() + expiresHours * 60 * 60 * 1000);
+   465→
+   466→  await db.$transaction(async (tx) => {
+   467→    await tx.emailToken.deleteMany({ where: { email: normalizedEmail, type } });
+   468→    await tx.emailToken.create({ data: { email: normalizedEmail, token, code, type, expiresAt } });
+   469→  });
+   470→
+   471→  return { token, code };
+   472→}
+   473→
+   474→export async function verifyEmailToken(token: string, type: 'email_verification' | 'password_reset'): Promise<{ valid: boolean; email?: string; error?: string }> {
+   475→  const result = await db.emailToken.updateMany({
+   476→    where: { token, type, used: false, expiresAt: { gt: new Date() } },
+   477→    data: { used: true, usedAt: new Date() },
+   478→  });
+   479→
+   480→  if (result.count === 0) {
+   481→    return { valid: false, error: 'Token invalide ou expiré' };
+   482→  }
+   483→
+   484→  // Fetch email from the now-updated token
+   485→  const emailToken = await db.emailToken.findFirst({ where: { token, type } });
+   486→  return { valid: true, email: emailToken?.email };
+   487→}
+   488→
+   489→export function getBaggageLostEmailTemplate(data: {
+   490→  reference: string;
+   491→  agencyName?: string;
+   492→  travelerName?: string;
+   493→  baggageType?: string;
+   494→  destination?: string;
+   495→  flightNumber?: string;
+   496→}): { html: string; text: string } {
+   497→  const now = new Date().toLocaleString('fr-FR');
+   498→  const travelerDisplay = data.travelerName ? escapeHtml(data.travelerName) : 'Non renseigné';
+   499→  return {
+   500→    html: `
+   501→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   502→        <div style="text-align: center; margin-bottom: 30px;">
+   503→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   504→        </div>
+   505→        <div style="background: #fff3f3; border: 2px solid #e74c3c; border-radius: 10px; padding: 30px;">
+   506→          <h2 style="color: #e74c3c; margin-top: 0;">🚨 Colis déclaré comme perdu</h2>
+   507→          <p style="color: #666;">Un colis a été signalé comme perdu. Voici les détails :</p>
+   508→          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+   509→            <tr>
+   510→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Référence</td>
+   511→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
+   512→            </tr>
+   513→            <tr>
+   514→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Voyageur</td>
+   515→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${travelerDisplay}</td>
+   516→            </tr>
+   517→            ${data.agencyName ? `
+   518→            <tr>
+   519→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
+   520→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
+   521→            </tr>` : ''}
+   522→            ${data.baggageType ? `
+   523→            <tr>
+   524→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Type de colis</td>
+   525→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.baggageType)}</td>
+   526→            </tr>` : ''}
+   527→            ${data.flightNumber ? `
+   528→            <tr>
+   529→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Vol</td>
+   530→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.flightNumber)}</td>
+   531→            </tr>` : ''}
+   532→            ${data.destination ? `
+   533→            <tr>
+   534→              <td style="padding: 8px 0; color: #999; font-size: 14px;">Destination</td>
+   535→              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.destination)}</td>
+   536→            </tr>` : ''}
+   537→          </table>
+   538→        </div>
+   539→        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
+   540→        <div style="text-align: center; color: #999; font-size: 12px;">
+   541→          <p>© SmarticketS - Tous droits réservés</p>
+   542→        </div>
+   543→      </div>
+   544→    `,
+   545→    text: `🚨 SmarticketS - Colis déclaré comme perdu\n\nRéférence: ${data.reference}\nVoyageur: ${travelerDisplay}\nAgence: ${data.agencyName || 'Non renseignée'}\nType: ${data.baggageType || 'Non renseigné'}\nVol: ${data.flightNumber || 'Non renseigné'}\nDestination: ${data.destination || 'Non renseignée'}\n\nNotification automatique SmarticketS — ${now}\n© SmarticketS`,
+   546→  };
+   547→}
+   548→
+   549→export function getBaggageFoundEmailTemplate(data: {
+   550→  reference: string;
+   551→  agencyName?: string;
+   552→  travelerName?: string;
+   553→  baggageType?: string;
+   554→}): { html: string; text: string } {
+   555→  const now = new Date().toLocaleString('fr-FR');
+   556→  const travelerDisplay = data.travelerName ? escapeHtml(data.travelerName) : 'Non renseigné';
+   557→  return {
+   558→    html: `
+   559→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   560→        <div style="text-align: center; margin-bottom: 30px;">
+   561→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   562→        </div>
+   563→        <div style="background: #e8f5e9; border: 2px solid #27ae60; border-radius: 10px; padding: 30px;">
+   564→          <h2 style="color: #27ae60; margin-top: 0;">✅ Colis retrouvé !</h2>
+   565→          <p style="color: #666;">Un colis précédemment signalé comme perdu a été retrouvé. Voici les détails :</p>
+   566→          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+   567→            <tr>
+   568→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Référence</td>
+   569→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
+   570→            </tr>
+   571→            <tr>
+   572→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Voyageur</td>
+   573→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${travelerDisplay}</td>
+   574→            </tr>
+   575→            ${data.agencyName ? `
+   576→            <tr>
+   577→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
+   578→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
+   579→            </tr>` : ''}
+   580→            ${data.baggageType ? `
+   581→            <tr>
+   582→              <td style="padding: 8px 0; color: #999; font-size: 14px;">Type de colis</td>
+   583→              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.baggageType)}</td>
+   584→            </tr>` : ''}
+   585→          </table>
+   586→        </div>
+   587→        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
+   588→        <div style="text-align: center; color: #999; font-size: 12px;">
+   589→          <p>© SmarticketS - Tous droits réservés</p>
+   590→        </div>
+   591→      </div>
+   592→    `,
+   593→    text: `✅ SmarticketS - Colis retrouvé !\n\nRéférence: ${data.reference}\nVoyageur: ${travelerDisplay}\nAgence: ${data.agencyName || 'Non renseignée'}\nType: ${data.baggageType || 'Non renseigné'}\n\nNotification automatique SmarticketS — ${now}\n© SmarticketS`,
+   594→  };
+   595→}
+   596→
+   597→export function getNewAgencyEmailTemplate(data: {
+   598→  name: string;
+   599→  email?: string;
+   600→  phone?: string;
+   601→  address?: string;
+   602→}): { html: string; text: string } {
+   603→  const now = new Date().toLocaleString('fr-FR');
+   604→  return {
+   605→    html: `
+   606→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   607→        <div style="text-align: center; margin-bottom: 30px;">
+   608→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   609→        </div>
+   610→        <div style="background: #eef2ff; border: 2px solid #6366f1; border-radius: 10px; padding: 30px;">
+   611→          <h2 style="color: #4f46e5; margin-top: 0;">🏢 Nouvelle agence créée</h2>
+   612→          <p style="color: #666;">Une nouvelle agence a été ajoutée au système :</p>
+   613→          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+   614→            <tr>
+   615→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Nom de l'agence</td>
+   616→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.name)}</td>
+   617→            </tr>
+   618→            ${data.email ? `
+   619→            <tr>
+   620→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Email</td>
+   621→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.email)}</td>
+   622→            </tr>` : ''}
+   623→            ${data.phone ? `
+   624→            <tr>
+   625→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Téléphone</td>
+   626→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.phone)}</td>
+   627→            </tr>` : ''}
+   628→            ${data.address ? `
+   629→            <tr>
+   630→              <td style="padding: 8px 0; color: #999; font-size: 14px;">Adresse</td>
+   631→              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.address)}</td>
+   632→            </tr>` : ''}
+   633→          </table>
+   634→        </div>
+   635→        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
+   636→        <div style="text-align: center; color: #999; font-size: 12px;">
+   637→          <p>© SmarticketS - Tous droits réservés</p>
+   638→        </div>
+   639→      </div>
+   640→    `,
+   641→    text: `🏢 SmarticketS - Nouvelle agence créée\n\nNom: ${data.name}\nEmail: ${data.email || 'Non renseigné'}\nTéléphone: ${data.phone || 'Non renseigné'}\nAdresse: ${data.address || 'Non renseignée'}\n\nNotification automatique SmarticketS — ${now}\n© SmarticketS`,
+   642→  };
+   643→}
+   644→
+   645→export function getAgencyMessageEmailTemplate(data: {
+   646→  agencyName: string;
+   647→  subject?: string;
+   648→  message: string;
+   649→  priority?: string;
+   650→  senderEmail?: string;
+   651→}): { html: string; text: string } {
+   652→  const now = new Date().toLocaleString('fr-FR');
+   653→  const priorityBadge = data.priority === 'urgent'
+   654→    ? '<span style="background:#fee2e2;color:#dc2626;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:bold;">🔴 URGENT</span>'
+   655→    : data.priority === 'high'
+   656→    ? '<span style="background:#fef3c7;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:bold;">🟡 HAUTE</span>'
+   657→    : '';
+   658→  return {
+   659→    html: `
+   660→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   661→        <div style="text-align: center; margin-bottom: 30px;">
+   662→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   663→        </div>
+   664→        <div style="background: #fffbeb; border: 2px solid #f59e0b; border-radius: 10px; padding: 30px;">
+   665→          <h2 style="color: #d97706; margin-top: 0;">💬 Nouveau message d'une agence</h2>
+   666→          ${priorityBadge ? `<div style="margin: 10px 0;">${priorityBadge}</div>` : ''}
+   667→          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+   668→            <tr>
+   669→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
+   670→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
+   671→            </tr>
+   672→            ${data.subject ? `
+   673→            <tr>
+   674→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Sujet</td>
+   675→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.subject)}</td>
+   676→            </tr>` : ''}
+   677→            ${data.senderEmail ? `
+   678→            <tr>
+   679→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Email agence</td>
+   680→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.senderEmail)}</td>
+   681→            </tr>` : ''}
+   682→          </table>
+   683→          <div style="background: #fff; border: 1px solid #fde68a; border-radius: 8px; padding: 15px; margin-top: 20px;">
+   684→            <p style="color: #333; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(data.message)}</p>
+   685→          </div>
+   686→        </div>
+   687→        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
+   688→        <div style="text-align: center; color: #999; font-size: 12px;">
+   689→          <p>© SmarticketS - Tous droits réservés</p>
+   690→        </div>
+   691→      </div>
+   692→    `,
+   693→    text: `💬 SmarticketS - Nouveau message d'une agence\n\nAgence: ${data.agencyName}\n${data.subject ? `Sujet: ${data.subject}\n` : ''}${data.senderEmail ? `Email: ${data.senderEmail}\n` : ''}${data.priority ? `Priorité: ${data.priority}\n` : ''}\nMessage:\n${data.message}\n\nNotification automatique SmarticketS — ${now}\n© SmarticketS`,
+   694→  };
+   695→}
+   696→
+   697→export function getNewLeadEmailTemplate(data: {
+   698→  name: string;
+   699→  email: string;
+   700→  phone?: string;
+   701→  company?: string;
+   702→  source?: string;
+   703→  notes?: string;
+   704→}): { html: string; text: string } {
+   705→  const now = new Date().toLocaleString('fr-FR');
+   706→  return {
+   707→    html: `
+   708→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   709→        <div style="text-align: center; margin-bottom: 30px;">
+   710→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   711→        </div>
+   712→        <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 10px; padding: 30px;">
+   713→          <h2 style="color: #16a34a; margin-top: 0;">🆕 Nouveau lead CRM</h2>
+   714→          <p style="color: #666;">Un nouveau prospect a été ajouté :</p>
+   715→          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+   716→            <tr>
+   717→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Nom</td>
+   718→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.name)}</td>
+   719→            </tr>
+   720→            <tr>
+   721→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Email</td>
+   722→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.email)}</td>
+   723→            </tr>
+   724→            ${data.phone ? `
+   725→            <tr>
+   726→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Téléphone</td>
+   727→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.phone)}</td>
+   728→            </tr>` : ''}
+   729→            ${data.company ? `
+   730→            <tr>
+   731→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Entreprise</td>
+   732→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.company)}</td>
+   733→            </tr>` : ''}
+   734→            ${data.source ? `
+   735→            <tr>
+   736→              <td style="padding: 8px 0; color: #999; font-size: 14px;">Source</td>
+   737→              <td style="padding: 8px 0; font-weight: bold; color: #333;">${escapeHtml(data.source)}</td>
+   738→            </tr>` : ''}
+   739→          </table>
+   740→          ${data.notes ? `<div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin-top: 20px;"><p style="color: #666; font-size: 14px;"><strong>Notes :</strong> ${escapeHtml(data.notes)}</p></div>` : ''}
+   741→        </div>
+   742→        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
+   743→        <div style="text-align: center; color: #999; font-size: 12px;">
+   744→          <p>© SmarticketS - Tous droits réservés</p>
+   745→        </div>
+   746→      </div>
+   747→    `,
+   748→    text: `🆕 SmarticketS - Nouveau lead CRM\n\nNom: ${data.name}\nEmail: ${data.email}\nTéléphone: ${data.phone || 'Non renseigné'}\nEntreprise: ${data.company || 'Non renseignée'}\nSource: ${data.source || 'Non renseignée'}\n${data.notes ? `Notes: ${data.notes}\n` : ''}\nNotification automatique SmarticketS — ${now}\n© SmarticketS`,
+   749→  };
+   750→}
+   751→
+   752→// ============ COLIS TRACKING EMAIL TEMPLATES ============
+   753→
+   754→export function getColisActivatedEmailTemplate(data: {
+   755→  reference: string;
+   756→  agencyName?: string;
+   757→  senderName?: string;
+   758→  senderPhone?: string;
+   759→  receiverName?: string;
+   760→  receiverPhone?: string;
+   761→  companyName?: string;
+   762→  departureCity?: string;
+   763→  arrivalCity?: string;
+   764→  departureDate?: string;
+   765→  departureTime?: string;
+   766→  colisType?: string;
+   767→  transportMode?: string;
+   768→  paymentStatus?: string;
+   769→}): { html: string; text: string } {
+   770→  const now = new Date().toLocaleString('fr-FR');
+   771→  const transportIcon = data.transportMode === 'flight' ? '✈️' : data.transportMode === 'train' ? '🚆' : data.transportMode === 'boat' ? '🚢' : '🚌';
+   772→  return {
+   773→    html: `
+   774→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   775→        <div style="text-align: center; margin-bottom: 30px;">
+   776→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   777→        </div>
+   778→        <div style="background: #fffbeb; border: 2px solid #f59e0b; border-radius: 10px; padding: 30px;">
+   779→          <h2 style="color: #d97706; margin-top: 0;">${transportIcon} Colis activé — En transit</h2>
+   780→          <p style="color: #666;">Un nouveau colis a été activé et est actuellement en route. Voici les détails :</p>
+   781→          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+   782→            <tr>
+   783→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee; width: 40%;">Référence</td>
+   784→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
+   785→            </tr>
+   786→            ${data.agencyName ? `
+   787→            <tr>
+   788→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
+   789→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
+   790→            </tr>` : ''}
+   791→            <tr>
+   792→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Expéditeur</td>
+   793→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.senderName || 'Non renseigné')} ${data.senderPhone ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${escapeHtml(data.senderPhone)})</span>` : ''}</td>
+   794→            </tr>
+   795→            <tr>
+   796→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Destinataire</td>
+   797→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.receiverName || 'Non renseigné')} ${data.receiverPhone ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${escapeHtml(data.receiverPhone)})</span>` : ''}</td>
+   798→            </tr>
+   799→            ${data.companyName ? `
+   800→            <tr>
+   801→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Compagnie</td>
+   802→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.companyName)}</td>
+   803→            </tr>` : ''}
+   804→            <tr>
+   805→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Trajet</td>
+   806→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.departureCity || '—')} → ${escapeHtml(data.arrivalCity || '—')}</td>
+   807→            </tr>
+   808→            ${data.departureDate ? `
+   809→            <tr>
+   810→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Départ</td>
+   811→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.departureDate)}${data.departureTime ? ' à ' + escapeHtml(data.departureTime) : ''}</td>
+   812→            </tr>` : ''}
+   813→            ${data.colisType ? `
+   814→            <tr>
+   815→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Type de colis</td>
+   816→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.colisType)}</td>
+   817→            </tr>` : ''}
+   818→            ${data.paymentStatus ? `
+   819→            <tr>
+   820→              <td style="padding: 8px 0; color: #999; font-size: 14px;">Paiement</td>
+   821→              <td style="padding: 8px 0; font-weight: bold; color: #333;">${data.paymentStatus === 'SENDER_PAID' ? '✅ Payé par l\'expéditeur' : '💸 À payer par le destinataire'}</td>
+   822→            </tr>` : ''}
+   823→          </table>
+   824→        </div>
+   825→        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
+   826→        <div style="text-align: center; color: #999; font-size: 12px;">
+   827→          <p>© SmarticketS - Tous droits réservés</p>
+   828→        </div>
+   829→      </div>
+   830→    `,
+   831→    text: `${transportIcon} SmarticketS — Colis activé (En transit)\n\nRéférence: ${data.reference}\nAgence: ${data.agencyName || 'Non renseignée'}\nExpéditeur: ${data.senderName || 'Non renseigné'}${data.senderPhone ? ' (' + data.senderPhone + ')' : ''}\nDestinataire: ${data.receiverName || 'Non renseigné'}${data.receiverPhone ? ' (' + data.receiverPhone + ')' : ''}\nCompagnie: ${data.companyName || 'Non renseignée'}\nTrajet: ${data.departureCity || '—'} → ${data.arrivalCity || '—'}\n${data.departureDate ? `Départ: ${data.departureDate}${data.departureTime ? ' à ' + data.departureTime : ''}\n` : ''}${data.colisType ? `Type: ${data.colisType}\n` : ''}${data.paymentStatus ? `Paiement: ${data.paymentStatus === 'SENDER_PAID' ? 'Payé par l\'expéditeur' : 'À payer par le destinataire'}\n` : ''}\nNotification automatique SmarticketS — ${now}\n© SmarticketS`,
+   832→  };
+   833→}
+   834→
+   835→export function getColisDeliveredEmailTemplate(data: {
+   836→  reference: string;
+   837→  agencyName?: string;
+   838→  senderName?: string;
+   839→  receiverName?: string;
+   840→  deliveryLocation?: string;
+   841→  deliveryDate?: string;
+   842→  deliveryTime?: string;
+   843→  deliveryMethod?: 'driver' | 'pin';
+   844→  companyName?: string;
+   845→  departureCity?: string;
+   846→  arrivalCity?: string;
+   847→}): { html: string; text: string } {
+   848→  const now = new Date().toLocaleString('fr-FR');
+   849→  const methodLabel = data.deliveryMethod === 'pin' ? '🔐 Code PIN validé par le destinataire' : '📍 Confirmation par le chauffeur';
+   850→  return {
+   851→    html: `
+   852→      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+   853→        <div style="text-align: center; margin-bottom: 30px;">
+   854→          <h1 style="color: #ff7f00; margin: 0;">SmarticketS</h1>
+   855→        </div>
+   856→        <div style="background: #e8f5e9; border: 2px solid #22c55e; border-radius: 10px; padding: 30px;">
+   857→          <h2 style="color: #16a34a; margin-top: 0;">✅ Colis livré avec succès !</h2>
+   858→          <p style="color: #666;">Un colis a été marqué comme livré. Voici les détails :</p>
+   859→          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 15px; margin: 15px 0;">
+   860→            <p style="color: #16a34a; margin: 0; font-size: 14px; font-weight: bold;">${methodLabel}</p>
+   861→          </div>
+   862→          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+   863→            <tr>
+   864→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee; width: 40%;">Référence</td>
+   865→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.reference)}</td>
+   866→            </tr>
+   867→            ${data.agencyName ? `
+   868→            <tr>
+   869→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Agence</td>
+   870→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.agencyName)}</td>
+   871→            </tr>` : ''}
+   872→            <tr>
+   873→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Expéditeur</td>
+   874→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.senderName || 'Non renseigné')}</td>
+   875→            </tr>
+   876→            <tr>
+   877→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Destinataire</td>
+   878→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.receiverName || 'Non renseigné')}</td>
+   879→            </tr>
+   880→            ${data.departureCity && data.arrivalCity ? `
+   881→            <tr>
+   882→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Trajet</td>
+   883→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.departureCity)} → ${escapeHtml(data.arrivalCity)}</td>
+   884→            </tr>` : ''}
+   885→            ${data.companyName ? `
+   886→            <tr>
+   887→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Compagnie</td>
+   888→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.companyName)}</td>
+   889→            </tr>` : ''}
+   890→            <tr>
+   891→              <td style="padding: 8px 0; color: #999; font-size: 14px; border-bottom: 1px solid #eee;">Lieu de livraison</td>
+   892→              <td style="padding: 8px 0; font-weight: bold; color: #333; border-bottom: 1px solid #eee;">${escapeHtml(data.deliveryLocation || 'Non renseigné')}</td>
+   893→            </tr>
+   894→            ${data.deliveryDate ? `
+   895→            <tr>
+   896→              <td style="padding: 8px 0; color: #999; font-size: 14px;">Date de livraison</td>
+   897→              <td style="padding: 8px 0; font-weight: bold; color: #16a34a;">${data.deliveryDate}${data.deliveryTime ? ' à ' + data.deliveryTime : ''}</td>
+   898→            </tr>` : ''}
+   899→          </table>
+   900→        </div>
+   901→        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">Notification automatique SmarticketS — ${now}</p>
+   902→        <div style="text-align: center; color: #999; font-size: 12px;">
+   903→          <p>© SmarticketS - Tous droits réservés</p>
+   904→        </div>
+   905→      </div>
+   906→    `,
+   907→    text: `✅ SmarticketS — Colis livré avec succès !\n\n${methodLabel}\n\nRéférence: ${data.reference}\nAgence: ${data.agencyName || 'Non renseignée'}\nExpéditeur: ${data.senderName || 'Non renseigné'}\nDestinataire: ${data.receiverName || 'Non renseigné'}\n${data.departureCity && data.arrivalCity ? `Trajet: ${data.departureCity} → ${data.arrivalCity}\n` : ''}${data.companyName ? `Compagnie: ${data.companyName}\n` : ''}Lieu: ${data.deliveryLocation || 'Non renseigné'}\n${data.deliveryDate ? `Date: ${data.deliveryDate}${data.deliveryTime ? ' à ' + data.deliveryTime : ''}\n` : ''}\nNotification automatique SmarticketS — ${now}\n© SmarticketS`,
+   908→  };
+   909→}
+   910→
+   911→// ============ EMAIL CODE VERIFICATION ============
+   912→
+   913→export async function verifyEmailCode(code: string, email: string, type: 'email_verification' | 'password_reset'): Promise<{ valid: boolean; error?: string }> {
+   914→  // Normalize email to lowercase to match stored token
+   915→  const normalizedEmail = email.toLowerCase();
+   916→
+   917→  const emailToken = await db.emailToken.findFirst({
+   918→    where: {
+   919→      email: normalizedEmail,
+   920→      code,
+   921→      type,
+   922→      used: false,
+   923→      expiresAt: { gt: new Date() }
+   924→    }
+   925→  });
+   926→  
+   927→  if (!emailToken) {
+   928→    return { valid: false, error: 'Code invalide ou expiré' };
+   929→  }
+   930→  
+   931→  // Mark as used
+   932→  await db.emailToken.update({
+   933→    where: { id: emailToken.id },
+   934→    data: { used: true, usedAt: new Date() }
+   935→  });
+   936→  
+   937→  return { valid: true };
+   938→}
+   939→

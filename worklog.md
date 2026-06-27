@@ -2121,3 +2121,31 @@ Stage Summary:
 - If base64 fails too: oscillator last-resort
 - Works offline (base64 is inlined in JS bundle, no network request)
 - AudioBuffer is cached after first decode for instant playback
+
+---
+Task ID: AUDIT-NOTIF
+Agent: Audit Agent
+Task: Comprehensive audit of the notification system
+
+Work Log:
+- Read worklog.md (first 50 lines + grep for "notification" occurrences across 2124 lines)
+- Audited prisma/schema.prisma notification-related models: Notification (l.367), EmailSettings (l.381), EmailLog (l.404), EmailToken (l.419), Alert (l.827), BusGoVoiceConfig (l.856), BusGoNotification (l.885), BusGoPushSubscription (l.903), BusGoMessage (l.916), BusGoNotificationTemplate (l.930), BusGoNotificationLog (l.946)
+- Audited API routes: /api/notifications/* (6 files), /api/busgo/notifications/{send,log}, /api/busgo/notification-templates, /api/busgo/voix, /api/busgo/embarquement/retard, /api/cron/{departure-reminders,cleanup,cleanup-sessions}, /api/admin/notifications, /api/notify/whatsapp, /api/alerts/{route,evaluate}
+- Audited lib files: notifications.ts, notification-dispatch.ts, notification-queue.ts, notification-sound.ts, wame.ts, whatsapp.ts, whatsapp-message.ts, whatsapp-onboarding.ts, email.ts (939 lines), wakit.ts, reminderManager.ts, alertEngine.ts
+- Audited hooks: use-vocal-alerts.ts, use-agent-vocal-alerts.ts, use-kiosk-socket.ts, use-toast.ts, use-pdf-export.tsx (not notification-related — PDF export only)
+- Audited components: dashboard/NotificationCenter.tsx, dashboard/AlertCenter.tsx, dashboard/MissingPassengerAlert.tsx, dashboard/RealtimeAlertListener.tsx, admin/NotificationBell.tsx, busgo/retard-notifications.tsx, busgo/vocal-settings-panel.tsx, busgo/pwa-sw-registration.tsx, pwa/PWAManager.tsx
+- Audited service workers: public/sw.js, public/sw-busgo-passenger.js
+- Audited mini-services: alert-service/index.ts (531 lines), kiosk-service/index.ts (573 lines)
+- Searched for VAPID/web-push config (NONE found), vercel.json (NONE found), TODO/FIXME in notification code, NotificationTemplate model (MISSING from schema)
+- Generated comprehensive audit report (see below)
+
+Stage Summary:
+- Overall health score: 5.5/10 — notification system is partially functional but has critical broken endpoints, dead-letter queue, duplicate log models, missing web-push implementation, and orphan routes
+- CRITICAL findings:
+  1. /api/admin/notifications is ENTIRELY BROKEN — src/lib/notifications.ts references db.notificationTemplate model (does not exist) and writes non-existent fields (channel, recipient, recipientName, subject, content, tenantId, status, errorMessage, sentAt) to Notification table. File has @ts-nocheck so TS doesn't catch it.
+  2. /api/notifications/unread is UNAUTHENTICATED — returns all unread notifications globally (no session, no agency filter). Used by admin/NotificationBell.tsx.
+  3. Push notifications never actually sent — web-push library not installed, no VAPID config. BusGoPushSubscription records are created (passenger PWA install) and queried (departure-reminders, notifications/send) but only console.log is called. Frontend calls /api/pwa-passager/register-push which returns 404 (route doesn't exist).
+  4. In-memory notification queue is a dead-letter queue — getNotificationQueue().enqueue() is called by dispatchNotification() but startProcessor() is NEVER called anywhere. Items stay in "pending" forever.
+  5. Two parallel notification log tables — BusGoNotification (written by /api/busgo/embarquement/retard) is NEVER read. BusGoNotificationLog (written by send + cron) is read by /api/busgo/notifications/log. Dead writes waste DB space.
+- WARNINGS: missing FK constraints on Notification/Alert (loose string refs), inconsistent CRON_SECRET enforcement (cleanup optional vs cleanup-sessions required), no vercel.json or external cron trigger, 5+ console.log still present in departure-reminders (newer file not cleaned), alert-service path '/socket.io' may not match Caddy XTransformPort proxy
+- INFO: WhatsApp wa.me link generation works correctly, TTS vocal alerts work, kiosk reminder manager is well-built, alert-service has proper Zod validation + anti-spam (60-min window), alertEngine.ts + alert-service/index.ts implement same logic (duplicate but works)
