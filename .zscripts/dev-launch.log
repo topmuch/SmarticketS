@@ -5590,3 +5590,311 @@ https://react.dev/link/hydration-mismatch
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 7ms)
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 15ms (next.js: 6ms, application-code: 8ms)
+ GET / 200 in 287ms (next.js: 3ms, application-code: 284ms)
+ GET / 200 in 94ms (next.js: 4ms, application-code: 89ms)
+ GET / 200 in 107ms (next.js: 3ms, application-code: 104ms)
+ GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 9ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"62.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "62.30922028554371%"
+-                               left: "31.8382%"
++                               top: "29.948584618582487%"
+-                               top: "36.37%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"50.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "50.07361055731513%"
+-                               left: "52.0946%"
++                               top: "69.72448234154254%"
+-                               top: "97.5977%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"10.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "10.419402691438451%"
+-                               left: "57.3873%"
++                               top: "48.12540379493058%"
+-                               top: "64.5111%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"7.78...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "7.780285985659874%"
+-                               left: "51.9744%"
++                               top: "96.21414924153319%"
+-                               top: "66.3665%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"59.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "59.901993602176795%"
+-                               left: "53.8238%"
++                               top: "7.705723620412885%"
+-                               top: "82.5804%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"70.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "70.25259059825407%"
+-                               left: "20.1124%"
++                               top: "36.50034639436232%"
+-                               top: "77.7389%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"83.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "83.04947042967393%"
+-                               left: "56.3965%"
++                               top: "48.40655014398384%"
+-                               top: "26.3811%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"33.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "33.67599676071406%"
+-                               left: "1.40274%"
++                               top: "20.307994889254633%"
+-                               top: "76.7943%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"89.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "89.74362217667087%"
+-                               left: "11.473%"
++                               top: "9.818002936894644%"
+-                               top: "3.68311%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"37.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "37.918042284891065%"
+-                               left: "63.9984%"
++                               top: "71.92594567652813%"
+-                               top: "46.3232%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"7.80...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "7.801838265619998%"
+-                               left: "11.0881%"
++                               top: "16.33159114744721%"
+-                               top: "39.1994%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"40.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "40.30265923000284%"
+-                               left: "59.9343%"
++                               top: "94.31667969466146%"
+-                               top: "30.2141%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"74.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "74.10034380891713%"
+-                               left: "93.6424%"
++                               top: "55.795695640090045%"
+-                               top: "96.7635%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"3.02...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "3.027690818247919%"
+-                               left: "81.2%"
++                               top: "77.04963370494%"
+-                               top: "41.9585%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"48.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "48.52800683390883%"
+-                               left: "45.447%"
++                               top: "33.23294206595529%"
+-                               top: "59.6357%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"54.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "54.33232430607625%"
+-                               left: "27.4865%"
++                               top: "88.5666211058451%"
+-                               top: "97.5971%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"12.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "12.877966462761158%"
+-                               left: "74.117%"
++                               top: "75.2632114814497%"
+-                               top: "95.612%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"99.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "99.30549800881849%"
+-                               left: "93.8193%"
++                               top: "5.008539231755282%"
+-                               top: "62.8275%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"33.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "33.02842024024949%"
+-                               left: "97.6057%"
++                               top: "95.85539801729145%"
+-                               top: "93.8166%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"85.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "85.44998371942981%"
+-                               left: "99.3238%"
++                               top: "69.78894387970016%"
+-                               top: "91.2979%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ POST /api/auth/login 200 in 130ms (next.js: 3ms, application-code: 128ms)
+ GET /busgo/connexion 200 in 71ms (next.js: 3ms, proxy.ts: 6ms, application-code: 63ms)
+ GET /api/busgo/voix 401 in 7ms (next.js: 2ms, application-code: 5ms)
+ GET /api/auth/session 200 in 6ms (next.js: 1543µs, application-code: 4ms)
+ GET /busgo/connexion 200 in 13ms (next.js: 2ms, proxy.ts: 5ms, application-code: 6ms)
+ GET /busgo/connexion 200 in 32ms (next.js: 3ms, proxy.ts: 3ms, application-code: 26ms)
+ GET /busgo 200 in 70ms (next.js: 11ms, proxy.ts: 11ms, application-code: 48ms)
+ GET /api/auth/session 200 in 18ms (next.js: 8ms, application-code: 10ms)
+ GET /api/busgo/voix 200 in 25ms (next.js: 3ms, application-code: 21ms)
+ GET /api/busgo/trajets 200 in 118ms (next.js: 45ms, application-code: 74ms)
+ GET / 200 in 471ms (next.js: 5ms, application-code: 467ms)
+ GET /offline 200 in 285ms (next.js: 15ms, application-code: 271ms)
+ GET /controller/validate 200 in 198ms (next.js: 17ms, application-code: 180ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 9ms)
+ GET /api/busgo/trajets 200 in 18ms (next.js: 2ms, application-code: 15ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /busgo/embarquement/dep-demo-agency-1-route-Dakar-Thi%C3%A8s-17 200 in 172ms (next.js: 116ms, proxy.ts: 6ms, application-code: 50ms)
+ GET /api/busgo/voix 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET /api/busgo/trajets/dep-demo-agency-1-route-Dakar-Thi%C3%A8s-17 200 in 135ms (next.js: 113ms, application-code: 22ms)
+ GET /api/busgo/trajets/dep-demo-agency-1-route-Dakar-Thi%C3%A8s-17 200 in 81ms (next.js: 67ms, application-code: 14ms)
+ GET /busgo/scanner 200 in 101ms (next.js: 17ms, proxy.ts: 6ms, application-code: 78ms)
+ GET /api/busgo/voix 200 in 32ms (next.js: 6ms, application-code: 25ms)
+ GET /api/auth/session 200 in 14ms (next.js: 3ms, application-code: 11ms)
+[browser] Camera error: Error getting userMedia, error = NotFoundError: Requested device not found 
+    at ScannerComponent.useEffect.startScanner (src/app/busgo/scanner/page.tsx:213:17)
+  211 |         }
+  212 |       } catch (err: any) {
+> 213 |         console.error('Camera error:', err);
+      |                 ^
+  214 |         if (cancelled) return;
+  215 |
+  216 |         // Granular error handling (src/app/busgo/scanner/page.tsx:213:17)
+ GET /busgo/voix 200 in 80ms (next.js: 6ms, proxy.ts: 4ms, application-code: 70ms)
+ GET /api/auth/session 200 in 27ms (next.js: 11ms, application-code: 16ms)
+ GET /api/busgo/voix 200 in 34ms (next.js: 6ms, application-code: 28ms)
+ GET /api/busgo/notification-templates 200 in 26ms (next.js: 4ms, application-code: 22ms)
+ GET /api/busgo/voix 200 in 20ms (next.js: 3ms, application-code: 17ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ POST /api/busgo/notification-templates 200 in 19ms (next.js: 3ms, application-code: 16ms)
+ GET /pwa-passager 200 in 90ms (next.js: 12ms, application-code: 78ms)
+[departure-reminders] ✅ Done in 10ms — checked: 0, sent: 0, skipped: 0, errors: 0
+ POST /api/cron/departure-reminders 200 in 47ms (next.js: 30ms, application-code: 17ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
