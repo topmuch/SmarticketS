@@ -33,6 +33,10 @@ function broadcastTo(socket: Socket, room: string | string[], event: string, dat
     socket.to(room).emit(event, data);
     console.log(`[KioskService] 📡 ${ts()} | ${event} → ${room}`);
   }
+
+  // REFONTE PWA: also broadcast to all connected passengers (Live Board)
+  // so they receive real-time updates (boarding, departed, delay, etc.)
+  io.to('passengers').emit(event, data);
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +156,7 @@ const io = new Server(httpServer, {
 // ---------------------------------------------------------------------------
 interface ClientInfo {
   id: string;
-  role: 'kiosk' | 'admin' | 'unknown';
+  role: 'kiosk' | 'admin' | 'passenger' | 'unknown';
   slug?: string;
   joinedRooms: Set<string>;
 }
@@ -186,6 +190,51 @@ io.on('connection', (socket: Socket) => {
     clientInfo.joinedRooms.add(room);
 
     console.log(`[KioskService] 🚪 ${ts()} | ${socket.id} joined ${room} as ${role}`);
+  });
+
+  // ----- subscribe_passenger (Live Board) ------------------------------------
+  // Passengers join the 'passengers' room to receive all trip updates
+  // (boarding, departed, delay, GPS, etc.) for the Live Board.
+  socket.on('subscribe_passenger', (payload: { stationSlug?: string | null }) => {
+    socket.join('passengers');
+    clientInfo.role = 'passenger';
+
+    // If a specific station is requested, also join that station's room
+    if (payload?.stationSlug) {
+      const room = `station:${payload.stationSlug}`;
+      socket.join(room);
+      clientInfo.joinedRooms.add(room);
+    }
+
+    console.log(`[KioskService] 👤 ${ts()} | ${socket.id} subscribed as passenger (station: ${payload?.stationSlug || 'all'})`);
+  });
+
+  // ----- kiosk:gps (agent GPS position broadcast) ---------------------------
+  // Emitted by the agent's PWA periodically (every 10-15s) with their GPS coords.
+  // Broadcast to all passengers + the station room for live map display.
+  socket.on('kiosk:gps', (payload: { departureId: string; lat: number; lng: number; eta?: number; stationSlug?: string }) => {
+    if (!payload?.departureId || typeof payload.lat !== 'number' || typeof payload.lng !== 'number') {
+      console.warn(`[KioskService] ⚠️  ${ts()} | kiosk:gps invalid payload from ${socket.id}`);
+      return;
+    }
+
+    const data = {
+      departureId: payload.departureId,
+      lat: payload.lat,
+      lng: payload.lng,
+      eta: payload.eta || null,
+      timestamp: Date.now(),
+    };
+
+    // Broadcast to all passengers (Live Board)
+    io.to('passengers').emit('kiosk:gps', data);
+
+    // Also broadcast to the station room (kiosk displays + agents)
+    if (payload.stationSlug) {
+      io.to(`station:${payload.stationSlug}`).emit('kiosk:gps', data);
+    }
+
+    console.log(`[KioskService] 📍 ${ts()} | GPS update: departure=${payload.departureId} lat=${payload.lat} lng=${payload.lng}`);
   });
 
   // ----- kiosk:delay --------------------------------------------------------

@@ -1,0 +1,419 @@
+==========================================
+[2026-06-27 23:25:26] Starting: bun install
+==========================================
+[BUN] Installing dependencies...
+[0.06ms] ".env"
+bun install v1.3.14 (0d9b296a)
+
+Checked 987 installs across 1052 packages (no changes) [40.00ms]
+==========================================
+[2026-06-27 23:25:26] Completed: bun install
+[LOG] Step: bun install | Duration: 0s
+==========================================
+
+==========================================
+[2026-06-27 23:25:26] Starting: bun run db:push
+==========================================
+[BUN] Setting up database...
+$ prisma db push
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "custom.db" at "file:/home/z/my-project/db/custom.db"
+
+The database is already in sync with the Prisma schema.
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[G✔ Generated Prisma Client (v6.19.2) to ./node_modules/@prisma/client in 393ms
+
+==========================================
+[2026-06-27 23:25:27] Completed: bun run db:push
+[LOG] Step: bun run db:push | Duration: 1s
+==========================================
+
+==========================================
+[2026-06-27 23:25:27] Starting: Starting Next.js dev server
+==========================================
+[BUN] Starting development server...
+==========================================
+$ next dev -p 3000 2>&1 | tee dev.log
+[2026-06-27 23:25:27] Completed: Starting Next.js dev server
+[LOG] Step: Starting Next.js dev server | Duration: 0s
+==========================================
+
+==========================================
+[2026-06-27 23:25:27] Starting: Waiting for Next.js dev server
+==========================================
+Waiting for Next.js dev server to be ready on localhost:3000...
+Attempt 1/60: Next.js dev server not ready yet, waiting...
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://21.0.18.101:3000
+- Environments: .env
+✓ Ready in 405ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[instrumentation] Starting database schema sync…
+[instrumentation] Schema already up to date
+[instrumentation] Ready ✓
+[instrumentation] Notification queue processor started (30s interval)
+
+ GET / 200 in 3.6s (next.js: 3.1s, application-code: 470ms)
+Next.js dev server is ready!
+==========================================
+[2026-06-27 23:25:33] Completed: Waiting for Next.js dev server
+[LOG] Step: Waiting for Next.js dev server | Duration: 6s
+==========================================
+
+==========================================
+[2026-06-27 23:25:33] Starting: Health check
+==========================================
+[BUN] Performing health check...
+ GET / 200 in 94ms (next.js: 4ms, application-code: 90ms)
+[BUN] Health check passed
+==========================================
+[2026-06-27 23:25:33] Completed: Health check
+[LOG] Step: Health check | Duration: 0s
+==========================================
+
+==========================================
+[2026-06-27 23:25:33] Starting: Starting mini-services
+==========================================
+Found mini-services directory, scanning for sub-services...
+Checking service: alert-service
+Starting alert-service in background...
+[alert-service] Started in background (PID: 25448)
+[alert-service] Log: /home/z/my-project/.zscripts/mini-service-alert-service.log
+Checking service: kiosk-service
+Starting kiosk-service in background...
+[kiosk-service] Started in background (PID: 25452)
+[kiosk-service] Log: /home/z/my-project/.zscripts/mini-service-kiosk-service.log
+Mini-services startup completed. Started 2 service(s).
+==========================================
+[2026-06-27 23:25:33] Completed: Starting mini-services
+[LOG] Step: Starting mini-services | Duration: 0s
+==========================================
+
+Next.js dev server is running in background (PID: 25370).
+Use 'kill 25370' to stop it.
+ GET / 200 in 123ms (next.js: 4ms, application-code: 119ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"18.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "18.30308494065417%"
+-                               left: "2.48179%"
++                               top: "5.16436597672495%"
+-                               top: "37.4777%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"57.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "57.82868421246842%"
+-                               left: "78.4801%"
++                               top: "16.605276915791656%"
+-                               top: "79.4635%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"84.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "84.37668188699077%"
+-                               left: "20.4898%"
++                               top: "59.36929109739558%"
+-                               top: "15.1861%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"90.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "90.01392278234985%"
+-                               left: "87.0269%"
++                               top: "80.34205896131769%"
+-                               top: "77.7895%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"49.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "49.806977761043356%"
+-                               left: "6.55308%"
++                               top: "12.853546050552843%"
+-                               top: "96.7057%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"75.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "75.18962169469248%"
+-                               left: "65.8476%"
++                               top: "72.32769584319345%"
+-                               top: "7.00252%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"38.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "38.72109670823111%"
+-                               left: "81.1524%"
++                               top: "11.016533752489032%"
+-                               top: "59.1001%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"92.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "92.31349928460145%"
+-                               left: "44.5845%"
++                               top: "72.14637116282113%"
+-                               top: "47.0508%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"20.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "20.061358959765364%"
+-                               left: "67.8486%"
++                               top: "93.03542974548222%"
+-                               top: "62.0895%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"20.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "20.195896844744166%"
+-                               left: "67.0818%"
++                               top: "53.40885731322956%"
+-                               top: "93.8137%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"88.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "88.82008504849507%"
+-                               left: "57.9162%"
++                               top: "11.348925630271179%"
+-                               top: "16.0953%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"77.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "77.87552710003008%"
+-                               left: "27.5453%"
++                               top: "63.58494470271293%"
+-                               top: "1.5354%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"59.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "59.88723694731293%"
+-                               left: "16.3739%"
++                               top: "83.50858418106736%"
+-                               top: "23.487%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"37.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "37.12247025467468%"
+-                               left: "64.0555%"
++                               top: "6.15984229084332%"
+-                               top: "98.2088%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"39.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "39.379708222284194%"
+-                               left: "69.9518%"
++                               top: "21.15023690363531%"
+-                               top: "20.3824%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"27.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "27.678026718816295%"
+-                               left: "25.2133%"
++                               top: "18.0137813353906%"
+-                               top: "23.1384%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"87.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "87.96042900802261%"
+-                               left: "39.2132%"
++                               top: "55.35724259393794%"
+-                               top: "75.7677%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"99.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "99.69513982686557%"
+-                               left: "27.8888%"
++                               top: "10.271036156126867%"
+-                               top: "65.2347%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"82.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "82.05365682094973%"
+-                               left: "72.7226%"
++                               top: "11.9483992723318%"
+-                               top: "34.8615%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"82.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "82.424926571408%"
+-                               left: "2.20857%"
++                               top: "89.67296937845849%"
+-                               top: "49.9651%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+ GET /api/auth/session 200 in 113ms (next.js: 81ms, application-code: 33ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 39ms (next.js: 30ms, application-code: 9ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 59ms (next.js: 39ms, application-code: 20ms)
+ GET /api/pwa-passager/trips/today 200 in 279ms (next.js: 265ms, application-code: 14ms)
+ GET /pwa-passager 200 in 182ms (next.js: 37ms, application-code: 144ms)
+ GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/pwa-passager/trips/today? 200 in 21ms (next.js: 3ms, application-code: 18ms)
+ GET /pwa-passager 200 in 111ms (next.js: 13ms, application-code: 98ms)
+ GET /pwa-passager/install 200 in 1386ms (next.js: 1142ms, application-code: 244ms)
+ GET /icons/icon-512.png 404 in 1265ms (next.js: 1128ms, application-code: 137ms)
+ GET /icons/icon-192.png 404 in 1298ms (next.js: 1186ms, application-code: 112ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 13ms (next.js: 4ms, application-code: 9ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 16ms (next.js: 3ms, application-code: 13ms)
+ GET /api/pwa-passager/trips/today? 200 in 15ms (next.js: 3ms, application-code: 12ms)
+ POST /api/cron/departure-reminders 200 in 15ms (next.js: 4ms, application-code: 12ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 11ms (next.js: 3ms, application-code: 8ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 16ms (next.js: 3ms, application-code: 13ms)
+ GET /api/pwa-passager/trips/today? 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /pwa-passager 200 in 108ms (next.js: 40ms, application-code: 68ms)
+ GET /pwa-passager/ticket 200 in 1063ms (next.js: 818ms, application-code: 245ms)
+ GET / 200 in 50ms (next.js: 12ms, application-code: 38ms)
+ GET /api/auth/session 200 in 32ms (next.js: 24ms, application-code: 8ms)
+ GET /pwa-passager/install 200 in 36ms (next.js: 5ms, application-code: 31ms)
+ GET /api/busgo/offers?role=passenger 200 in 240ms (next.js: 231ms, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 22ms (next.js: 16ms, application-code: 6ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /pwa-passager 200 in 137ms (next.js: 5ms, application-code: 133ms)
+ GET /api/auth/session 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/pwa-passager/trips/today? 200 in 32ms (next.js: 19ms, application-code: 13ms)
+ POST /api/cron/departure-reminders 200 in 29ms (next.js: 15ms, application-code: 13ms)
+ POST /api/cron/departure-reminders 200 in 16ms (next.js: 3ms, application-code: 13ms)

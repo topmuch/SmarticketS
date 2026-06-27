@@ -2420,3 +2420,58 @@ Stage Summary:
 - 20 files changed (11 modified + 9 dead routes stubbed)
 - 1990 lines of dead @ts-nocheck code removed
 - All 9 critical issues + 5 warnings fixed
+
+---
+Task ID: PWA-LIVEBOARD-UI
+Agent: Frontend Styling Expert
+Task: Build PWA LiveBoard UI components
+
+Work Log:
+- Read worklog context and explored project structure (Next.js 16 + TS + Tailwind 4 + shadcn/ui, dark theme)
+- Read LiveTrip type from `src/stores/live-board-store.ts` and `useLiveTrips` hook from `src/hooks/use-live-trips.ts` to align with existing data contracts
+- Verified shadcn Card / Badge / Button / Input component APIs and confirmed `cn` util in `src/lib/utils.ts`
+- Confirmed `react-leaflet@5`, `leaflet@1.9`, `lucide-react@0.525`, `zustand@5` already in package.json
+- Created `src/components/pwa-passenger/TripCard.tsx`:
+  - Large orange departure time + relative countdown ("Dans 15 min" / "Dans 1h 30min" / "Parti")
+  - Origin → Destination with MapPin + ArrowRight, line badge
+  - Platform badge, passenger count (24/45), GPS live indicator with green pulse + ETA
+  - Status badge using the provided style/label maps (BOARDING / ON_TIME+SCHEDULED / DELAYED / DEPARTED / CANCELLED)
+  - Left border orange when boarding, slate otherwise; DEPARTED/CANCELLED opacity-60
+  - `active:scale-[0.98]` press feedback, keyboard accessible (Enter/Space)
+- Created `src/components/pwa-passenger/TripDetailModal.tsx`:
+  - Fixed overlay `bg-black/60 backdrop-blur` + bottom-sheet container `bg-slate-900 w-full max-w-md sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto`
+  - Slide-up animation on mount; Escape to close; body scroll lock
+  - Header with drag handle + X close
+  - Main info card: large orange time + date + status badge + route + line/platform/agent chips
+  - Leaflet map dynamically imported with `ssr: false` (MapContainer/TileLayer/Marker/Popup); OpenStreetMap tiles
+  - Custom pulsing orange divIcon for the bus marker (created client-side via dynamic `import('leaflet')` to avoid bundler icon-image issues and `window` access during SSR)
+  - Dashed placeholder with MapPin + "Position GPS non disponible" when no GPS
+  - Occupation progress bar (occupied/total) with green/amber/orange thresholds
+  - Action buttons: "Réserver" (orange), "Contacter" (tel: link when agentPhone else disabled), "Partager" (navigator.share with clipboard fallback)
+  - Import `leaflet/dist/leaflet.css` at top
+- Created `src/components/pwa-passenger/LiveBoard.tsx`:
+  - Sticky orange gradient header (from-orange-600 to-orange-500) with "🚌 BusGo Live" title + animated connection dot (green/red from `useLiveTrips.connected`)
+  - Star toggle bound to `useLiveBoardStore.activeFilter` (filled yellow when 'favorites')
+  - Debounced search input (300ms) forwarded to `useLiveTrips`
+  - Offline notice when `!connected`
+  - Loading / error / empty / no-matches states (each with appropriate icon)
+  - Pinned "Embarquement en cours" section with sticky sub-header + pulse Radio icon + count badge
+  - Other trips grouped by destination with sticky sub-headers; each group sorted by scheduledTime
+  - Favorites filter applied before grouping; 30s tick re-renders to refresh countdowns
+  - Opens `TripDetailModal` on card click; renders `BottomNav` at the bottom
+- Created `src/components/pwa-passenger/BottomNav.tsx`:
+  - Fixed `bottom-0` bar: `bg-slate-800 border-t border-slate-700 px-6 py-3 flex justify-around z-40`
+  - 4 Next.js `<Link>` items: Horaires (Home), Mon Billet (Ticket, disabled span when no ticketId), Alertes (Bell, red count badge when > 0), Profil (User)
+  - Active item text-orange-500, inactive text-slate-400; aria-current="page" for accessibility
+  - Badge supports `99+` overflow and i18n aria-label
+- Verified: `bunx tsc --noEmit` → 0 errors in any of the 4 new files (only pre-existing project errors remain); `bunx eslint src/components/pwa-passenger/` → clean
+
+Stage Summary:
+- 4 files created (all 'use client', TypeScript, dark theme):
+  - src/components/pwa-passenger/TripCard.tsx
+  - src/components/pwa-passenger/TripDetailModal.tsx
+  - src/components/pwa-passenger/LiveBoard.tsx
+  - src/components/pwa-passenger/BottomNav.tsx
+- Reuses: shadcn Card/Badge/Button/Input, lucide-react icons, `useLiveTrips` hook, `useLiveBoardStore` zustand store, `LiveTrip` type
+- Leaflet integrated with proper SSR guards (dynamic imports + client-only icon init)
+- All components compile cleanly; ready to be mounted by a wrapper page (e.g. /pwa-passager/board) that supplies `stationSlug`, `ticketId`, and `alertsCount` props to `<LiveBoard>`
