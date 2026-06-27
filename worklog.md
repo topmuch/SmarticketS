@@ -2215,3 +2215,120 @@ Stage Summary:
 - 16 files changed (13 modified + 3 created)
 - Schema migration applied successfully
 - Cron triggers now work in both Vercel and self-hosted deployments
+
+---
+Task ID: AUDIT-PWA-NOTIF
+Agent: Audit Agent
+Task: Audit PWA notifications for passenger and agent
+
+Work Log:
+- Read worklog.md (last 100 lines) — context on C1-C5 + W1-W15 fixes (8/10 score)
+- Audited passenger PWA push subscription registration:
+  - src/app/pwa-passager/install/page.tsx (356 lines) — handleConfirmPhone + handleEnableNotifications both fetch VAPID key + pass applicationServerKey correctly
+  - src/app/api/pwa-passager/register-push/route.ts (119 lines) — POST saves BusGoPushSubscription by endpoint upsert; DELETE removes by endpoint
+  - src/app/api/pwa-passager/vapid-public-key/route.ts (26 lines) — returns VAPID_PUBLIC_KEY (200 OK at runtime, 87-char key)
+  - src/app/api/pwa-passager/install/route.ts (248 lines) — saves pushSubscription + writes purchase_confirm log TWICE (lines 136-144 and 199-207 — duplicate)
+- Audited passenger SW push reception:
+  - public/sw-busgo-passenger.js (233 lines) — push event handler shows notification with icon/badge/sound/vibrate/actions/requireInteraction; notificationclick handles 'listen' (postMessage TTS_SPEAK) and default
+  - src/components/busgo/pwa-sw-registration.tsx (60 lines) — registers SW with scope '/', listens for TTS_SPEAK messages, plays speechSynthesis. ✓
+- Audited passenger push sending:
+  - src/lib/push-service.ts (186 lines) — sendPushToSubscription + sendPushToSubscriptions with VAPID config + TTL/urgency/topic + expired-subscription cleanup
+  - src/app/api/busgo/notifications/send/route.ts (159 lines) — calls sendPushToSubscriptions with proper payload (C3 fix verified)
+  - src/app/api/cron/departure-reminders/route.ts (247 lines) — calls sendPushToSubscriptions for reminder_1h/bags_45min/boarding_30min/departure_5min (C3 fix verified); idempotent via busGoNotificationLog check
+  - src/app/api/busgo/embarquement/retard/route.ts (110 lines) — calls sendPushToSubscriptions on delay (C5 fix verified)
+- Verified env config: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT all present in .env (redacted); CRON_SECRET not set in dev (optional)
+- Verified package.json: web-push ^3.6.7, socket.io ^4.8.3, socket.io-client ^4.8.3 — all installed
+- Audited passenger manifest & installability:
+  - public/manifest-busgo.json (91 lines) — 8 icon sizes (72/96/128/144/152/192/384/512) + maskable; scope=/pwa-passager/; start_url=/pwa-passager/?source=pwa
+  - src/app/pwa-passager/layout.tsx (59 lines) — overrides manifest to /manifest-busgo.json (was /manifest.json = SmarticketS)
+  - All 9 icons exist in /public/icons/ ✓
+  - Sounds exist in /public/sounds/busgo/: notification-company.mp3, ding-dong.mp3 ✓
+  - SW registered with scope '/' (covers /pwa-passager/ — no conflict with manifest scope)
+- Audited passenger notification pages:
+  - src/app/pwa-passager/page.tsx (472 lines) — dashboard polls /api/busgo/trajets/${departureId} every 15s; fetches /api/busgo/notifications/log on ?welcome=1
+  - src/app/pwa-passager/messages/page.tsx (125 lines) — polls /api/busgo/messages every 5s
+  - NO /pwa-passager/notifications/ page (history page missing)
+  - Dashboard doesn't read ?tts=1&ttsMessage=... query params set by SW on cold-open
+- Audited agent vocal alerts:
+  - src/hooks/use-agent-vocal-alerts.ts (277 lines) — uses VocalManager; fetches /api/busgo/voix for dingDongUrl; user-gesture unlock for AudioContext
+  - src/hooks/use-vocal-alerts.ts (350 lines) — simpler hook used only by VocalSettingsPanel; listens for 'passager:manquant' (French) — NEVER triggered because socket emits 'passenger:missing' (English). Event name mismatch but unused in production.
+  - src/lib/audioSystem.ts (1645 lines) — 3-level ding-dong chain (MP3 → base64 → oscillator) verified at lines 337-359
+  - src/lib/ding-dong-base64.ts (39 lines) — DING_DONG_DATA_URI + HAS_HARDCODED_DING_DONG=true ✓
+- Audited agent real-time socket:
+  - src/hooks/use-kiosk-socket.ts (163 lines) — connects with path:'/' and query XTransformPort=3004; listens for passenger:missing + 7 other events
+  - src/components/dashboard/RealtimeAlertListener.tsx (209 lines) — connects to /?XTransformPort=3003 with default path '/socket.io/'; tryAllTransports:true; exponential backoff
+  - src/components/dashboard/NotificationCenter.tsx (291 lines) — polls /api/notifications?limit=10&read=false every 60s
+  - src/components/dashboard/AlertCenter.tsx (428 lines) — polls /api/alerts every 30s + triggers /api/alerts/evaluate every 60s
+- Audited agent NotificationBell:
+  - src/components/admin/NotificationBell.tsx (214 lines) — polls /api/notifications/unread every 15s; bulk mark-all-as-read via /read-all
+  - src/app/api/notifications/unread/route.ts (54 lines) — C2 fix verified: requires getSession + role check (superadmin/admin/agent) + agency isolation
+- Audited agent vocal settings:
+  - src/components/busgo/vocal-settings-panel.tsx (173 lines) — sliders + toggles + test button; uses useVocalAlerts (test button calls playDingDong + speak)
+  - src/app/busgo/voix/page.tsx (404 lines) — Section A (client templates) + Section B (agent ding-dong upload + VocalSettingsPanel)
+  - src/app/api/busgo/voix/route.ts (93 lines) — GET creates default config if missing; POST upserts with field filtering
+- Audited kiosk-service (mini-services/kiosk-service/index.ts, 573 lines):
+  - Socket.io server uses DEFAULT path '/socket.io/' (line 136 — no path option)
+  - Client useKioskSocket uses path:'/' — MISMATCH → 404 'Not found' from kiosk-service HTTP handler
+  - Confirmed at runtime: curl http://localhost:3004/socket.io/?EIO=4&transport=polling → valid handshake; curl http://localhost:3004/?EIO=4&transport=polling → {"error":"Not found"}
+  - No server-side code emits 'passenger:missing' events (only REST /api/push/:slug relay exists)
+- Audited alert-service (mini-services/alert-service): socket.io default path /socket.io/; RealtimeAlertListener client uses default path → matches → works via Caddy gateway
+- Verified Caddyfile (port 81): reverse_proxy based on ?XTransformPort=* query parameter — gateway works correctly
+- Audited busgo layout (src/app/busgo/layout.tsx, 345 lines):
+  - useAgentVocalAlerts() — initializes VocalManager + fetches dingDongUrl
+  - useKioskSocket({ onEvent: ... }) — handles 'passenger:missing' → announceCustom (but socket is broken)
+  - Does NOT mount RealtimeAlertListener (only admin dashboard mounts it)
+- Audited busgo embarquement page (src/app/busgo/embarquement/[departureId]/page.tsx, 294 lines):
+  - Imports announceMissingPassenger from useAgentVocalAlerts (line 66)
+  - NEVER calls announceMissingPassenger anywhere — dead code
+- Audited busgo notifications page (src/app/busgo/notifications/page.tsx, 237 lines) — template management only (no live notification feed)
+- Audited notification templates (src/app/api/busgo/notification-templates/route.ts):
+  - DEFAULT_TEMPLATES array has 5 templates (purchase_confirm, reminder_1h, bags_45min, boarding_30min, departure_5min)
+  - Lazily created on first GET (when an agent visits /busgo/notifications or /busgo/voix)
+  - NO seed.ts entry — if no agent has visited, cron silently skips ALL reminders
+- Audited busgo/voix default config — /api/busgo/voix GET creates default BusGoVoiceConfig without dingDongUrl (null) — synthesized/base64 fallback kicks in ✓
+- Runtime probes (no auth):
+  - /api/pwa-passager/vapid-public-key → 200 {publicKey, pushEnabled:true} ✓
+  - /api/pwa-passager/register-push (empty body) → 400 validation ✓
+  - /api/pwa-passager/install (bad body) → 400 validation ✓
+  - /api/notifications/unread → 401 ✓ (C2 fix)
+  - /api/busgo/notifications/log → 401 ✓ (W7 fix) — but BREAKS passenger PWA dashboard which calls this without auth
+  - /api/busgo/trajets/abc → 401 — BREAKS passenger PWA dashboard
+  - /api/busgo/messages?ticketId=abc → 200 (NO auth — info leak, anyone with ticketId can read messages)
+  - /api/busgo/voix → 401 ✓
+  - /api/busgo/notifications/send → 401 ✓
+  - /api/cron/departure-reminders → 200 {success:true, stats:{...}} ✓
+  - /api/notifications/read-all → 401 ✓
+  - /api/notifications/abc/read → 401 ✓
+  - /api/notifications → 401 ✓
+  - /api/alerts → 401 ✓
+  - /api/dashboard/missing-alerts → 401 ✓
+  - /api/auth/session → 200 {authenticated:false, user:null} ✓
+  - /manifest-busgo.json → 200 ✓
+  - /sw-busgo-passenger.js → 200 ✓
+  - /icons/icon-192x192.png → 200 ✓
+  - /sounds/busgo/notification-company.mp3 → 200 ✓
+  - kiosk-service /socket.io/ → 200 valid handshake ✓
+  - kiosk-service / → 404 (path mismatch confirmed)
+  - alert-service /socket.io/ → 200 valid handshake ✓
+  - kiosk-service health: connectedClients=0, rooms=0 (no agent connected)
+
+Stage Summary:
+- Passenger PWA score: 4/10 — Web Push infra is fully functional end-to-end (VAPID configured, web-push installed, applicationServerKey passed, push-service sends real pushes, SW shows notifications with TTS relay). BUT the passenger dashboard is BROKEN: it calls /api/busgo/trajets/[departureId] (requires agent/admin role) and /api/busgo/notifications/log (requires auth) — passengers have no session, so both 401 → "Impossible de charger les données" → can't see ticket, QR, countdown, or welcome message. The push subscription is saved correctly and pushes WILL be delivered, but the dashboard is unusable.
+- Agent PWA score: 5.5/10 — Vocal alerts (TTS, 3-level ding-dong, user-gesture unlock) are excellent. NotificationBell polling works (C2 fix). Alert-service real-time socket works via Caddy. BUT the kiosk-service socket is BROKEN (path:'/' client vs /socket.io/ server → 404), and even if connected, no server emits 'passenger:missing' events. The announceMissingPassenger function is dead code (imported but never called). Templates are not seeded — cron silently skips ALL reminders until an agent manually visits /busgo/notifications.
+- 7 critical issues found (sorted by severity):
+  1. 🔴 Passenger dashboard 401 on /api/busgo/trajets/[departureId] — dashboard unusable after install
+  2. 🔴 Passenger dashboard 401 on /api/busgo/notifications/log — welcome message never displays
+  3. 🔴 Kiosk socket path mismatch (client path:'/' vs server /socket.io/) — kiosk real-time events never received
+  4. 🔴 No server-side emitter for 'passenger:missing' socket event — agent never hears missing-passenger announcement
+  5. 🟡 Templates not seeded — cron silently skips ALL reminders until agent visits /busgo/notifications
+  6. 🟡 Duplicate purchase_confirm log entries in /api/pwa-passager/install (lines 136-144 + 199-207)
+  7. 🟡 /api/busgo/messages GET has no auth — info leak (anyone with ticketId can read messages)
+  8. 🟡 Dashboard doesn't read ?tts=1&ttsMessage=... query params — TTS doesn't auto-play on cold-open from push
+  9. 🟡 announceMissingPassenger dead code in embarquement page (imported line 66, never called)
+  10. 🟡 Event name mismatch: useKioskSocket listens 'passenger:missing' (EN) but useVocalAlerts listens 'passager:manquant' (FR) — unused in production but confusing
+- Top 5 recommendations to make notifications actually work:
+  1. Add a passenger-session mechanism (signed JWT in localStorage or anonymous session cookie) OR refactor /api/busgo/trajets/[departureId] + /api/busgo/notifications/log to accept ticketId+controlCode verification instead of staff auth — so the passenger dashboard can load
+  2. Fix kiosk-service socket path: change useKioskSocket path:'/' to path:'/socket.io/' (or set server `path: '/'`)
+  3. Add server-side emission of 'passenger:missing' events — e.g., in /api/cron/departure-reminders, when a departure is at T-5min and has missing passengers, POST to kiosk-service /api/push/:slug with {event:'passenger:missing', data:{passengerName, seatNumber, ...}}
+  4. Seed default BusGoNotificationTemplate for every agency in prisma/seed.ts (or auto-create on agency creation) so reminders fire without manual agent visit
+  5. Wire announceMissingPassenger in embarquement page — when polling detects a missing passenger (status='ACTIVE' && minutesBeforeDeparture<=5), call announceMissingPassenger(p.passengerName, p.seatNumber)
