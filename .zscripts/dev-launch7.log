@@ -125,3 +125,5 @@ Use 'kill 28041' to stop it.
  GET /pwa-passager 200 in 214ms (next.js: 126ms, application-code: 88ms)
  GET /api/auth/session 200 in 19ms (next.js: 3ms, application-code: 16ms)
  GET /api/pwa-passager/trips/today? 200 in 21ms (next.js: 3ms, application-code: 18ms)
+ POST /api/cron/departure-reminders 200 in 50ms (next.js: 35ms, application-code: 15ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 2ms, application-code: 5ms)
