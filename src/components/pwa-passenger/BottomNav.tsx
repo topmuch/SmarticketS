@@ -1,13 +1,18 @@
 'use client';
 
 /**
- * BottomNav — Fixed bottom navigation bar for the BusGo passenger PWA.
+ * BottomNav — Fixed bottom navigation bar for the BusGo passenger PWA
+ * (mobile only — sidebar replaces it on md+ screens).
  *
- * App-native style: 4 tabs, active item coloured orange-500, inactive
- * slate-400, fixed at the bottom of the viewport. Uses Next.js `<Link>`
- * for client-side navigation. Shows an unread-count badge on "Alertes"
- * when `alertsCount > 0`, and disables "Mon Billet" when no `ticketId`
- * is provided.
+ * FitNexus style:
+ *   - White background, top border (gray-200)
+ *   - Active item: teal #10B981 (text-emerald-500)
+ *   - Inactive: gray #6B7280 (text-gray-500)
+ *   - Smooth transition (transition-colors duration-200)
+ *
+ * Uses Next.js `<Link>` for client-side navigation. Shows an unread-count
+ * badge on "Alertes" when `alertsCount > 0`, and disables "Mon Billet"
+ * when no `ticketId` is provided.
  */
 
 import Link from 'next/link';
@@ -47,7 +52,7 @@ export function BottomNav({ active, ticketId, alertsCount = 0 }: BottomNavProps)
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-slate-700 bg-slate-800 px-6 py-3"
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] md:hidden"
     >
       {items.map((item) => {
         const Icon = item.icon;
@@ -59,7 +64,7 @@ export function BottomNav({ active, ticketId, alertsCount = 0 }: BottomNavProps)
             <span
               key={item.key}
               aria-disabled="true"
-              className="flex cursor-not-allowed flex-col items-center gap-1 text-slate-600"
+              className="flex cursor-not-allowed flex-col items-center gap-1 text-gray-300"
             >
               <span className="relative">
                 <Icon className="h-5 w-5" />
@@ -76,15 +81,15 @@ export function BottomNav({ active, ticketId, alertsCount = 0 }: BottomNavProps)
             aria-current={isActive ? 'page' : undefined}
             aria-label={item.label}
             className={cn(
-              'flex flex-col items-center gap-1 transition-colors',
-              isActive ? 'text-orange-500' : 'text-slate-400 hover:text-slate-200',
+              'flex flex-col items-center gap-1 transition-colors duration-200',
+              isActive ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-700',
             )}
           >
             <span className="relative">
               <Icon className="h-5 w-5" />
               {showBadge && (
                 <span
-                  className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-slate-800"
+                  className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-pink-500 px-1 text-[9px] font-bold text-white ring-2 ring-white"
                   aria-label={`${alertsCount} alerte${alertsCount > 1 ? 's' : ''} non lue${alertsCount > 1 ? 's' : ''}`}
                 >
                   {alertsCount > 99 ? '99+' : alertsCount}

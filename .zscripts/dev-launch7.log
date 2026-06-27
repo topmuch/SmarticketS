@@ -1,0 +1,127 @@
+==========================================
+[2026-06-27 23:39:44] Starting: bun install
+==========================================
+[BUN] Installing dependencies...
+[0.06ms] ".env"
+bun install v1.3.14 (0d9b296a)
+
+Checked 987 installs across 1052 packages (no changes) [39.00ms]
+==========================================
+[2026-06-27 23:39:44] Completed: bun install
+[LOG] Step: bun install | Duration: 0s
+==========================================
+
+==========================================
+[2026-06-27 23:39:44] Starting: bun run db:push
+==========================================
+[BUN] Setting up database...
+$ prisma db push
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "custom.db" at "file:/home/z/my-project/db/custom.db"
+
+The database is already in sync with the Prisma schema.
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[G✔ Generated Prisma Client (v6.19.2) to ./node_modules/@prisma/client in 259ms
+
+==========================================
+[2026-06-27 23:39:45] Completed: bun run db:push
+[LOG] Step: bun run db:push | Duration: 1s
+==========================================
+
+==========================================
+[2026-06-27 23:39:45] Starting: Starting Next.js dev server
+==========================================
+[BUN] Starting development server...
+==========================================
+[2026-06-27 23:39:45] Completed: Starting Next.js dev server
+[LOG] Step: Starting Next.js dev server | Duration: 0s
+==========================================
+
+==========================================
+$ next dev -p 3000 2>&1 | tee dev.log
+[2026-06-27 23:39:45] Starting: Waiting for Next.js dev server
+==========================================
+Waiting for Next.js dev server to be ready on localhost:3000...
+Attempt 1/60: Next.js dev server not ready yet, waiting...
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://21.0.18.101:3000
+- Environments: .env
+✓ Ready in 458ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[instrumentation] Starting database schema sync…
+[instrumentation] Schema already up to date
+[instrumentation] Ready ✓
+[instrumentation] Notification queue processor started (30s interval)
+
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 2.3s (next.js: 2.3s, application-code: 79ms)
+○ Compiling / ...
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+Attempt 2/60: Next.js dev server not ready yet, waiting...
+ GET / 200 in 4.4s (next.js: 3.7s, application-code: 693ms)
+ GET / 200 in 3.6s (next.js: 3.5s, application-code: 177ms)
+ GET / 200 in 103ms (next.js: 4ms, application-code: 99ms)
+Next.js dev server is ready!
+==========================================
+[2026-06-27 23:39:52] Completed: Waiting for Next.js dev server
+[LOG] Step: Waiting for Next.js dev server | Duration: 7s
+==========================================
+
+==========================================
+[2026-06-27 23:39:52] Starting: Health check
+==========================================
+[BUN] Performing health check...
+ GET / 200 in 110ms (next.js: 4ms, application-code: 106ms)
+[BUN] Health check passed
+==========================================
+[2026-06-27 23:39:53] Completed: Health check
+[LOG] Step: Health check | Duration: 1s
+==========================================
+
+==========================================
+[2026-06-27 23:39:53] Starting: Starting mini-services
+==========================================
+Found mini-services directory, scanning for sub-services...
+Checking service: alert-service
+Starting alert-service in background...
+[alert-service] Started in background (PID: 28119)
+[alert-service] Log: /home/z/my-project/.zscripts/mini-service-alert-service.log
+Checking service: kiosk-service
+Starting kiosk-service in background...
+[kiosk-service] Started in background (PID: 28123)
+[kiosk-service] Log: /home/z/my-project/.zscripts/mini-service-kiosk-service.log
+Mini-services startup completed. Started 2 service(s).
+==========================================
+[2026-06-27 23:39:53] Completed: Starting mini-services
+[LOG] Step: Starting mini-services | Duration: 0s
+==========================================
+
+Next.js dev server is running in background (PID: 28041).
+Use 'kill 28041' to stop it.
+ GET /api/auth/session 200 in 53ms (next.js: 43ms, application-code: 11ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 3ms, application-code: 5ms)
+ GET / 200 in 118ms (next.js: 4ms, application-code: 114ms)
+ GET /pwa-passager 200 in 148ms (next.js: 22ms, application-code: 126ms)
+ GET /api/auth/session 200 in 19ms (next.js: 7ms, application-code: 13ms)
+ GET /api/pwa-passager/trips/today? 200 in 172ms (next.js: 51ms, application-code: 121ms)
+ GET /icons/icon-192.png 404 in 124ms (next.js: 40ms, application-code: 83ms)
+ GET /pwa-passager/install 200 in 317ms (next.js: 59ms, application-code: 258ms)
+ GET /pwa-passager 200 in 318ms (next.js: 11ms, application-code: 308ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 12ms (next.js: 5ms, application-code: 7ms)
+ GET /pwa-passager 200 in 99ms (next.js: 4ms, application-code: 95ms)
+ GET /api/auth/session 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/pwa-passager/trips/today? 200 in 19ms (next.js: 4ms, application-code: 15ms)
+ GET /pwa-passager 200 in 214ms (next.js: 126ms, application-code: 88ms)
+ GET /api/auth/session 200 in 19ms (next.js: 3ms, application-code: 16ms)
+ GET /api/pwa-passager/trips/today? 200 in 21ms (next.js: 3ms, application-code: 18ms)

@@ -3,18 +3,20 @@
 /**
  * TripCard — Single departure card for the BusGo Live Board (passenger PWA).
  *
- * App-native dark style:
- *   - Large orange departure time + relative countdown
- *   - Origin → Destination with MapPin
- *   - Platform badge, passenger count, GPS live indicator
- *   - Status badge (BOARDING / ON_TIME / DELAYED / DEPARTED / CANCELLED)
- *   - Left border coloured when boarding, opacity-60 when departed
- *   - Tactile press feedback (active:scale-[0.98])
+ * FitNexus dashboard style:
+ *   - White background, rounded-xl, border border-gray-200, shadow-sm
+ *   - Left border accent (4px) coloured by status
+ *   - Horizontal flex layout:
+ *       · Left: departure time (2xl bold dark gray) + time remaining (xs gray)
+ *       · Center: route info (origin → destination, line, platform badge, seats)
+ *       · Right: status badge (rounded-full, coloured bg with opacity) + arrow
+ *   - GPS indicator: small green dot with "En route" text
+ *   - Hover: shadow-md, transition-all duration-200
+ *   - DEPARTED: opacity-60
  */
 
-import { Clock, MapPin, Users, Navigation, ArrowRight } from 'lucide-react';
+import { Clock, MapPin, Users, Navigation, ArrowRight, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { LiveTrip } from '@/stores/live-board-store';
 
@@ -24,24 +26,35 @@ export interface TripCardProps {
   onClick?: () => void;
 }
 
-// --- Status style map -----------------------------------------------------
+// --- Status style maps ----------------------------------------------------
 
-const STATUS_STYLES: Record<string, string> = {
-  BOARDING: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-  ON_TIME: 'bg-green-500/20 text-green-400 border-green-500/50',
-  SCHEDULED: 'bg-green-500/20 text-green-400 border-green-500/50',
-  DELAYED: 'bg-red-500/20 text-red-400 border-red-500/50',
-  DEPARTED: 'bg-slate-700/50 text-slate-400 border-slate-600',
-  CANCELLED: 'bg-gray-800 text-gray-500 border-gray-700',
+// Left border accent colour (4px) — by status
+const STATUS_BORDER: Record<string, string> = {
+  BOARDING: 'border-l-orange-500',
+  SCHEDULED: 'border-l-green-500',
+  ON_TIME: 'border-l-green-500',
+  DELAYED: 'border-l-red-500',
+  DEPARTED: 'border-l-gray-400',
+  CANCELLED: 'border-l-gray-300',
+};
+
+// Status badge: rounded-full, coloured bg with opacity, matching text
+const STATUS_BADGE: Record<string, string> = {
+  BOARDING: 'bg-orange-100 text-orange-700',
+  SCHEDULED: 'bg-green-100 text-green-700',
+  ON_TIME: 'bg-green-100 text-green-700',
+  DELAYED: 'bg-red-100 text-red-700',
+  DEPARTED: 'bg-gray-100 text-gray-600',
+  CANCELLED: 'bg-gray-100 text-gray-500',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  BOARDING: '🟠 EMBARQUEMENT',
-  SCHEDULED: "✅ À l'heure",
-  ON_TIME: "✅ À l'heure",
-  DELAYED: '⚠️ Retard',
-  DEPARTED: '🏁 Parti',
-  CANCELLED: '❌ Annulé',
+  BOARDING: 'Embarquement',
+  SCHEDULED: "À l'heure",
+  ON_TIME: "À l'heure",
+  DELAYED: 'Retard',
+  DEPARTED: 'Parti',
+  CANCELLED: 'Annulé',
 };
 
 // --- Helpers --------------------------------------------------------------
@@ -87,7 +100,6 @@ function timeRemaining(trip: LiveTrip, now: number): string {
 // --- Component ------------------------------------------------------------
 
 export function TripCard({ trip, isBoarding, onClick }: TripCardProps) {
-  // Avoid hydration mismatch / re-render noise: derive "now" at render time.
   // Parent (LiveBoard) re-renders every tick so this stays fresh.
   const now = Date.now();
 
@@ -99,7 +111,7 @@ export function TripCard({ trip, isBoarding, onClick }: TripCardProps) {
   const occupancyPct = trip.totalSeats > 0 ? Math.round((occupied / trip.totalSeats) * 100) : 0;
   const occupancyHigh = occupancyPct >= 90;
 
-  const statusKey = trip.status in STATUS_STYLES ? trip.status : 'SCHEDULED';
+  const statusKey = trip.status in STATUS_BORDER ? trip.status : 'SCHEDULED';
 
   return (
     <Card
@@ -117,105 +129,99 @@ export function TripCard({ trip, isBoarding, onClick }: TripCardProps) {
           : undefined
       }
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-800/60 px-4 py-3.5',
-        'transition-all duration-200 ease-out',
-        'shadow-sm shadow-black/20 backdrop-blur',
-        boardingActive
-          ? 'border-l-4 border-l-orange-500'
-          : 'border-l-4 border-l-slate-600',
+        'relative overflow-hidden rounded-xl border border-gray-200 border-l-4 bg-white px-4 py-4',
+        'shadow-sm transition-all duration-200 ease-out',
+        STATUS_BORDER[statusKey],
         isDeparted && 'opacity-60',
         isCancelled && 'opacity-60',
-        onClick && 'cursor-pointer hover:bg-slate-800 active:scale-[0.98] hover:border-slate-600',
+        onClick && 'cursor-pointer hover:shadow-md hover:border-gray-300 active:scale-[0.99]',
       )}
     >
-      {/* Top row: time + countdown + status badge */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col">
-          <span className="text-2xl font-bold tabular-nums leading-none text-white">
+      <div className="flex items-center gap-4">
+        {/* Left: departure time + countdown */}
+        <div className="flex w-20 shrink-0 flex-col">
+          <span className="text-2xl font-bold tabular-nums leading-none text-gray-800">
             {formatTime(trip.scheduledTime)}
-            {trip.delayMinutes > 0 && (
-              <span className="ml-2 text-sm font-semibold text-red-400">
-                +{trip.delayMinutes}min
-              </span>
-            )}
           </span>
-          <span
-            className={cn(
-              'mt-1 inline-flex items-center gap-1 text-xs font-medium',
-              boardingActive ? 'text-orange-400' : isDeparted ? 'text-slate-500' : 'text-slate-400',
-            )}
-          >
-            <Clock className="h-3 w-3" />
-            {timeRemaining(trip, now)}
-          </span>
+          {trip.delayMinutes > 0 ? (
+            <span className="mt-1 text-[11px] font-semibold text-red-600">
+              +{trip.delayMinutes}min
+            </span>
+          ) : (
+            <span
+              className={cn(
+                'mt-1 inline-flex items-center gap-1 text-[11px] font-medium',
+                boardingActive ? 'text-orange-600' : isDeparted ? 'text-gray-400' : 'text-gray-500',
+              )}
+            >
+              <Clock className="h-3 w-3" />
+              {timeRemaining(trip, now)}
+            </span>
+          )}
         </div>
 
-        <Badge
-          variant="outline"
-          className={cn(
-            'border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide',
-            STATUS_STYLES[statusKey],
-          )}
-        >
-          {STATUS_LABELS[statusKey] ?? statusKey}
-        </Badge>
-      </div>
+        {/* Center: route + line + platform + seats */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-sm">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+            <span className="truncate font-medium text-gray-600">{trip.origin}</span>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+            <span className="truncate font-semibold text-gray-800">{trip.destination}</span>
+          </div>
 
-      {/* Route: origin → destination */}
-      <div className="mt-3 flex items-center gap-1.5 text-sm">
-        <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-        <span className="font-medium text-slate-200 truncate">{trip.origin}</span>
-        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-        <span className="font-semibold text-white truncate">{trip.destination}</span>
-        <span className="ml-auto shrink-0 rounded-md bg-slate-700/70 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
-          Ligne {trip.lineNumber}
-        </span>
-      </div>
-
-      {/* Bottom row: platform + passengers + GPS */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {trip.platform && (
-          <Badge
-            variant="outline"
-            className="border-slate-600 bg-slate-900/70 px-2 py-0.5 text-[11px] font-semibold text-slate-200"
-          >
-            <MapPin className="h-3 w-3" />
-            Quai {trip.platform}
-          </Badge>
-        )}
-
-        <span
-          className={cn(
-            'inline-flex items-center gap-1 text-[11px] font-medium',
-            occupancyHigh ? 'text-orange-400' : 'text-slate-400',
-          )}
-        >
-          <Users className="h-3 w-3" />
-          {occupied}/{trip.totalSeats} places
-        </span>
-
-        {hasGps && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-400">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700">
+              Ligne {trip.lineNumber}
             </span>
-            <Navigation className="h-3 w-3" />
-            En route
-            {typeof trip.etaMinutes === 'number' && trip.etaMinutes > 0 && (
-              <span className="text-green-400/80">· ETA {trip.etaMinutes} min</span>
-            )}
-          </span>
-        )}
-      </div>
 
-      {/* Subtle boarding shimmer */}
-      {boardingActive && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-orange-400 to-orange-600"
-        />
-      )}
+            {trip.platform && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-700">
+                <MapPin className="h-3 w-3" />
+                Quai {trip.platform}
+              </span>
+            )}
+
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 text-[11px] font-medium',
+                occupancyHigh ? 'text-pink-600' : 'text-gray-500',
+              )}
+            >
+              <Users className="h-3 w-3" />
+              {occupied}/{trip.totalSeats}
+            </span>
+
+            {hasGps && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                <Navigation className="h-3 w-3" />
+                En route
+                {typeof trip.etaMinutes === 'number' && trip.etaMinutes > 0 && (
+                  <span className="text-emerald-600/80">· {trip.etaMinutes}min</span>
+                )}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Right: status badge + arrow */}
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <span
+            className={cn(
+              'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide',
+              STATUS_BADGE[statusKey],
+            )}
+          >
+            {STATUS_LABELS[statusKey] ?? statusKey}
+          </span>
+          {onClick && (
+            <ChevronRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400" />
+          )}
+        </div>
+      </div>
     </Card>
   );
 }

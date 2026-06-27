@@ -2475,3 +2475,33 @@ Stage Summary:
 - Reuses: shadcn Card/Badge/Button/Input, lucide-react icons, `useLiveTrips` hook, `useLiveBoardStore` zustand store, `LiveTrip` type
 - Leaflet integrated with proper SSR guards (dynamic imports + client-only icon init)
 - All components compile cleanly; ready to be mounted by a wrapper page (e.g. /pwa-passager/board) that supplies `stationSlug`, `ticketId`, and `alertsCount` props to `<LiveBoard>`
+
+---
+Task ID: PWA-FITNEXUS-REDESIGN
+Agent: Frontend Styling Expert
+Task: Redesign LiveBoard to FitNexus dashboard style
+
+Work Log:
+- Read worklog context (prior dark-slate PWA build) and inspected all 4 existing files in src/components/pwa-passenger/.
+- Verified LiveTrip shape in @/stores/live-board-store (lineNumber, origin, destination, scheduledTime, platform, status, delayMinutes, availableSeats, totalSeats, agentName, agentPhone, gpsPosition, etaMinutes, departedAt).
+- Redesigned BottomNav.tsx: replaced dark slate theme with white bg + border-t border-gray-200; active item now text-emerald-500 (teal #10B981), inactive text-gray-500; alert badge switched to bg-pink-500 with white ring; added md:hidden so it only shows on mobile (sidebar takes over on desktop); kept Next.js Link + disabled-state for missing ticketId.
+- Redesigned TripCard.tsx: white Card with rounded-xl + border border-gray-200 + shadow-sm; 4px left border accent coloured by status (orange=BOARDING, green=SCHEDULED/ON_TIME, red=DELAYED, gray=DEPARTED, light gray=CANCELLED); horizontal flex layout — left column = 2xl bold dark-gray departure time + xs gray countdown / red +Xmin; centre column = origin → destination with MapPin+ArrowRight, blue "Ligne X" pill, gray Quai badge, Users occupancy (pink when ≥90%), emerald "En route" GPS pill with animated ping dot; right column = rounded-full status badge (bg-*-100 text-*-700) + ChevronRight; hover:shadow-md + transition-all duration-200; DEPARTED/CANCELLED opacity-60.
+- Redesigned TripDetailModal.tsx: white modal with rounded-2xl + shadow-2xl (kept bottom-sheet-on-mobile / centered-on-desktop behaviour); sticky header "Détails du trajet" in gray-800 with gray-100 close button; main info card = white border-gray-200 with 4xl bold emerald-500 time, gray-500 date, blue Ligne pill, gray Quai badge; GPS map wrapped in rounded-xl border-gray-200 (Leaflet dynamic imports kept ssr:false), bus marker recoloured to teal #10B981; occupation bar now uses emerald-400→emerald-500 gradient (switches to amber/pink at high occupancy); "Réserver" button = bg-emerald-500 hover:bg-emerald-600; "Contacter"/"Partager" = white outline with gray-200 border; departed/cancelled notice recoloured to gray-50/gray-600; backdrop softened to bg-black/50.
+- Redesigned LiveBoard.tsx with FitNexus dashboard layout:
+  · Added fixed Sidebar component (hidden md:flex, w-[220px]) — light teal bg (bg-emerald-50/60), orange 🚌 logo tile + "BusGo" wordmark, 4 Next.js Link nav items (Horaires active=bg-emerald-500 text-white, others gray-600 hover:bg-emerald-100/60), pink badge on Alertes when alertsCount>0, disabled state when no ticketId; "BusGo Pro" upgrade card at bottom with emerald-500→emerald-600 gradient + Sparkles icon + white "Découvrir" button.
+  · Header bar (sticky, white/95 backdrop-blur, border-b border-gray-200): mobile 🚌 + "BusGo Live" / desktop "Tableau de bord" title; connection-status pill (emerald-50/emerald-600 connected, red-50/red-600 offline) with animated ping dot; debounced search Input (gray-50 bg, emerald focus ring) — full 64-width on sm+, compact 36-width on mobile; favorites Star toggle (amber when active); user avatar circle (emerald gradient, "BG" initials).
+  · KPI cards row (grid-cols-2 md:grid-cols-4, gap-3/4): 4 colored KpiCard components with rounded-xl + p-5 + shadow-sm + hover:scale-[1.02] — Total départs (emerald-500), Embarquement (orange-500), Places dispo (blue-500), Retards (pink-500); each shows uppercase title + 4xl bold white value + icon + subtext. KPI totals computed from the FULL trips list (not the favorites-filtered view) so dashboard metrics always reflect station reality.
+  · Trip list section: white rounded-xl card with border-gray-200 + shadow-sm; section header "Départs du jour" (lg semibold gray-800) + count subtext + emerald "Voir plus" link with ChevronRight.
+  · Inside the card: loading spinner (emerald), red error block, gray dashed empty state, gray dashed no-matches state with "Voir tous les trajets" reset button; pinned "Embarquement en cours" sub-section with sticky orange-50 header + animated-pulse Radio icon + orange count badge; other trips grouped by destination with sticky white/95 sub-headers showing destination + gray count pill.
+  · BottomNav rendered at root (mobile only, hidden md:hidden); main content offset by md:pl-[220px] to clear the fixed sidebar.
+  · Preserved all existing logic: useLiveTrips hook (debounced search + stationSlug), useLiveBoardStore (activeFilter favorites toggle + favorites array), 30s tick re-render for fresh countdowns, TripDetailModal integration via selectedTrip state.
+- Verified: `bunx tsc --noEmit` → 0 errors in src/components/pwa-passenger/* (only pre-existing project errors remain elsewhere); `bunx eslint src/components/pwa-passenger/` → clean (exit 0).
+
+Stage Summary:
+- 4 files redesigned (all 'use client', TypeScript, Tailwind-only, lucide-react icons):
+  - src/components/pwa-passenger/BottomNav.tsx — white/teal FitNexus restyle, md:hidden
+  - src/components/pwa-passenger/TripCard.tsx — white card, 4px status left-border, horizontal layout, rounded-full status badge
+  - src/components/pwa-passenger/TripDetailModal.tsx — white modal, teal accents, emerald occupation gradient, Leaflet kept ssr:false
+  - src/components/pwa-passenger/LiveBoard.tsx — added fixed Sidebar (220px, light teal), KPI cards row (4 colored), white trip-list card with sticky grouped headers, preserved useLiveTrips + useLiveBoardStore + TripDetailModal integration
+- Color palette applied: teal #10B981 (primary), orange #F97316 (brand/boarding), blue #3B82F6 (info), pink #EC4899 (alerts/delays), light teal #F0FDF4 (sidebar bg), gray-800/500/200 (text/borders), green #22C55E (success), red #EF4444 (delays).
+- Responsive: sidebar hidden on mobile (hidden md:flex), bottom nav hidden on desktop (flex md:hidden), KPI grid 2-col on mobile / 4-col on md+, search input compact on mobile.
