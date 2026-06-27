@@ -368,3 +368,6 @@ https://react.dev/link/hydration-mismatch
  POST /api/cron/departure-reminders 200 in 14ms (next.js: 2ms, application-code: 12ms)
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
  POST /api/cron/departure-reminders 200 in 17ms (next.js: 3ms, application-code: 13ms)
+ POST /api/cron/departure-reminders 200 in 16ms (next.js: 3ms, application-code: 13ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ POST /api/cron/departure-reminders 200 in 15ms (next.js: 3ms, application-code: 12ms)
