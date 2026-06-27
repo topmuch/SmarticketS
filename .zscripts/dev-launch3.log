@@ -216,3 +216,6 @@ Use 'kill 20448' to stop it.
  POST /api/cron/departure-reminders 200 in 13ms (next.js: 2ms, application-code: 11ms)
  GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 11ms (next.js: 4ms, application-code: 7ms)
  POST /api/cron/departure-reminders 200 in 17ms (next.js: 3ms, application-code: 14ms)
+ POST /api/cron/departure-reminders 200 in 17ms (next.js: 3ms, application-code: 14ms)
+ POST /api/cron/departure-reminders 200 in 15ms (next.js: 2ms, application-code: 13ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 9ms (next.js: 3ms, application-code: 7ms)
