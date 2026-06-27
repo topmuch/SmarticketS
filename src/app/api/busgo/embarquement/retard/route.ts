@@ -53,21 +53,41 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Logger la notification de retard
-    await db.busGoNotification.create({
+    // C5 fix: log to BusGoNotificationLog (live table) instead of BusGoNotification (dead table)
+    // The delay message text
+    const delayMessage = `Votre départ est reporté de ${minutes} minutes. Nouvel horaire: ${new Date(
+      new Date(ticket.departure.scheduledTime).getTime() + minutes * 60000
+    ).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`;
+
+    await db.busGoNotificationLog.create({
       data: {
-        passengerTicketId: ticketId,
-        departureId: ticket.departureId,
-        type: 'LATE',
-        message: `Votre départ est reporté de ${minutes} minutes. Nouvel horaire: ${new Date(
-          new Date(ticket.departure.scheduledTime).getTime() + minutes * 60000
-        ).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`,
-        sentAt: new Date(),
+        ticketId,
+        templateType: 'delay_notice',
+        messageText: delayMessage,
+        ttsText: delayMessage,
         status: 'sent',
       },
     });
 
-    // TODO: Envoyer Web Push notification au passager si abonné
+    // C3 fix (partial): attempt Web Push if subscriptions exist
+    // Full implementation in /api/busgo/notifications/send/route.ts
+    try {
+      const subscriptions = await db.busGoPushSubscription.findMany({
+        where: { passengerTicketId: ticketId },
+      });
+      if (subscriptions.length > 0) {
+        // Delegate to the push service (imported dynamically to avoid loading web-push on every request)
+        const { sendPushToSubscriptions } = await import('@/lib/push-service');
+        await sendPushToSubscriptions(subscriptions, {
+          title: '⏰ Retard de départ',
+          body: delayMessage,
+          tag: `delay-${ticketId}`,
+          data: { type: 'DELAY_NOTICE', ticketId },
+        });
+      }
+    } catch (pushErr) {
+      console.warn('[retard] Push notification failed (non-fatal):', pushErr);
+    }
 
     return NextResponse.json({
       success: true,

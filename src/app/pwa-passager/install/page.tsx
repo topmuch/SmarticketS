@@ -72,10 +72,26 @@ function InstallForm() {
       let pushSubscription = null;
       if ('serviceWorker' in navigator && 'PushManager' in window) {
         try {
-          const reg = await navigator.serviceWorker.ready;
-          pushSubscription = await reg.pushManager.subscribe({ userVisibleOnly: true });
-          pushSubscription = pushSubscription.toJSON();
-        } catch { /* Push not available */ }
+          // C3 fix: fetch VAPID public key and pass as applicationServerKey
+          // Without this, the subscription cannot be used by the server to send push.
+          const vapidRes = await fetch('/api/pwa-passager/vapid-public-key');
+          if (vapidRes.ok) {
+            const { publicKey } = await vapidRes.json();
+            if (publicKey) {
+              // Convert base64 to Uint8Array for applicationServerKey
+              const applicationServerKey = Uint8Array.from(
+                atob(publicKey.replace(/-/g, '+').replace(/_/g, '/')),
+                (c) => c.charCodeAt(0)
+              );
+              const reg = await navigator.serviceWorker.ready;
+              const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey,
+              });
+              pushSubscription = sub.toJSON();
+            }
+          }
+        } catch { /* Push not available or VAPID not configured */ }
       }
 
       const res = await fetch('/api/pwa-passager/install', {
@@ -117,17 +133,32 @@ function InstallForm() {
         if (permission === 'granted') {
           // Try to register push subscription
           if ('serviceWorker' in navigator && 'PushManager' in window) {
-            const reg = await navigator.serviceWorker.ready;
-            const sub = await reg.pushManager.subscribe({ userVisibleOnly: true });
-            // Send subscription to server
-            await fetch('/api/pwa-passager/register-push', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                ticketId,
-                subscription: sub.toJSON(),
-              }),
-            }).catch(() => {}); // Non-blocking
+            // C3 fix: fetch VAPID public key for applicationServerKey
+            const vapidRes = await fetch('/api/pwa-passager/vapid-public-key');
+            if (vapidRes.ok) {
+              const { publicKey } = await vapidRes.json();
+              if (publicKey) {
+                const applicationServerKey = Uint8Array.from(
+                  atob(publicKey.replace(/-/g, '+').replace(/_/g, '/')),
+                  (c) => c.charCodeAt(0)
+                );
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey,
+                });
+                // Send subscription to server (now the route exists — was 404 before C3 fix)
+                await fetch('/api/pwa-passager/register-push', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    ticketId,
+                    subscription: sub.toJSON(),
+                    userAgent: navigator.userAgent,
+                  }),
+                }).catch(() => {}); // Non-blocking
+              }
+            }
           }
         }
       }

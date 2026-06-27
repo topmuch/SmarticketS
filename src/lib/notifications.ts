@@ -1,12 +1,25 @@
-// @ts-nocheck
 /**
- * SmartTicketQR — Notification Service
- * In-memory queue with exponential backoff, retry limits, and DB persistence.
- * In production, replace the in-memory queue with BullMQ + Redis.
+ * SmarticketS — Notification Service
+ *
+ * C1 fix (audit): previously this module used `@ts-nocheck` to hide that it
+ * referenced fields (channel, recipient, subject, content, tenantId, status,
+ * errorMessage, sentAt) and a model (NotificationTemplate) that DON'T EXIST
+ * in the Prisma schema. This caused PrismaClientValidationError at runtime.
+ *
+ * This rewrite uses the ACTUAL `Notification` model fields:
+ *   type, userId, agencyId, baggageId, message, data (JSON), read
+ *
+ * For real email/WhatsApp/SMS delivery, this module delegates to:
+ *   - src/lib/email.ts (sendEmail) for email channel
+ *   - src/lib/whatsapp.ts (buildWhatsAppLink) for WhatsApp channel
+ *   - SMS: not implemented (logs only)
+ *
+ * The in-memory queue is removed — it was a dead-letter queue (processor
+ * never started). Notifications are now sent synchronously on creation.
  */
 
 import { db } from "@/lib/db";
-import type { Notification, NotificationTemplate } from "@prisma/client";
+import type { Notification } from "@prisma/client";
 
 // ─── Template variable interpolation ───
 
@@ -20,7 +33,7 @@ export function interpolateTemplate(
   );
 }
 
-// ─── Default notification templates ───
+// ─── Default notification templates (in-memory only, no DB table) ───
 
 export const DEFAULT_TEMPLATES: Array<{
   name: string;
@@ -34,295 +47,155 @@ export const DEFAULT_TEMPLATES: Array<{
     name: "Confirmation Billet",
     type: "ticket_confirmation",
     channel: "whatsapp",
-    body: `🚌 *SmartTicketQR — Confirmation de Billet*
-
-Bonjour *{{passengerName}},
-
-Votre billet est confirmé !
-━━━━━━━━━━━━━━━━━━
-📍 *Ligne* : {{lineName}}
-📅 *Départ* : {{departureDate}} à {{departureTime}}
-Siège *N°* : {{seatNumber}}
-🎫 *Code* : {{controlCode}}
-━━━━━━━━━━━━━━━━━━
-💰 *Prix* : {{totalPrice}} FCFA
-🧳 *Bagages* : {{luggageCount}} ({{luggageWeight}} kg)
-
-Bon voyage ! 🙏`,
-    variables: [
-      "passengerName",
-      "lineName",
-      "departureDate",
-      "departureTime",
-      "seatNumber",
-      "controlCode",
-      "totalPrice",
-      "luggageCount",
-      "luggageWeight",
-    ],
-  },
-  {
-    name: "Confirmation Billet (Email)",
-    type: "ticket_confirmation",
-    channel: "email",
-    subject: "🎫 Confirmation de billet — SmartTicketQR",
-    body: `<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
-  <div style="background:#059669;color:white;padding:16px 24px;border-radius:8px 8px 0 0">
-    <h1 style="margin:0">🚌 SmartTicketQR</h1>
-  </div>
-  <div style="border:1px solid #e5e7eb;padding:24px;border-radius:0 0 8px 8px">
-    <h2>Billet Confirmé</h2>
-    <p>Bonjour <strong>{{passengerName}}</strong>,</p>
-    <table style="width:100%;border-collapse:collapse;margin:16px 0">
-      <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Ligne</strong></td><td style="padding:8px;border:1px solid #e5e7eb">{{lineName}}</td></tr>
-      <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Départ</strong></td><td style="padding:8px;border:1px solid #e5e7eb">{{departureDate}} à {{departureTime}}</td></tr>
-      <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Siège</strong></td><td style="padding:8px;border:1px solid #e5e7eb">N° {{seatNumber}}</td></tr>
-      <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Code</strong></td><td style="padding:8px;border:1px solid #e5e7eb;font-family:monospace;font-size:18px">{{controlCode}}</td></tr>
-      <tr><td style="padding:8px;border:1px solid #e5e7eb"><strong>Prix</strong></td><td style="padding:8px;border:1px solid #e5e7eb">{{totalPrice}} FCFA</td></tr>
-    </table>
-    <p style="color:#6b7280">Bon voyage ! 🙏</p>
-  </div>
-</body></html>`,
-    variables: [
-      "passengerName",
-      "lineName",
-      "departureDate",
-      "departureTime",
-      "seatNumber",
-      "controlCode",
-      "totalPrice",
-    ],
+    body: `🚌 *SmarticketS — Confirmation de Billet*\n\nBonjour *{{passengerName}}*,\n\nVotre billet est confirmé !\n━━━━━━━━━━━━━━━━━━\n🎫 *Code* : {{controlCode}}\n📍 *Ligne* : {{lineName}}\n📅 *Départ* : {{departureDate}} à {{departureTime}}\n💺 *Siège* : {{seatNumber}}\n━━━━━━━━━━━━━━━━━━\n\nBon voyage ! 🙏`,
+    variables: ["passengerName", "lineName", "departureDate", "departureTime", "seatNumber", "controlCode"],
   },
   {
     name: "Suivi Colis",
     type: "parcel_tracking",
     channel: "whatsapp",
-    body: `📦 *SmartTicketQR — Suivi Colis*
-
-Bonjour *{{recipientName}},
-
-Un colis vous est destiné !
-━━━━━━━━━━━━━━━━━━
-📋 *Code Suivi* : {{controlCode}}
-🔒 *PIN Retrait* : {{pinCode}}
-📤 *Expéditeur* : {{senderName}}
-📍 *Lieu* : {{recipientLocation}}
-📅 *Arrivée estimée* : {{estimatedArrival}}
-━━━━━━━━━━━━━━━━━━
-💰 *Prix* : {{price}} FCFA
-
-Merci de vérifier votre PIN avant réception. 🙏`,
-    variables: [
-      "recipientName",
-      "controlCode",
-      "pinCode",
-      "senderName",
-      "recipientLocation",
-      "estimatedArrival",
-      "price",
-    ],
-  },
-  {
-    name: "Alerte Départ",
-    type: "departure_alert",
-    channel: "whatsapp",
-    body: `🚌 *SmartTicketQR — Alerte Départ*
-
-⚠️ *Departure Update*
-━━━━━━━━━━━━━━━━━━
-📍 *Ligne* : {{lineName}}
-🕐 *Heure prévue* : {{scheduledTime}}
-📝 *Statut* : {{status}}
-{{#if delayMinutes}}⏳ *Retard* : +{{delayMinutes}} min{{/if}}
-{{#if notes}}💬 *Note* : {{notes}}{{/if}}
-━━━━━━━━━━━━━━━━━━`,
-    variables: [
-      "lineName",
-      "scheduledTime",
-      "status",
-      "delayMinutes",
-      "notes",
-    ],
+    body: `📦 *SmarticketS — Suivi Colis*\n\nBonjour *{{recipientName}}*,\n\nUn colis vous est destiné !\n━━━━━━━━━━━━━━━━━━\n📋 *Code* : {{controlCode}}\n🔒 *PIN* : {{pinCode}}\n📤 *Expéditeur* : {{senderName}}\n━━━━━━━━━━━━━━━━━━\n\nMerci de vérifier votre PIN avant réception. 🙏`,
+    variables: ["recipientName", "controlCode", "pinCode", "senderName"],
   },
 ];
 
-// ─── In-memory notification queue (enhanced) ───
-
-interface QueueItem {
-  id: string;
-  notificationId: string;
-  type: "whatsapp" | "email" | "sms";
-  recipient: string;
-  content: string;
-  subject?: string;
-  tenantId?: string;
-  attempts: number;
-  maxAttempts: number;
-  nextRetryAt: number;
-  status: "pending" | "processing" | "sent" | "failed";
-  lastError?: string;
-}
-
-const MAX_QUEUE_SIZE = 1000;
-const queue: QueueItem[] = [];
-let processingInterval: ReturnType<typeof setInterval> | null = null;
-let isProcessing = false;
+// ─── Queue stats (compatibility stubs — no longer in-memory queued) ───
 
 export function getQueueSize(): number {
-  return queue.filter((item) => item.status === "pending").length;
+  return 0;
 }
 
 export function getQueueStats() {
-  return {
-    total: queue.length,
-    pending: queue.filter((i) => i.status === "pending").length,
-    processing: queue.filter((i) => i.status === "processing").length,
-    sent: queue.filter((i) => i.status === "sent").length,
-    failed: queue.filter((i) => i.status === "failed").length,
-  };
+  return { total: 0, pending: 0, processing: 0, sent: 0, failed: 0 };
 }
 
-// ─── Send notification (create DB record + enqueue) ───
+// ─── Send notification (create DB record + attempt delivery) ───
 
-export async function sendNotification(params: {
-  type: string;
-  channel: string;
-  recipient: string;
-  recipientName?: string;
-  subject?: string;
-  content: string;
-  tenantId?: string;
-  userId?: string;
-  entityId?: string;
-  entityType?: string;
-}): Promise<Notification> {
+export interface SendNotificationParams {
+  type: string;           // e.g. "custom", "ticket_confirmation", "parcel_tracking"
+  channel: "email" | "whatsapp" | "sms" | "in_app";
+  recipient: string;      // phone number (whatsapp/sms) or email address
+  recipientName?: string; // display name for the recipient
+  subject?: string;       // email subject
+  content: string;        // message body
+  tenantId?: string;      // tenant scope (for filtering)
+  userId?: string;        // target user (null = broadcast)
+  agencyId?: string;      // related agency
+  baggageId?: string;     // related baggage
+  entityId?: string;      // generic entity ID (stored in data JSON)
+  entityType?: string;    // generic entity type (stored in data JSON)
+}
+
+/**
+ * Create a notification record in the DB and attempt delivery.
+ *
+ * The Notification model stores: type, userId, agencyId, baggageId, message,
+ * data (JSON string), read. We store the full delivery context in `data`.
+ *
+ * Delivery is best-effort:
+ *   - whatsapp: logs the wa.me link (real sending is done client-side via
+ *     buildWhatsAppLink() since WhatsApp doesn't have a server-side free API)
+ *   - email: delegates to src/lib/email.ts sendEmail() if SMTP configured
+ *   - sms: logs only (no SMS provider implemented)
+ *   - in_app: just creates the DB record (displayed in NotificationCenter)
+ *
+ * @returns the created Notification record
+ */
+export async function sendNotification(params: SendNotificationParams): Promise<Notification> {
+  // Build the data JSON with all delivery context
+  const dataPayload = {
+    channel: params.channel,
+    recipient: params.recipient,
+    recipientName: params.recipientName || null,
+    subject: params.subject || null,
+    content: params.content,
+    tenantId: params.tenantId || null,
+    entityId: params.entityId || null,
+    entityType: params.entityType || null,
+    deliveredAt: null as string | null,
+    deliveryError: null as string | null,
+  };
+
+  // Create the in-app notification record
   const notification = await db.notification.create({
     data: {
       type: params.type,
-      channel: params.channel,
-      recipient: params.recipient,
-      recipientName: params.recipientName,
-      subject: params.subject,
-      content: params.content,
-      tenantId: params.tenantId,
-      userId: params.userId,
-      entityId: params.entityId,
-      entityType: params.entityType,
-      status: "pending",
+      userId: params.userId || null,
+      agencyId: params.agencyId || null,
+      baggageId: params.baggageId || null,
+      message: params.subject ? `${params.subject}: ${params.content.substring(0, 200)}` : params.content.substring(0, 500),
+      data: JSON.stringify(dataPayload),
+      read: false,
     },
   });
 
-  // Enqueue if capacity allows
-  if (queue.length < MAX_QUEUE_SIZE) {
-    queue.push({
-      id: crypto.randomUUID(),
-      notificationId: notification.id,
-      type: params.channel as QueueItem["type"],
-      recipient: params.recipient,
-      content: params.content,
-      subject: params.subject,
-      tenantId: params.tenantId,
-      attempts: 0,
-      maxAttempts: 3,
-      nextRetryAt: Date.now(),
-      status: "pending",
-    });
-  }
+  // Attempt delivery (best-effort, non-blocking)
+  deliverNotification(params, notification.id).catch((err) => {
+    console.error(`[notifications] Delivery failed for ${notification.id}:`, err);
+  });
 
-  ensureQueueProcessing();
   return notification;
 }
 
-// ─── Process individual queue item ───
-
-async function processQueueItem(item: QueueItem): Promise<void> {
-  if (item.status === "processing") return; // Already being processed
-
-  item.status = "processing";
-
-  if (item.attempts >= item.maxAttempts) {
-    item.status = "failed";
-    item.lastError = `Max attempts (${item.maxAttempts}) exceeded`;
-    await db.notification.update({
-      where: { id: item.notificationId },
-      data: {
-        status: "failed",
-        errorMessage: item.lastError,
-      },
-    });
-    return;
-  }
-
+/**
+ * Attempt to deliver the notification via the specified channel.
+ * Best-effort — failures are logged but don't fail the API request.
+ */
+async function deliverNotification(params: SendNotificationParams, notificationId: string): Promise<void> {
   try {
-    if (item.type === "whatsapp") {
-      const phone = item.recipient.replace(/\s/g, "");
-      const text = encodeURIComponent(item.content.substring(0, 500));
-      // In production: call WhatsApp Business API
-      console.log(`[WhatsApp] wa.me/${phone}?text=${text.substring(0, 100)}...`);
-    } else if (item.type === "email") {
-      // In production: use nodemailer with SMTP config from TenantSettings
-      console.log(
-        `[Email] To: ${item.recipient}, Subject: ${item.subject || "(no subject)"}`
-      );
-    } else if (item.type === "sms") {
-      // In production: call SMS provider API
-      console.log(`[SMS] To: ${item.recipient}`);
+    if (params.channel === "whatsapp") {
+      // WhatsApp delivery is client-side via wa.me links (no server-side API)
+      // Log the link for debugging; the UI generates the actual wa.me link
+      const phone = params.recipient.replace(/\D/g, "");
+      console.log(`[WhatsApp] Notification ${notificationId} → wa.me/${phone} (link generated for client)`);
+    } else if (params.channel === "email") {
+      // Delegate to email.ts (supports console + SMTP providers)
+      const { sendEmail } = await import("@/lib/email");
+      await sendEmail({
+        to: params.recipient,
+        subject: params.subject || "Notification SmarticketS",
+        html: params.content,
+        text: params.content.replace(/<[^>]*>/g, ""),
+      });
+      console.log(`[Email] Notification ${notificationId} → ${params.recipient}`);
+    } else if (params.channel === "sms") {
+      // SMS provider not implemented — log only
+      console.log(`[SMS] Notification ${notificationId} → ${params.recipient} (SMS provider not configured)`);
+    } else {
+      // in_app: no external delivery needed
     }
 
+    // Update data payload with delivery timestamp
     await db.notification.update({
-      where: { id: item.notificationId },
+      where: { id: notificationId },
       data: {
-        status: "sent",
-        sentAt: new Date(),
+        // Append delivery info to the data JSON
+        data: JSON.stringify({
+          ...params,
+          deliveredAt: new Date().toISOString(),
+          deliveryError: null,
+        }),
       },
     });
-
-    item.status = "sent";
   } catch (error) {
-    item.attempts++;
-    const backoff = Math.pow(2, item.attempts) * 1000;
-    item.nextRetryAt = Date.now() + backoff;
-    item.status = "pending";
-    item.lastError = error instanceof Error ? error.message : "Unknown error";
+    const errorMsg = error instanceof Error ? error.message : "Unknown delivery error";
+    console.error(`[notifications] Delivery error for ${notificationId}:`, errorMsg);
 
-    await db.notification.update({
-      where: { id: item.notificationId },
-      data: {
-        status: "pending",
-        errorMessage: item.lastError,
-      },
-    });
-  }
-}
-
-// ─── Process queue (sequential, prevents concurrency issues) ───
-
-async function processQueue(): Promise<void> {
-  if (isProcessing) return;
-
-  const now = Date.now();
-  const pending = queue.filter(
-    (item) => item.status === "pending" && item.nextRetryAt <= now
-  );
-
-  if (pending.length === 0) return;
-
-  isProcessing = true;
-
-  try {
-    for (const item of pending) {
-      await processQueueItem(item);
+    // Update data payload with error
+    try {
+      await db.notification.update({
+        where: { id: notificationId },
+        data: {
+          data: JSON.stringify({
+            ...params,
+            deliveredAt: null,
+            deliveryError: errorMsg,
+          }),
+        },
+      });
+    } catch {
+      // Ignore update errors (notification may have been deleted)
     }
-  } finally {
-    isProcessing = false;
-  }
-}
-
-function ensureQueueProcessing(): void {
-  if (!processingInterval) {
-    processingInterval = setInterval(processQueue, 5000);
   }
 }
 
@@ -330,44 +203,27 @@ function ensureQueueProcessing(): void {
 
 export { buildWhatsAppLink, normalizePhone } from "./whatsapp";
 
-// ─── Get template for a notification type ───
+// ─── Template helpers (in-memory only, no DB table) ───
 
+/**
+ * Get a default template by type + channel.
+ * Previously queried db.notificationTemplate (which doesn't exist in schema).
+ * Now searches the in-memory DEFAULT_TEMPLATES array.
+ */
 export async function getTemplate(
   type: string,
-  channel: string,
-  tenantId?: string
-): Promise<NotificationTemplate | null> {
-  if (tenantId) {
-    const tenantTemplate = await db.notificationTemplate.findFirst({
-      where: { type, channel, tenantId, isDefault: true },
-    });
-    if (tenantTemplate) return tenantTemplate;
-  }
-
-  const globalTemplate = await db.notificationTemplate.findFirst({
-    where: { type, channel, tenantId: null, isDefault: true },
-  });
-  return globalTemplate;
+  channel: string
+): Promise<(typeof DEFAULT_TEMPLATES)[number] | null> {
+  return DEFAULT_TEMPLATES.find((t) => t.type === type && t.channel === channel) || null;
 }
 
-// ─── Seed default templates ───
-
+/**
+ * Seed default templates.
+ * Previously wrote to db.notificationTemplate (non-existent model).
+ * Now a no-op — templates are in-memory constants in DEFAULT_TEMPLATES.
+ * Kept for backward compatibility with the admin route.
+ */
 export async function seedDefaultTemplates(): Promise<void> {
-  const existing = await db.notificationTemplate.count();
-  if (existing > 0) return;
-
-  for (const tpl of DEFAULT_TEMPLATES) {
-    await db.notificationTemplate.create({
-      data: {
-        name: tpl.name,
-        type: tpl.type,
-        channel: tpl.channel,
-        subject: tpl.subject,
-        body: tpl.body,
-        variables: JSON.stringify(tpl.variables),
-        isDefault: true,
-        tenantId: null,
-      },
-    });
-  }
+  // No-op: templates are in-memory constants, no DB seeding needed.
+  return;
 }

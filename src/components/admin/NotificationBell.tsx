@@ -50,10 +50,8 @@ export default function NotificationBell() {
 
   const markAllAsRead = async () => {
     try {
-      // Mark all as read locally
-      for (const n of notifications) {
-        await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
-      }
+      // Bulk mark all as read via /api/notifications/read-all (1 request, not N)
+      await fetch('/api/notifications/read-all', { method: 'POST' });
       setNotifications([]);
     } catch (error) {
       console.error('Error marking all as read:', error);

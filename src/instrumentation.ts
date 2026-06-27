@@ -138,6 +138,21 @@ export async function register() {
     }
 
     console.log('[instrumentation] Ready ✓');
+
+    // ─── C4 fix: Start the notification queue processor ───
+    // Previously, dispatchNotification() enqueued items but startProcessor()
+    // was never called → items stayed "pending" forever (dead-letter queue).
+    // Now we start the processor at server boot. It runs every 30s and marks
+    // wa.me link notifications as "sent" (they're pre-generated, no real send).
+    try {
+      const { getNotificationQueue } = await import('@/lib/notification-queue');
+      const queue = getNotificationQueue();
+      queue.startProcessor(30_000);
+      console.log('[instrumentation] Notification queue processor started (30s interval)');
+    } catch (queueErr) {
+      const qMsg = queueErr instanceof Error ? queueErr.message : String(queueErr);
+      console.error(`[instrumentation] Failed to start notification queue (non-fatal): ${qMsg}`);
+    }
   } catch (err: unknown) {
     // Swallow ALL errors — log but NEVER rethrow
     const msg = err instanceof Error ? err.message : String(err);

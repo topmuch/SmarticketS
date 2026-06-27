@@ -89,9 +89,35 @@ export async function POST(request: NextRequest) {
       where: { passengerTicketId: ticketId },
     });
 
-    // TODO: Send Web Push notifications to each subscription
-    // For now, we just log it. The PWA passager polls /api/busgo/notifications
-    // or receives via WebSocket (kiosk-service).
+    // C3 fix: actually send Web Push notifications to each subscription
+    // (previously this was a TODO that never sent anything)
+    let pushResult = { sent: 0, failed: 0, expiredIds: [] as string[] };
+    if (subscriptions.length > 0) {
+      try {
+        const { sendPushToSubscriptions } = await import('@/lib/push-service');
+        pushResult = await sendPushToSubscriptions(subscriptions, {
+          title: getNotificationTitle(templateType),
+          body: textMessage,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-72x72.png',
+          tag: `${templateType}-${ticketId}`,
+          requireInteraction: templateType === 'departure_5min',
+          vibrate: templateType === 'departure_5min' ? [100, 50, 100, 50, 100] : [100, 50, 100],
+          data: {
+            type: templateType.toUpperCase(),
+            ticketId,
+            ttsMessage,
+            url: `/pwa-passager/?action=ticket`,
+          },
+          actions: [
+            { action: 'open', title: '🎫 Voir mon billet' },
+            { action: 'dismiss', title: 'Fermer' },
+          ],
+        });
+      } catch (pushErr) {
+        console.warn('[notifications/send] Push delivery failed (non-fatal):', pushErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -103,6 +129,8 @@ export async function POST(request: NextRequest) {
         sentAt: log.sentAt.toISOString(),
       },
       subscriptionsCount: subscriptions.length,
+      pushSent: pushResult.sent,
+      pushFailed: pushResult.failed,
     });
   } catch (error) {
     console.error('[API /api/busgo/notifications/send]', error);
@@ -111,4 +139,20 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Get a human-readable title for a notification type.
+ * Used as the push notification title visible in the system tray.
+ */
+function getNotificationTitle(templateType: string): string {
+  const titles: Record<string, string> = {
+    purchase_confirm: '🎫 Billet confirmé',
+    reminder_1h: '🚌 Départ dans 1h',
+    bags_45min: '🧳 Préparez vos bagages',
+    boarding_30min: '🚨 Embarquement en cours',
+    departure_5min: '⏰ DÉPART DANS 5 MINUTES',
+    delay_notice: '⏰ Retard de départ',
+  };
+  return titles[templateType] || '🔔 Notification BusGo';
 }

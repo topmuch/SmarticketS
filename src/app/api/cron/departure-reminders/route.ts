@@ -164,10 +164,43 @@ export async function POST(request: NextRequest) {
               where: { passengerTicketId: ticket.id },
             });
 
-            // TODO: Send actual Web Push notifications to each subscription.
-            // For now, the PWA passager polls /api/busgo/notifications or
-            // receives via WebSocket (kiosk-service). The log above is what
-            // the PWA reads to display the notification.
+            // C3 fix: actually send Web Push notifications to each subscription
+            // (previously this was a TODO that never sent anything)
+            if (subscriptions.length > 0) {
+              try {
+                const { sendPushToSubscriptions } = await import('@/lib/push-service');
+                const titles: Record<string, string> = {
+                  reminder_1h: '🚌 Départ dans 1h',
+                  bags_45min: '🧳 Préparez vos bagages',
+                  boarding_30min: '🚨 Embarquement en cours',
+                  departure_5min: '⏰ DÉPART DANS 5 MINUTES',
+                };
+                await sendPushToSubscriptions(subscriptions, {
+                  title: titles[reminder.type] || '🔔 Notification BusGo',
+                  body: textMessage,
+                  icon: '/icons/icon-192x192.png',
+                  badge: '/icons/icon-72x72.png',
+                  tag: `${reminder.type}-${ticket.id}`,
+                  requireInteraction: reminder.type === 'departure_5min',
+                  vibrate: reminder.type === 'departure_5min'
+                    ? [100, 50, 100, 50, 100]
+                    : [100, 50, 100],
+                  data: {
+                    type: reminder.type.toUpperCase(),
+                    ticketId: ticket.id,
+                    ttsMessage,
+                    url: `/pwa-passager/?action=ticket`,
+                  },
+                  actions: [
+                    { action: 'open', title: '🎫 Voir mon billet' },
+                    { action: 'dismiss', title: 'Fermer' },
+                  ],
+                });
+              } catch (pushErr) {
+                // Push failure is non-fatal — the log was already created
+                console.warn(`[departure-reminders] Push failed for ticket ${ticket.id}:`, pushErr);
+              }
+            }
 
             stats.notificationsSent++;
             stats.byType[reminder.type]++;

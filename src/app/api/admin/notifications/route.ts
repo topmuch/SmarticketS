@@ -11,23 +11,30 @@ import {
 const notificationsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(50),
-  status: z.string().optional(),
-  channel: z.string().optional(),
+  type: z.string().optional(),
 });
 
 // Zod validation for POST body
 const sendNotificationSchema = z.object({
-  channel: z.enum(["email", "whatsapp", "sms"]),
+  channel: z.enum(["email", "whatsapp", "sms", "in_app"]),
   recipient: z.string().min(1, "Recipient is required"),
   recipientName: z.string().optional(),
   subject: z.string().optional(),
   content: z.string().min(1, "Content is required"),
   type: z.string().default("custom"),
+  agencyId: z.string().optional(),
+  baggageId: z.string().optional(),
   entityId: z.string().optional(),
   entityType: z.string().optional(),
 });
 
-// GET /api/admin/notifications — List notifications with filters
+/**
+ * GET /api/admin/notifications — List notifications with filters
+ *
+ * C1 fix: previously filtered on `status` and `channel` which don't exist
+ * on the Notification model. Now filters on `type` (which does exist).
+ * The `channel` is stored inside the `data` JSON field.
+ */
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -43,19 +50,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { page, limit, status, channel } = parsed.data;
+    const { page, limit, type } = parsed.data;
 
-    // ─── Tenant isolation: ADMIN sees only their own tenant, SUPER_ADMIN sees all ───
+    // Build where clause — SuperAdmin sees all, Admin sees their agency's
     const where: Record<string, unknown> = {};
-    if (user.role !== "SUPER_ADMIN") {
-      where.tenantId = user.tenantId;
-    } else {
-      // SUPER_ADMIN can optionally filter by tenantId
-      const tenantIdFilter = searchParams.get("tenantId");
-      if (tenantIdFilter) where.tenantId = tenantIdFilter;
+    if (user.role !== "SUPER_ADMIN" && user.agencyId) {
+      where.agencyId = user.agencyId;
     }
-    if (status) where.status = status;
-    if (channel) where.channel = channel;
+    if (type) where.type = type;
 
     const [notifications, total] = await Promise.all([
       db.notification.findMany({
@@ -84,7 +86,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/admin/notifications — Send a notification
+/**
+ * POST /api/admin/notifications — Send a notification
+ *
+ * C1 fix: previously passed `tenantId`, `recipient`, `subject`, `content`
+ * directly to db.notification.create() — none of these fields exist on the
+ * Notification model. Now delegates to sendNotification() which correctly
+ * maps these to the model's actual fields (type, message, data JSON).
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -102,11 +111,13 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
-    // ─── Tenant isolation: ADMIN can only send to their own tenant ───
-    const tenantId = user.role === "SUPER_ADMIN" ? (body.tenantId as string || undefined) : (user.tenantId || undefined);
-
-    // Seed default templates if needed
+    // Seed default templates (no-op now, kept for compat)
     await seedDefaultTemplates();
+
+    // Agency isolation: Admin can only send for their own agency
+    const agencyId = user.role === "SUPER_ADMIN"
+      ? (data.agencyId || undefined)
+      : (user.agencyId || data.agencyId || undefined);
 
     const notification = await sendNotification({
       type: data.type,
@@ -115,7 +126,8 @@ export async function POST(request: NextRequest) {
       recipientName: data.recipientName,
       subject: data.subject,
       content: data.content,
-      tenantId,
+      agencyId,
+      baggageId: data.baggageId,
       userId: user.userId,
       entityId: data.entityId,
       entityType: data.entityType,
