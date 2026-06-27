@@ -1,0 +1,987 @@
+     1→// This is your Prisma schema file,
+     2→// learn more about it in the docs: https://pris.ly/d/prisma-schema
+     3→
+     4→generator client {
+     5→  provider = "prisma-client-js"
+     6→}
+     7→
+     8→datasource db {
+     9→  provider = "sqlite"
+    10→  url      = env("DATABASE_URL")
+    11→}
+    12→
+    13→// User model - supports superadmin, admin, agent, and agency users
+    14→model User {
+    15→  id              String        @id @default(cuid())
+    16→  email           String        @unique
+    17→  name            String?
+    18→  firstName       String?
+    19→  lastName        String?
+    20→  phone           String?
+    21→  password        String?
+    22→  emailVerified   DateTime?     // Timestamp when email was verified
+    23→  role            String        @default("agency") // "superadmin" | "admin" | "agent" | "agency"
+    24→  isActive        Boolean       @default(true)
+    25→  agencyId        String?
+    26→  agency          Agency?       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+    27→  tenantId        String?
+    28→  tenant          Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+    29→  lastLogin       DateTime?
+    30→  sessions        Session[]
+    31→  loginLogs       LoginLog[]
+    32→  assignedLeads   Lead[]        @relation("AssignedLeads")
+    33→  observations    Observation[]
+    34→  dailyReports    DailyReport[]
+    35→  blogPosts       BlogPost[]
+    36→  createdAt       DateTime      @default(now())
+    37→  updatedAt       DateTime      @updatedAt
+    38→
+    39→  @@unique([email, tenantId])
+    40→  @@index([tenantId])
+    41→  @@index([phone])
+    42→  @@index([isActive])
+    43→}
+    44→
+    45→// Session model - secure HTTP-only cookie based sessions
+    46→model Session {
+    47→  id           String   @id @default(cuid())
+    48→  userId       String
+    49→  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    50→  userAgent    String?  // Browser identification
+    51→  ipAddress    String?  // IP address at login
+    52→  lastActivity DateTime @default(now()) // Last activity timestamp
+    53→  expiresAt    DateTime
+    54→  createdAt    DateTime @default(now())
+    55→}
+    56→
+    57→// LoginLog model - audit trail for all login attempts
+    58→model LoginLog {
+    59→  id           String    @id @default(cuid())
+    60→  userId       String?
+    61→  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+    62→  email        String    // Email used for login attempt
+    63→  success      Boolean   @default(false) // Whether login succeeded
+    64→  failureReason String?  // Reason for failure if applicable
+    65→  ipAddress    String?   // IP address
+    66→  userAgent    String?   // Browser/client info
+    67→  country      String?   // Country from IP
+    68→  city         String?   // City from IP
+    69→  createdAt    DateTime  @default(now())
+    70→}
+    71→
+    72→// ─── RBAC Enums ──────────────────────────────────────────────
+    73→
+    74→enum StaffRole {
+    75→  ADMIN
+    76→  OPERATOR
+    77→  CONTROLLER
+    78→  DRIVER
+    79→}
+    80→
+    81→enum StaffPermission {
+    82→  VIEW_REPORTS
+    83→  MANAGE_STAFF
+    84→  ACTIVATE_TICKETS
+    85→  ACTIVATE_PARCELS
+    86→  VALIDATE_TICKETS
+    87→  MANAGE_DELIVERIES
+    88→  VIEW_ANALYTICS
+    89→}
+    90→
+    91→enum AuditAction {
+    92→  STAFF_CREATED
+    93→  STAFF_UPDATED
+    94→  STAFF_DELETED
+    95→  STAFF_DEACTIVATED
+    96→  STAFF_REACTIVATED
+    97→  CODE_GENERATED
+    98→  CODE_RESET
+    99→  STAFF_LOGIN_SUCCESS
+   100→  STAFF_LOGIN_FAILURE
+   101→}
+   102→
+   103→// ─── Staff Model ───────────────────────────────────────────────────
+   104→
+   105→model Staff {
+   106→  id            String           @id @default(cuid())
+   107→  name          String
+   108→  phone         String           @unique  // Format E.164 (ex: +221771234567)
+   109→  role          StaffRole        @default(OPERATOR)
+   110→  permissions   String           @default("[]")  // JSON array of StaffPermission values
+   111→  loginCodeHash String?          // Hash bcrypt du code 4-6 chiffres
+   112→  codeExpiresAt DateTime?        // Code expiration (7 days after generation)
+   113→  hasActivated  Boolean          @default(false) // true après première connexion
+   114→  isActive      Boolean          @default(true)
+   115→  lastLogin     DateTime?
+   116→  agencyId      String
+   117→  agency        Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+   118→  auditLogs     StaffAuditLog[]
+   119→  createdAt     DateTime         @default(now())
+   120→  updatedAt     DateTime         @updatedAt
+   121→
+   122→  @@index([agencyId, isActive])
+   123→  @@index([phone])
+   124→}
+   125→
+   126→// ─── Staff Audit Log ──────────────────────────────────────────────
+   127→
+   128→model StaffAuditLog {
+   129→  id        String       @id @default(cuid())
+   130→  action    AuditAction
+   131→  staffId   String
+   132→  staff     Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+   133→  actorId   String?      // User (admin) who performed the action
+   134→  details   String?      // JSON with contextual data
+   135→  ipAddress String?
+   136→  createdAt DateTime     @default(now())
+   137→
+   138→  @@index([staffId])
+   139→  @@index([action])
+   140→  @@index([createdAt])
+   141→}
+   142→
+   143→// Agency model - pilgrimage agencies
+   144→model Agency {
+   145→  id        String    @id @default(cuid())
+   146→  name      String
+   147→  slug      String    @unique
+   148→  email     String?
+   149→  phone     String?
+   150→  address   String?
+   151→  active    Boolean   @default(true)
+   152→  settings  String?   // JSON: { defaultPermissions, whatsappTemplate }
+   153→  logoUrl    String?   // URL du logo de la compagnie (pour personnalisation BusGo)
+   154→  createdAt DateTime  @default(now())
+   155→  baggages        Baggage[]
+   156→  routes          Route[]
+   157→  users           User[]
+   158→  invoices        Invoice[]
+   159→  departures      Departure[]
+   160→  passengerTickets PassengerTicket[]
+   161→  stations        Station[]
+   162→  staff           Staff[]
+   163→  busGoVoiceConfig BusGoVoiceConfig?
+   164→}
+   165→
+   166→// Baggage model - main entity for luggage tracking
+   167→model Baggage {
+   168→  id                String    @id @default(cuid())
+   169→  reference         String    @unique // HAJJ26-MLQGY7, VOL26-K9X2P4
+   170→  type              String    // "hajj" or "voyageur"
+   171→  category          String    @default("parcel") // "parcel" | "ticket" | "hajj"
+   172→  setId             String?   // Groups QR codes together (e.g., SET-2026-0966)
+   173→  agencyId          String?
+   174→  travelerFirstName String?
+   175→  travelerLastName  String?
+   176→  whatsappOwner     String?
+   177→  baggageIndex      Int       @default(1) // 1, 2, 3 (order: 1 = cabine)
+   178→  baggageType       String    @default("cabine") // "cabine" or "soute"
+   179→  status            String    @default("pending_activation") // pending_activation, active, scanned, lost, found, blocked, in_transit, delivered
+   180→
+   181→  // TRANSPORT-FEATURE: Multi-context transport mode (flight/train/boat/bus)
+   182→  transportMode     String    @default("flight") // "flight" | "train" | "boat" | "bus"
+   183→
+   184→  // Flight-specific fields (transportMode = "flight")
+   185→  airlineName       String?   // ex: "Air France", "Royal Air Maroc"
+   186→  flightNumber      String?
+   187→
+   188→  // Train-specific fields (transportMode = "train")
+   189→  trainCompany      String?   // ex: "SNCF", "Renfe", "ONCF"
+   190→  trainNumber       String?   // ex: "TGV 6123"
+   191→
+   192→  // Boat-specific fields (transportMode = "boat")
+   193→  shipName          String?   // ex: "MSC Fantasia"
+   194→  shipCabin         String?   // ex: "Pont 4, Cabine 312"
+   195→
+   196→  // Bus-specific fields (transportMode = "bus")
+   197→  busCompany        String?   // ex: "CTM", "Supratours"
+   198→  busLineNumber     String?   // ex: "Ligne 45", "Casablanca → Marrakech"
+   199→
+   200→  // Universal fields (all modes)
+   201→  destination       String?
+   202→  departureCity     String?   // Ville de départ (ex: "Dakar")
+   203→  departureDate     DateTime? // Date de départ saisie lors de l'activation
+   204→  departureTime     String?   // Heure de départ saisie lors de l'activation (ex: "08:30")
+   205→
+   206→  // COLIS-FEATURE: Receiver / Sender fields for inter-city logistics
+   207→  receiverName      String?   // Nom du destinataire du colis
+   208→  receiverWhatsapp  String?   // Numéro WhatsApp du destinataire
+   209→
+   210→  // COLIS-FEATURE: Arrival / Delivery fields
+   211→  arrivedAt         DateTime? // Date/heure d'arrivée confirmée
+   212→  deliveryLocation  String?   // Lieu de dépôt précis (ex: "Gare routière, Boutique X")
+   213→  deliveryNotes     String?   // Notes du chauffeur à l'arrivée
+   214→  deliveredAt       DateTime? // Date/heure de livraison confirmée (PIN validé)
+   215→  deliveredBy       String?   // ID du chauffeur ayant effectué la livraison
+   216→
+   217→  // LOGISTICS: Itinerary & Payment
+   218→  pickupAddress     String?   // Adresse de récupération précise
+   219→  estimatedArrival  String?   // Heure d'arrivée estimée (HH:mm)
+   220→  paymentStatus     String    @default("SENDER_PAID") // "SENDER_PAID" | "RECEIVER_PAY"
+   221→
+   222→  // BAGGAGE: Type & Physical description
+   223→  colisType         String?   // "VALISE" | "SAC" | "CARTON" | "BACKPACK" | "CABIN" | "OTHER"
+   224→  colisTypeOther    String?   // Description libre si OTHER
+   225→  colisWeight       Float?    // Poids en kg
+   226→  colisDimensions   String?   // "Lxlxh" en cm
+   227→  colisColor        String?   // Couleur dominante
+   228→
+   229→  // BAGGAGE: Content & Value
+   230→  contentCategory   String?   // "CLOTHES" | "DOCS" | "ELECTRONICS" | "FOOD" | "GIFTS" | "OTHER"
+   231→  declaredValue     Float?    // Valeur déclarée en FCFA
+   232→  isFragile         Boolean   @default(false)
+   233→  hasProhibited     Boolean   @default(false)
+   234→
+   235→  // DRIVER: Driver phone & consent
+   236→  driverPhone        String?   // Numéro WhatsApp du chauffeur/transporteur
+   237→  shareDriverPhone   Boolean   @default(false) // Consentement partage avec le destinataire
+   238→
+   239→  // PIN-FEATURE: Secure retrieval PIN
+   240→  retrievalPin      String?   // PIN à 6 chiffres pour le retrait du colis
+   241→  pinVerified       Boolean   @default(false) // true quand le PIN a été validé
+   242→  pinAttempts       Int       @default(0)     // Nombre de tentatives de PIN
+   243→  pinGeneratedAt    DateTime? // Date/heure de génération du PIN
+   244→
+   245→  createdAt         DateTime  @default(now())
+   246→  expiresAt         DateTime?
+   247→  lastScanDate      DateTime?
+   248→  lastLocation      String?
+   249→  declaredLostAt    DateTime? // Timestamp when baggage was declared lost
+   250→  foundAt           DateTime? // Timestamp when baggage was found
+   251→  // Founder information (person who found the baggage)
+   252→  founderName       String?   // Name of the finder
+   253→  founderPhone      String?   // WhatsApp number of the finder
+   254→  founderAt         DateTime? // Timestamp when founder info was submitted
+   255→  // 🆕 MULTI-GARES: Station assignment
+   256→  stationId             String?
+   257→  station               Station?     @relation("StationBaggage", fields: [stationId], references: [id], onDelete: SetNull)
+   258→  activatedAtStationId  String?       // Gare où l'activation a eu lieu
+   259→  activatedAt           DateTime?
+   260→
+   261→  agency            Agency?       @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+   262→  passengerTicket  PassengerTicket?
+   263→  scanLogs          ScanLog[]
+   264→  events            ColisEvent[]
+   265→}
+   266→
+   267→// ScanLog model - tracks all scans for audit
+   268→model ScanLog {
+   269→  id          String   @id @default(cuid())
+   270→  baggageId   String
+   271→  ipAddress   String?
+   272→  country     String?
+   273→  city        String?
+   274→  latitude    Float?
+   275→  longitude   Float?
+   276→  location    String?  // Selected location (Jeddah, Médine, etc.)
+   277→  message     String?  // Optional message from finder
+   278→  createdAt   DateTime @default(now())
+   279→  baggage     Baggage  @relation(fields: [baggageId], references: [id], onDelete: Cascade)
+   280→
+   281→  // ─── Champs IA (Groq) ───
+   282→  whatsappStatus  String?   // "sent" | "delivered" | "failed" | "fallback" | "queued" | "read"
+   283→  aiAnalysis      Json?     // ScanAIAnalysis: { type, color, size, confidence, isDuplicate, description?, analyzedAt }
+   284→  groqUsed        Boolean   @default(false) // true si Groq a été utilisé pour ce scan
+   285→  groqLatencyMs   Int?      // Temps de réponse Groq en ms
+   286→  aiMessageUsed   Boolean   @default(false) // true si le message WhatsApp a été généré par IA
+   287→  groqModelUsed   String?   // Modèle Groq utilisé (ex: "llama-3.3-70b-versatile")
+   288→  wakitMessageId  String?   // ID de retour Wakit pour tracking croisé
+   289→
+   290→  // ─── Contexte du scan ───
+   291→  context     String?   // "departure_airport_urgent" | "arrival_airport" | "in_transit" | "static_location"
+   292→  finderName  String?   // Nom du trouveur (dupliqué ici pour l'API suivi)
+   293→  finderPhone String?   // Téléphone du trouveur (dupliqué ici pour l'API suivi)
+   294→}
+   295→
+   296→// Settings model - system configuration
+   297→model Setting {
+   298→  id        String   @id @default(cuid())
+   299→  key       String   @unique
+   300→  value     String
+   301→  updatedAt DateTime @updatedAt
+   302→}
+   303→
+   304→// Page model - CMS pages
+   305→model Page {
+   306→  id        String   @id @default(cuid())
+   307→  slug      String   @unique
+   308→  title     String
+   309→  content   String   // HTML or Markdown content
+   310→  published Boolean  @default(false)
+   311→  createdAt DateTime @default(now())
+   312→  updatedAt DateTime @updatedAt
+   313→}
+   314→
+   315→// Banner model - dashboard announcements
+   316→model Banner {
+   317→  id        String   @id @default(cuid())
+   318→  type      String   // "header" or "footer"
+   319→  content   String
+   320→  active    Boolean  @default(true)
+   321→  createdAt DateTime @default(now())
+   322→  updatedAt DateTime @updatedAt
+   323→}
+   324→
+   325→// FeatureFlag model - modular feature toggles
+   326→model FeatureFlag {
+   327→  id          String   @id @default(cuid())
+   328→  key         String   @unique // ex: "whatsapp_automated"
+   329→  label       String   // "Envoi WhatsApp automatisé"
+   330→  description String   // Clear description for admins
+   331→  category    String   @default("general") // "communication", "geolocation", "export", "notifications"
+   332→  enabled     Boolean  @default(false)
+   333→  icon        String?  // Icon name for UI
+   334→  createdAt   DateTime @default(now())
+   335→  updatedAt   DateTime @updatedAt
+   336→}
+   337→
+   338→// Message model - contact, partner requests, agency orders, assistance
+   339→// Message types:
+   340→// - "contact": Contact form from public website
+   341→// - "partenaire": Partner registration requests
+   342→// - "commande_agence": QR code orders from agencies
+   343→// - "assistance_agence": Support messages from agencies to superadmin
+   344→// - "reponse_assistance": Replies from superadmin to agencies
+   345→// - "message_superadmin": Messages initiated by superadmin for specific agencies
+   346→model Message {
+   347→  id          String   @id @default(cuid())
+   348→  type        String   // "contact", "partenaire", "commande_agence", "assistance_agence", "reponse_assistance", "message_superadmin"
+   349→  status      String   @default("non_lu") // "non_lu", "lu", "traite"
+   350→  senderName  String?
+   351→  senderEmail String?
+   352→  senderPhone String?
+   353→  agencyId    String?  // lien vers Agence (si commande agence ou assistance)
+   354→  recipientAgencyId String? // Pour les messages du superadmin vers une agence spécifique
+   355→  subject     String?  // Subject line for assistance messages
+   356→  content     String   // JSON ou texte brut
+   357→  createdAt   DateTime @default(now())
+   358→  updatedAt   DateTime @updatedAt
+   359→}
+   360→
+   361→// Notification model - real-time alerts for SuperAdmin
+   362→// Notification types:
+   363→// - "baggage_declared_lost": Agency declared a baggage as lost
+   364→// - "baggage_found": Lost baggage was found
+   365→// - "new_assistance_message": New assistance message from agency
+   366→// - "urgent_scan": Urgent scan on lost baggage
+   367→model Notification {
+   368→  id          String   @id @default(cuid())
+   369→  type        String   // "baggage_declared_lost", "baggage_found", "new_assistance_message", "urgent_scan"
+   370→  userId      String?  // null = broadcast to all superadmins
+   371→  agencyId    String?  // Reference to agency if applicable
+   372→  baggageId   String?  // Reference to baggage if applicable
+   373→  message     String   // Notification message
+   374→  data        String?  // JSON additional data
+   375→  read        Boolean  @default(false)
+   376→  createdAt   DateTime @default(now())
+   377→  updatedAt   DateTime @updatedAt
+   378→
+   379→  // W6 fix: add indexes for common query patterns
+   380→  // Without these, every /api/notifications GET does a full table scan
+   381→  @@index([agencyId, read])     // Most common: agency's unread notifications
+   382→  @@index([userId, read])       // User-specific unread
+   383→  @@index([createdAt])          // Pagination + ordering
+   384→  @@index([type])               // Filter by notification type
+   385→}
+   386→
+   387→// EmailSettings model - SMTP configuration
+   388→model EmailSettings {
+   389→  id              String   @id @default(cuid())
+   390→  provider        String   @default("console") // "console" or "smtp"
+   391→  fromEmail       String   @default("noreply@smartickets.com")
+   392→  fromName        String   @default("SmarticketS")
+   393→  recipientColisEmail  String?  // Destination for package tracking notifications (activated, delivered, lost, found)
+   394→  recipientSystemEmail String?  // Destination for system notifications (leads, agencies, contact messages)
+   395→  // SMTP settings
+   396→  smtpHost        String?
+   397→  smtpPort        Int?
+   398→  smtpUser        String?
+   399→  smtpPassword    String?
+   400→  smtpEncryption  String   @default("tls") // "tls", "ssl", "none"
+   401→  // Status
+   402→  isActive        Boolean  @default(true)
+   403→  lastTestAt      DateTime?
+   404→  lastTestStatus  String?  // "success", "failed"
+   405→  lastTestError   String?
+   406→  createdAt       DateTime @default(now())
+   407→  updatedAt       DateTime @updatedAt
+   408→}
+   409→
+   410→// EmailLog model - tracks all sent emails
+   411→model EmailLog {
+   412→  id          String   @id @default(cuid())
+   413→  to          String
+   414→  subject     String
+   415→  type        String   // "verification", "password_reset", "notification", "invoice", "test", "welcome"
+   416→  status      String   @default("pending") // "pending", "sent", "failed"
+   417→  error       String?
+   418→  userId      String?
+   419→  agencyId    String?
+   420→  data        String?  // JSON for additional data
+   421→  sentAt      DateTime?
+   422→  createdAt   DateTime @default(now())
+   423→}
+   424→
+   425→// EmailToken model - for email verification and password reset
+   426→model EmailToken {
+   427→  id        String   @id @default(cuid())
+   428→  email     String
+   429→  token     String   @unique
+   430→  type      String   // "email_verification", "password_reset"
+   431→  code      String?  // 6-digit code for verification
+   432→  expiresAt DateTime
+   433→  used      Boolean  @default(false)
+   434→  usedAt    DateTime?
+   435→  createdAt DateTime @default(now())
+   436→}
+   437→
+   438→// Invoice model - for agency billing
+   439→model Invoice {
+   440→  id            String   @id @default(cuid())
+   441→  number        String   @unique
+   442→  agencyId      String
+   443→  agency        Agency   @relation(fields: [agencyId], references: [id])
+   444→  amount        Float
+   445→  currency      String   @default("EUR")
+   446→  status        String   @default("pending") // "pending", "paid", "cancelled"
+   447→  description   String?
+   448→  items         String   // JSON array of invoice items
+   449→  dueDate       DateTime?
+   450→  paidAt        DateTime?
+   451→  paymentMethod String?
+   452→  createdAt     DateTime @default(now())
+   453→  updatedAt     DateTime @updatedAt
+   454→}
+   455→
+   456→// Lead model - CRM leads/prospects
+   457→model Lead {
+   458→  id            String        @id @default(cuid())
+   459→  name          String
+   460→  email         String
+   461→  phone         String?
+   462→  company       String?
+   463→  status        String        @default("new") // "new", "contacted", "in_discussion", "qualified", "converted", "lost"
+   464→  source        String?       // "website", "referral", "social", "event", "other"
+   465→  notes         String?
+   466→  agencyId      String?       // Link to agency if converted
+   467→  assignedToId  String?       // Agent assigned to this lead
+   468→  assignedTo    User?         @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+   469→  observations  Observation[]
+   470→  createdAt     DateTime      @default(now())
+   471→  updatedAt     DateTime      @updatedAt
+   472→}
+   473→
+   474→// Observation model - tracks interactions with leads
+   475→model Observation {
+   476→  id        String   @id @default(cuid())
+   477→  leadId    String
+   478→  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+   479→  type      String   // "note", "rdv", "appel", "email", "whatsapp"
+   480→  content   String   // Observation content
+   481→  date      DateTime @default(now())
+   482→  userId    String
+   483→  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   484→  createdAt DateTime @default(now())
+   485→}
+   486→
+   487→// DailyReport model - agent daily activity reports
+   488→model DailyReport {
+   489→  id        String   @id @default(cuid())
+   490→  userId    String
+   491→  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   492→  date      DateTime @default(now())
+   493→  content   String   // Free text report
+   494→  createdAt DateTime @default(now())
+   495→  updatedAt DateTime @updatedAt
+   496→
+   497→  @@unique([userId, date])
+   498→}
+   499→
+   500→// Advertisement model - promotional banners for agencies
+   501→model Advertisement {
+   502→  id          String   @id @default(cuid())
+   503→  title       String
+   504→  description String?
+   505→  imageUrl    String   // URL to banner image
+   506→  linkUrl     String?  // Click destination URL
+   507→  linkTarget  String   @default("_blank") // "_blank" or "_self"
+   508→  
+   509→  // Position - only footer
+   510→  position    String   @default("footer") // "footer", "header", "sidebar"
+   511→  
+   512→  // Targeting
+   513→  targetScope String   @default("all") // "all", "agency", "agents"
+   514→  agencyId    String?  // Specific agency if targetScope = "agency"
+   515→  
+   516→  // Scheduling
+   517→  startDate   DateTime
+   518→  endDate     DateTime?
+   519→  
+   520→  // Status
+   521→  status      String   @default("draft") // "draft", "active", "paused", "expired"
+   522→  priority    Int      @default(0) // Higher = more prominent
+   523→  
+   524→  // Statistics
+   525→  impressions Int      @default(0)
+   526→  clicks      Int      @default(0)
+   527→  
+   528→  // Metadata
+   529→  createdAt   DateTime @default(now())
+   530→  updatedAt   DateTime @updatedAt
+   531→  
+   532→  // Relations
+   533→  adImpressions AdImpression[]
+   534→}
+   535→
+   536→// AdImpression model - tracks each impression and click
+   537→model AdImpression {
+   538→  id              String   @id @default(cuid())
+   539→  advertisementId String
+   540→  advertisement   Advertisement @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+   541→  
+   542→  // Viewer info
+   543→  userId          String?  // Logged-in user who viewed
+   544→  agencyId        String?  // Agency of the viewer
+   545→  userRole        String?  // Role of the viewer
+   546→  
+   547→  // Action
+   548→  action          String   // "impression" or "click"
+   549→  
+   550→  // Context
+   551→  ipAddress       String?
+   552→  userAgent       String?
+   553→  
+   554→  createdAt       DateTime @default(now())
+   555→}
+   556→
+   557→// BlogPost model - internal blog for agencies
+   558→model BlogPost {
+   559→  id            String   @id @default(cuid())
+   560→  title         String
+   561→  slug          String   @unique
+   562→  content       String   // HTML content from rich editor
+   563→  excerpt       String?  // Short summary
+   564→  coverImage    String?  // URL to cover image
+   565→  
+   566→  // Categorization
+   567→  category      String   @default("actualites") // "actualites", "conseils", "hajj", "mises_a_jour"
+   568→  
+   569→  // Publishing
+   570→  status        String   @default("draft") // "draft", "published"
+   571→  publishedAt   DateTime?
+   572→  
+   573→  // Author
+   574→  authorId      String?
+   575→  author        User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+   576→  
+   577→  // Metrics
+   578→  views         Int      @default(0)
+   579→  
+   580→  // Metadata
+   581→  createdAt     DateTime @default(now())
+   582→  updatedAt     DateTime @updatedAt
+   583→  
+   584→  // Relations
+   585→  blogViews     BlogView[]
+   586→}
+   587→
+   588→// BlogView model - track article views
+   589→model BlogView {
+   590→  id          String   @id @default(cuid())
+   591→  postId      String
+   592→  post        BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+   593→  
+   594→  // Viewer info
+   595→  userId      String?
+   596→  agencyId    String?
+   597→  
+   598→  // Context
+   599→  ipAddress   String?
+   600→  userAgent   String?
+   601→  
+   602→  createdAt   DateTime @default(now())
+   603→}
+   604→
+   605→// ColisEvent model - tracks WhatsApp messages and events for each colis
+   606→model ColisEvent {
+   607→  id              String   @id @default(cuid())
+   608→  baggageId       String
+   609→  baggage         Baggage  @relation(fields: [baggageId], references: [id], onDelete: Cascade)
+   610→  eventType       String   // "activation" | "arrival" | "delivery" | "pin_generated"
+   611→  recipientType   String   // "sender" | "receiver" | "system"
+   612→  recipientName   String?  // Name of the recipient
+   613→  recipientPhone  String?  // Phone of the recipient (masked)
+   614→  messageTitle    String   // Short title for display (ex: "Colis en Partance")
+   615→  messageContent  String   // Full WhatsApp message content
+   616→  waLink          String?  // The wa.me link generated
+   617→  metadata        String?  // JSON with extra data (pin, location, etc.)
+   618→  createdAt       DateTime @default(now())
+   619→
+   620→  @@index([baggageId])
+   621→  @@index([eventType])
+   622→  @@index([createdAt])
+   623→}
+   624→
+   625→// SystemLog model - centralized system logging for monitoring
+   626→model SystemLog {
+   627→  id        String   @id @default(cuid())
+   628→  level     String   // "info" | "warn" | "error" | "fatal"
+   629→  message   String
+   630→  source    String   // ex: "api/activate", "diagnostic", "chatbot"
+   631→  metadata  String?  // JSON string with contextual data (sanitized)
+   632→  createdAt DateTime @default(now())
+   633→
+   634→  @@index([level])
+   635→  @@index([source])
+   636→  @@index([createdAt])
+   637→}
+   638→
+   639→// Route model - transport routes (ex: Dakar ↔ Mbour)
+   640→model Route {
+   641→  id                String      @id @default(cuid())
+   642→  name              String      // Ex: "Dakar ↔ Mbour"
+   643→  origin            String      // Ex: "Dakar"
+   644→  destination       String      // Ex: "Mbour"
+   645→  isRoundTrip       Boolean     @default(false)
+   646→  durationMinutes   Int?        // Durée en minutes
+   647→  distanceKm        Int?        // Distance en km
+   648→  price             Int?        // Prix en FCFA
+   649→  agencyId          String
+   650→  agency            Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+   651→  departures        Departure[]
+   652→  createdAt         DateTime    @default(now())
+   653→  updatedAt         DateTime    @updatedAt
+   654→
+   655→  @@index([agencyId])
+   656→}
+   657→
+   658→// PassengerTicket model - billetterie transport
+   659→model PassengerTicket {
+   660→  id                String    @id @default(cuid())
+   661→  baggageId         String    @unique
+   662→  baggage           Baggage   @relation(fields: [baggageId], references: [id], onDelete: Cascade)
+   663→  agencyId          String
+   664→  agency            Agency    @relation(fields: [agencyId], references: [id])
+   665→  departureId       String?
+   666→  departure         Departure? @relation(fields: [departureId], references: [id], onDelete: SetNull)
+   667→
+   668→  // Passager
+   669→  passengerName     String
+   670→  passengerPhone    String
+   671→  passengerAge      Int
+   672→  documentType      String
+   673→  documentNumber    String
+   674→  hasParentalAuth   Boolean   @default(false)
+   675→
+   676→  // Trajet
+   677→  destination       String
+   678→  seatNumber        String
+   679→  platform          String?
+   680→  departureTime     DateTime?
+   681→
+   682→  // Bagages
+   683→  luggageCount      Int       @default(1)
+   684→  luggageWeightKg   Float     @default(0)
+   685→  luggageFee        Int       @default(0)
+   686→
+   687→  // Controle
+   688→  controlCode       String    @unique
+   689→  ticketStatus      String    @default("ACTIVE")
+   690→  validatedAt       DateTime?
+   691→  validatedBy       String?
+   692→  cancelledAt       DateTime?
+   693→  cancelReason      String?
+   694→
+   695→  // ─── BusGo fields ───
+   696→  paperTicketNumber String?   // Référence du billet papier pré-imprimé (ex: 12365)
+   697→  pwaInstalled      Boolean   @default(false)   // Passager a installé la PWA
+   698→  pwaInstalledAt    DateTime?                   // Quand la PWA a été installée
+   699→  boardedAt         DateTime?                   // Quand le passager a embarqué (scanné QR agent)
+   700→  isLate            Boolean   @default(false)   // Agent a marqué ce passager en retard
+   701→  lateMinutes       Int       @default(0)       // Minutes de retard accordées par l'agent
+   702→
+   703→  activatedAt       DateTime
+   704→  createdAt         DateTime  @default(now())
+   705→  updatedAt         DateTime  @updatedAt
+   706→
+   707→  @@index([agencyId])
+   708→  @@index([controlCode])
+   709→  @@index([ticketStatus])
+   710→  @@index([passengerPhone])
+   711→  busGoPushSubscriptions BusGoPushSubscription[]
+   712→}
+   713→
+   714→// SignageAd model - publicités diffusées sur l'affichage gare (kiosk)
+   715→model SignageAd {
+   716→  id              String    @id @default(cuid())
+   717→  title           String
+   718→  mediaType       String    // "IMAGE" | "VIDEO"
+   719→  mediaUrl        String    @default("") // URL du fichier (uploadé) — compatibilité
+   720→  videoUrl        String?   // URL externe de la vidéo (optionnel)
+   721→  imageUrl        String?   // URL externe de l'image desktop/TV 16:9 (optionnel)
+   722→  mobileImageUrl  String?   // URL externe de l'image mobile 9:16 (optionnel)
+   723→  duration        Int       @default(10)  // Durée affichage en secondes
+   724→  interval        Int       @default(30)  // Fréquence en minutes (15, 30, 60)
+   725→  startDate       DateTime  // Début diffusion
+   726→  endDate         DateTime? // Fin optionnelle
+   727→  isActive        Boolean   @default(true)
+   728→  priority        Int       @default(0)
+   729→  views           Int       @default(0)
+   730→  createdBy       String    // userId superadmin
+   731→  createdAt       DateTime  @default(now())
+   732→  updatedAt       DateTime  @updatedAt
+   733→
+   734→  @@index([isActive, startDate])
+   735→}
+   736→
+   737→// Station model - gare physique pour l'affichage
+   738→model Station {
+   739→  id            String     @id @default(cuid())
+   740→  name          String     // Ex: "Gare Routière Peters"
+   741→  slug          String     @unique // Ex: "dakar-peters-x9s2" (généré auto)
+   742→  city          String     // Ex: "Dakar"
+   743→  address       String?
+   744→  agencyId      String
+   745→  agency        Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+   746→  isActive      Boolean    @default(true)
+   747→  baggages          Baggage[] @relation("StationBaggage")
+   748→  departuresAsOrigin  Departure[] @relation("OriginStation")
+   749→  departuresAsDest    Departure[] @relation("DestinationStation")
+   750→  createdAt     DateTime   @default(now())
+   751→  updatedAt     DateTime   @updatedAt
+   752→
+   753→  @@index([agencyId])
+   754→  @@index([isActive])
+   755→}
+   756→
+   757→// Departure model - horaires de depart (affichage gare)
+   758→model Departure {
+   759→  id              String   @id @default(cuid())
+   760→  routeId         String?
+   761→  route           Route?   @relation(fields: [routeId], references: [id], onDelete: SetNull)
+   762→  departureType   String   @default("OUTBOUND") // "OUTBOUND" | "RETURN"
+   763→  lineNumber      String
+   764→  destination     String
+   765→  scheduledTime   DateTime
+   766→  platform        String?
+   767→  availableSeats  Int      @default(45)
+   768→  totalSeats      Int      @default(45)
+   769→  status          String   @default("SCHEDULED") // SCHEDULED, BOARDING, DEPARTED, CANCELLED, DELAYED, ARRIVED, IMMINENT_ARRIVAL
+   770→  delayMinutes    Int      @default(0)
+   771→
+   772→  // ─── BusGo fields ───
+   773→  agentName            String?           // Nom de l'agent assigné à ce départ
+   774→  agentPhone           String?           // N° de l'agent à contacter par les passagers
+   775→  boardingStartedAt    DateTime?         // Quand l'embarquement a commencé (chronomètre)
+   776→  departedAt           DateTime?         // Quand le bus est réellement parti
+   777→
+   778→  // Relations multi-gares
+   779→  originStationId      String?
+   780→  originStation        Station?  @relation("OriginStation", fields: [originStationId], references: [id], onDelete: SetNull)
+   781→  destinationStationId String?
+   782→  destinationStation   Station?  @relation("DestinationStation", fields: [destinationStationId], references: [id], onDelete: SetNull)
+   783→
+   784→  agencyId        String
+   785→  agency          Agency   @relation(fields: [agencyId], references: [id])
+   786→
+   787→  tickets         PassengerTicket[]
+   788→
+   789→  createdAt       DateTime @default(now())
+   790→  updatedAt       DateTime @updatedAt
+   791→
+   792→  @@index([agencyId, scheduledTime])
+   793→  @@index([status])
+   794→  @@index([routeId])
+   795→  @@index([originStationId])
+   796→  @@index([destinationStationId])
+   797→}
+   798→
+   799→// Tenant model - multi-tenant support for transport companies
+   800→model Tenant {
+   801→  id                          String   @id @default(cuid())
+   802→  name                        String
+   803→  slug                        String   @unique
+   804→  plan                        String   @default("starter") // "starter" | "pro" | "enterprise"
+   805→  isActive                    Boolean  @default(true)
+   806→  allowSelfTicketGeneration   Boolean  @default(false)
+   807→  allowSelfParcelGeneration   Boolean  @default(false)
+   808→  createdAt                   DateTime @default(now())
+   809→  updatedAt                   DateTime @updatedAt
+   810→
+   811→  users    User[]
+   812→}
+   813→
+   814→// AuditLog model - general-purpose audit trail (for multi-tenant routes compatibility)
+   815→model AuditLog {
+   816→  id        String   @id @default(cuid())
+   817→  action    String
+   818→  entity    String
+   819→  entityId   String?
+   820→  details   String?
+   821→  userId    String?
+   822→  tenantId   String?
+   823→  ipAddress String?
+   824→  userAgent String?
+   825→  createdAt DateTime @default(now())
+   826→
+   827→  @@index([userId])
+   828→  @@index([action])
+   829→  @@index([createdAt])
+   830→}
+   831→
+   832→// Alert model - intelligent proactive alerts for agency dashboard
+   833→model Alert {
+   834→  id          String   @id @default(cuid())
+   835→  agencyId    String   // Agency that owns this alert
+   836→  type        String   // "BUS_PRESQUE_PLEIN" | "RECETTE_ANORMALE" | "RETARD_DETECTE" | "CLIENT_MECONTENT" | "COLIS_EN_SOUFFRANCE"
+   837→  severity    String   @default("warning") // "critical" | "warning" | "info"
+   838→  category    String   @default("operations") // "ventes" | "operations" | "clients" | "colis"
+   839→  title       String   // Short title for the alert card
+   840→  message     String   // Detailed description
+   841→  tripId      String?  // Related departure ID (for BUS_PRESQUE_PLEIN, RETARD_DETECTE)
+   842→  baggageId   String?  // Related baggage ID (for COLIS_EN_SOUFFRANCE)
+   843→  payload     String?  // JSON with context data
+   844→  status      String   @default("new") // "new" | "read" | "resolved"
+   845→  resolvedAt  DateTime?
+   846→  resolvedBy  String?  // Name of person who resolved
+   847→  createdAt   DateTime @default(now())
+   848→  updatedAt   DateTime @updatedAt
+   849→
+   850→  @@index([agencyId, status])
+   851→  @@index([agencyId, type])
+   852→  @@index([type, createdAt])
+   853→  @@index([status])
+   854→}
+   855→
+   856→// ═══════════════════════════════════════════════════════════════
+   857→// BusGo models — Transport en bus avec notifications vocales
+   858→// ═══════════════════════════════════════════════════════════════
+   859→
+   860→// BusGo Voice Configuration — per agency
+   861→// Stores uploaded MP3 files + TTS text for each notification type
+   862→model BusGoVoiceConfig {
+   863→  id              String   @id @default(cuid())
+   864→  agencyId        String   @unique
+   865→  agency          Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+   866→
+   867→  // Ding-dong sound played before each message
+   868→  dingDongUrl     String?  // URL of uploaded ding-dong.mp3
+   869→
+   870→  // Message H-1h30: "Embarquement à {heure}. Contact agent: {n°}"
+   871→  messageH130Text      String?  // TTS text (if no MP3)
+   872→  messageH130AudioUrl  String?  // Uploaded MP3 (overrides TTS)
+   873→
+   874→  // Message H-5min: "Embarquement imminent"
+   875→  messageH5Text        String?
+   876→  messageH5AudioUrl    String?
+   877→
+   878→  // Message H-0 (départ): "Le bus part maintenant"
+   879→  messageDepartText      String?
+   880→  messageDepartAudioUrl  String?
+   881→
+   882→  // Message rappel absent: "Le bus va partir, présentez-vous"
+   883→  messageAbsentText      String?
+   884→  messageAbsentAudioUrl  String?
+   885→
+   886→  createdAt       DateTime @default(now())
+   887→  updatedAt       DateTime @updatedAt
+   888→}
+   889→
+   890→// W4 fix: BusGoNotification model REMOVED — was a dead table (written but never read).
+   891→// All notification logs now use BusGoNotificationLog (the live table).
+   892→// The /api/busgo/embarquement/retard route was the last writer; it now writes
+   893→// to BusGoNotificationLog with templateType: "delay_notice".
+   894→
+   895→// BusGo Push Subscription — Web Push subscriptions for passenger PWA
+   896→model BusGoPushSubscription {
+   897→  id              String   @id @default(cuid())
+   898→  passengerTicketId String
+   899→  passengerTicket PassengerTicket @relation(fields: [passengerTicketId], references: [id], onDelete: Cascade)
+   900→  endpoint        String   // Web Push endpoint URL
+   901→  keys            String   // JSON: { p256dh, auth }
+   902→  userAgent       String?  // Browser info
+   903→  createdAt       DateTime @default(now())
+   904→
+   905→  @@index([passengerTicketId])
+   906→}
+   907→
+   908→// BusGo Message — Communication between passenger and driver/agent
+   909→model BusGoMessage {
+   910→  id              String   @id @default(cuid())
+   911→  ticketId        String   // PassengerTicket ID
+   912→  senderType      String   // "passenger" | "agent" | "system"
+   913→  senderName      String
+   914→  message         String
+   915→  readAt          DateTime?
+   916→  createdAt       DateTime @default(now())
+   917→
+   918→  @@index([ticketId])
+   919→  @@index([createdAt])
+   920→}
+   921→
+   922→// BusGo Notification Template — per agency, per type, per language
+   923→model BusGoNotificationTemplate {
+   924→  id              String   @id @default(cuid())
+   925→  agencyId        String
+   926→  notificationType String   // "purchase_confirm" | "reminder_1h" | "bags_45min" | "boarding_30min" | "departure_5min"
+   927→  language        String   @default("fr")
+   928→  textTemplate    String   // with variables: {passenger_name}, {company_name}, {time}, {platform}, etc.
+   929→  ttsTemplate     String   // TTS version (spoken aloud)
+   930→  isActive        Boolean  @default(true)
+   931→  createdAt       DateTime @default(now())
+   932→  updatedAt       DateTime @updatedAt
+   933→
+   934→  @@unique([agencyId, notificationType, language])
+   935→  @@index([agencyId])
+   936→}
+   937→
+   938→// BusGo Notification Log — tracks sent notifications
+   939→model BusGoNotificationLog {
+   940→  id              String   @id @default(cuid())
+   941→  ticketId        String
+   942→  templateType    String   // "purchase_confirm" | "reminder_1h" | "delay_notice" etc.
+   943→  messageText     String
+   944→  ttsText         String
+   945→  sentAt          DateTime @default(now())
+   946→  status          String   @default("sent") // "sent" | "failed" | "pending"
+   947→
+   948→  // W5 fix: composite index for the cron's idempotency check
+   949→  // (findFirst where ticketId + templateType) — was scanning all rows for that ticket
+   950→  @@index([ticketId, templateType])
+   951→  @@index([ticketId])
+   952→  @@index([templateType])
+   953→  @@index([sentAt])
+   954→}
+   955→
+   956→// BusGo Sponsored Offer — publicités partenaires
+   957→model BusGoSponsoredOffer {
+   958→  id              String   @id @default(cuid())
+   959→  title           String
+   960→  description     String
+   961→  imageUrl        String?
+   962→  partnerName     String
+   963→  actionUrl       String   // wa.me link, website, or tel:
+   964→  actionLabel     String   @default("Voir") // "Voir", "WhatsApp", "Réserver"
+   965→  targetAudience  String   @default("all") // "all" | "passenger" | "agent" | "controller"
+   966→  startDate       DateTime @default(now())
+   967→  endDate         DateTime?
+   968→  isActive        Boolean  @default(true)
+   969→  priority        Int      @default(0) // higher = shown first
+   970→  clicksCount     Int      @default(0)
+   971→  createdAt       DateTime @default(now())
+   972→  updatedAt       DateTime @updatedAt
+   973→
+   974→  @@index([isActive, targetAudience])
+   975→  @@index([priority])
+   976→}
+   977→
+   978→// BusGo Offer Click — tracking analytics
+   979→model BusGoOfferClick {
+   980→  id          String   @id @default(cuid())
+   981→  offerId     String
+   982→  userAgent   String?
+   983→  clickedAt   DateTime @default(now())
+   984→
+   985→  @@index([offerId])
+   986→}
+   987→

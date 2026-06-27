@@ -2360,3 +2360,26 @@ Stage Summary:
 - Agent PWA: 5.5/10 → 8/10 (kiosk socket works, missing passengers announced, live alerts)
 - 14 files changed (11 modified + 3 created)
 - End-to-end notification flow now works for all 7 types
+
+---
+Task ID: AUDIT-CREATION
+Agent: Audit Agent
+Task: Audit ticket creation and team member creation flows
+
+Work Log:
+- Read /home/z/my-project/worklog.md (last 50 lines) for recent context (PWA notification audit + fixes)
+- Read prisma/schema.prisma (986 lines) to map all models: User, Staff, Agency, Baggage, PassengerTicket, Departure, Tenant, StaffAuditLog, AuditLog, SystemLog
+- Searched codebase for all `passengerTicket.create` calls — found 7 paths: guichet/sell, tickets/reserve, tickets/activate, activate/ticket, admin/qr/activate, sync/batch, lib/auto-seed (upsert)
+- Searched codebase for all `user.create` and `staff.create` calls — found 7 paths: busgo/equipe, admin/staff, admin/users, agence/staff (Staff model), tenants/[id]/users, admin/busgo-compagnies, seed
+- Read each route handler in full + their UI pages (guichet, equipe, inscrire)
+- Verified schema references: PreprintedTicket, Line, Parcel, ParcelRate, maxUsers, pinHash, pinExpiresAt do NOT exist in current schema — multiple routes are dead code
+- Compared auth systems: cookie-based (getSession) vs JWT-based (getAuthUser) — only cookie-based is wired to /api/auth/login
+- Verified controlCode generation: lib/qr.ts uses Math.random() (insecure), lib/codes.ts uses crypto.randomInt (secure but only used by dead code)
+- Verified bcrypt cost factor: 10 (acceptable)
+- Verified rate limiting coverage: only auth/login, auth/field-login, validate-pin, driver/login, landing/chat have rate limiting — creation endpoints have none
+- Cross-checked middleware: API routes bypass middleware entirely; each route must self-enforce auth
+
+Stage Summary:
+- Ticket creation score: 4/10 — Two parallel systems (live BusGo + dead multi-tenant SaaS) coexist with inconsistent validation, auth, and security. The live guichet/sell route has no Zod, no transaction, no rate limit, and uses Math.random() for control codes. The well-built /api/tickets/reserve route is unused by the UI. /api/activate/ticket is unauthenticated. /api/qrcodes has NO auth at all.
+- Member creation score: 5/10 — The live /api/busgo/equipe route lets ANY authenticated user (including agents) create team members with no Zod, no audit log, no email verification, and weak password validation. /api/admin/users allows admin to create superadmins (privilege escalation) and cross-agency users. /api/agence/staff is the only well-built route (Staff model, PIN-based, audit logged). /api/admin/busgo-compagnies lacks a transaction (orphan agency if user creation fails).
+- 12 critical issues identified (sorted by severity below in final report)
