@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegistration } from "@/components/pwa-registration";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -332,6 +333,7 @@ export default function RootLayout({
             <ServiceWorkerRegistration />
             {children}
             <Toaster />
+            <SonnerToaster position="top-right" richColors closeButton />
           </AuthProvider>
         </ThemeProvider>
       </body>

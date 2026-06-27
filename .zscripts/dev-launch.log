@@ -1844,3 +1844,2044 @@ https://react.dev/link/hydration-mismatch
   19 |   return ( (src/app/error.tsx:16:13)
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
  GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET / 200 in 280ms (next.js: 3ms, application-code: 276ms)
+ GET / 200 in 137ms (next.js: 6ms, application-code: 131ms)
+ GET / 200 in 137ms (next.js: 3ms, application-code: 134ms)
+ GET /api/auth/session 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"28.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "28.101920437279404%"
+-                               left: "58.5257%"
++                               top: "90.88234930907859%"
+-                               top: "43.8042%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"71.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "71.00941120083385%"
+-                               left: "77.0461%"
++                               top: "45.35643880789253%"
+-                               top: "47.262%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"44.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "44.335095971250595%"
+-                               left: "86.0768%"
++                               top: "68.65346223616581%"
+-                               top: "50.0869%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"93.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "93.58270509508259%"
+-                               left: "44.6523%"
++                               top: "3.093801655811801%"
+-                               top: "29.142%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"95.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "95.94206903161785%"
+-                               left: "35.4416%"
++                               top: "23.631863716747436%"
+-                               top: "89.3604%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"25.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "25.922191652411087%"
+-                               left: "26.0191%"
++                               top: "59.97193472502935%"
+-                               top: "88.4669%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"38.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "38.29522500709629%"
+-                               left: "1.20974%"
++                               top: "41.54806612756954%"
+-                               top: "75.1696%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"74.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "74.8875099908408%"
+-                               left: "73.1438%"
++                               top: "11.72306419528628%"
+-                               top: "16.75%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"64.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "64.55506166182985%"
+-                               left: "27.4847%"
++                               top: "99.16993237624729%"
+-                               top: "69.5874%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"66.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "66.0393307324862%"
+-                               left: "47.1501%"
++                               top: "50.0643466399776%"
+-                               top: "7.05264%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"38.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "38.743364872601205%"
+-                               left: "52.976%"
++                               top: "68.39261511359128%"
+-                               top: "85.3703%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"57.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "57.97536151223564%"
+-                               left: "58.9816%"
++                               top: "8.224582211609366%"
+-                               top: "9.13407%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"52.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "52.035613224199786%"
+-                               left: "35.4503%"
++                               top: "94.59310474834157%"
+-                               top: "1.79406%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"9.35...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "9.358689198561375%"
+-                               left: "50.608%"
++                               top: "59.896314890893244%"
+-                               top: "85.291%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"85.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "85.36183160859771%"
+-                               left: "59.4636%"
++                               top: "68.62148244792422%"
+-                               top: "14.1673%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"68.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "68.59837553082352%"
+-                               left: "1.08618%"
++                               top: "32.57574826135776%"
+-                               top: "30.0486%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"71.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "71.32971001085376%"
+-                               left: "85.5538%"
++                               top: "16.309794890196894%"
+-                               top: "60.8289%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"50.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "50.500460430180084%"
+-                               left: "64.2715%"
++                               top: "39.02088034795423%"
+-                               top: "26.8122%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"16.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "16.79224287577471%"
+-                               left: "19.1894%"
++                               top: "80.77838438793795%"
+-                               top: "82.2114%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"31.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "31.511219728410133%"
+-                               left: "40.4627%"
++                               top: "25.18533312518123%"
+-                               top: "46.5326%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 15ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 4ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 4ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 16ms (next.js: 4ms, application-code: 12ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 21ms (next.js: 3ms, application-code: 18ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 2ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 15ms (next.js: 2ms, application-code: 12ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 15ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 2ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 30ms (next.js: 3ms, application-code: 27ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 2ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 14ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 1996µs, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 2ms, application-code: 10ms)
+✓ Compiled in 345ms
+ GET / 200 in 37ms (next.js: 6ms, application-code: 31ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 24ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 23ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 40ms (next.js: 13ms, application-code: 28ms)
+✓ Compiled in 939ms
+ GET / 200 in 362ms (next.js: 51ms, application-code: 311ms)
+ GET / 200 in 274ms (next.js: 2ms, application-code: 272ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 119ms (next.js: 3ms, application-code: 116ms)
+ GET / 200 in 159ms (next.js: 3ms, application-code: 157ms)
+ GET / 200 in 138ms (next.js: 3ms, application-code: 135ms)
+ GET / 200 in 26ms (next.js: 4ms, application-code: 22ms)
+ GET / 200 in 104ms (next.js: 3ms, application-code: 102ms)
+ GET / 200 in 124ms (next.js: 79ms, application-code: 44ms)
+ GET / 200 in 126ms (next.js: 3ms, application-code: 123ms)
+ GET / 200 in 36ms (next.js: 6ms, application-code: 30ms)
+ GET / 200 in 155ms (next.js: 3ms, application-code: 152ms)
+ GET / 200 in 23ms (next.js: 2ms, application-code: 21ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 25ms (next.js: 2ms, application-code: 22ms)
+ GET / 200 in 32ms (next.js: 3ms, application-code: 29ms)
+ GET / 200 in 32ms (next.js: 3ms, application-code: 29ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 23ms)
+ GET / 200 in 33ms (next.js: 3ms, application-code: 30ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 120ms (next.js: 3ms, application-code: 118ms)
+ GET / 200 in 21ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET / 200 in 22ms (next.js: 2ms, application-code: 19ms)
+ GET / 200 in 29ms (next.js: 3ms, application-code: 26ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+ GET / 200 in 36ms (next.js: 3ms, application-code: 32ms)
+[browser] Image with src "/logo-full.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+ GET /api/auth/session 200 in 47ms (next.js: 36ms, application-code: 11ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"55.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "55.60350239214098%"
+-                               left: "74.7291%"
++                               top: "47.57171591657825%"
+-                               top: "13.4683%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"85.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "85.00557657358745%"
+-                               left: "74.3062%"
++                               top: "84.74235180514485%"
+-                               top: "87.569%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"64.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "64.29860503531982%"
+-                               left: "70.6755%"
++                               top: "45.958204289265446%"
+-                               top: "51.3782%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"61.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "61.81303823090789%"
+-                               left: "30.8038%"
++                               top: "52.454635519732086%"
+-                               top: "10.4917%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"25.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "25.92101998001912%"
+-                               left: "87.7162%"
++                               top: "40.63001185611268%"
+-                               top: "60.344%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"68.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "68.67758118108796%"
+-                               left: "25.8821%"
++                               top: "61.38172418333432%"
+-                               top: "17.8849%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"3.57...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "3.5757703000766417%"
+-                               left: "70.9181%"
++                               top: "30.228429239452947%"
+-                               top: "25.5968%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"30.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "30.42302303222142%"
+-                               left: "46.4523%"
++                               top: "86.65412643727133%"
+-                               top: "50.6863%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"14.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "14.509315528870982%"
+-                               left: "99.6632%"
++                               top: "64.48776286594592%"
+-                               top: "23.1781%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"97.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "97.34602696845704%"
+-                               left: "3.39017%"
++                               top: "62.88578948881035%"
+-                               top: "86.8808%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"90.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "90.20935625552949%"
+-                               left: "7.54401%"
++                               top: "46.678511026683545%"
+-                               top: "62.1288%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"32.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "32.14214323840664%"
+-                               left: "7.38677%"
++                               top: "92.26633553834486%"
+-                               top: "58.1703%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"1.88...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "1.886143208940172%"
+-                               left: "85.9216%"
++                               top: "2.7558901897000387%"
+-                               top: "9.77924%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"30.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "30.99007040965862%"
+-                               left: "49.2607%"
++                               top: "30.53425995677005%"
+-                               top: "88.3807%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"11.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "11.754539043280287%"
+-                               left: "56.9184%"
++                               top: "81.62004906402068%"
+-                               top: "93.4081%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"23.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "23.365491195049305%"
+-                               left: "16.5922%"
++                               top: "81.47842659236109%"
+-                               top: "18.6143%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"10.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "10.602506320641758%"
+-                               left: "85.5414%"
++                               top: "20.48765703176879%"
+-                               top: "84.4023%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"58.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "58.880075544587285%"
+-                               left: "97.2831%"
++                               top: "61.51816561373581%"
+-                               top: "68.5452%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"10.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "10.477795982675687%"
+-                               left: "81.5585%"
++                               top: "51.02013744172498%"
+-                               top: "39.6547%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"52.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "52.223516338802256%"
+-                               left: "9.3655%"
++                               top: "4.421089637585085%"
+-                               top: "55.5928%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 37ms (next.js: 25ms, application-code: 11ms)
+ GET / 200 in 103ms (next.js: 3ms, application-code: 100ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"80.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "80.43499587432909%"
+-                               left: "84.2396%"
++                               top: "22.591071009432085%"
+-                               top: "43.3572%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"83.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "83.73728813345464%"
+-                               left: "46.9648%"
++                               top: "11.57422107371644%"
+-                               top: "26.2078%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"40.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "40.995570809822446%"
+-                               left: "89.7587%"
++                               top: "36.270702683898016%"
+-                               top: "65.492%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"69.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "69.49709894354883%"
+-                               left: "40.0102%"
++                               top: "88.06290558493728%"
+-                               top: "5.00588%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"75.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "75.32698711486925%"
+-                               left: "54.9136%"
++                               top: "93.71105361309765%"
+-                               top: "83.1469%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"20.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "20.41158390447476%"
+-                               left: "19.0239%"
++                               top: "60.0690327803417%"
+-                               top: "2.7354%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"11.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "11.481380762025161%"
+-                               left: "99.8768%"
++                               top: "98.53165306823115%"
+-                               top: "22.131%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"27.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "27.75071009079868%"
+-                               left: "10.8812%"
++                               top: "79.3700407938536%"
+-                               top: "61.4921%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"69.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "69.09918814215347%"
+-                               left: "76.8423%"
++                               top: "94.7493655763384%"
+-                               top: "35.3415%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"5.01...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "5.019948783536421%"
+-                               left: "71.2014%"
++                               top: "8.720165887033692%"
+-                               top: "92.3305%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"77.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "77.63353277118583%"
+-                               left: "5.514%"
++                               top: "87.11187998026155%"
+-                               top: "42.0913%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"28.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "28.940284976296105%"
+-                               left: "74.5196%"
++                               top: "57.175812362080904%"
+-                               top: "92.031%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"44.6...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "44.60045711539197%"
+-                               left: "14.5918%"
++                               top: "11.130409823638022%"
+-                               top: "30.378%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"38.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "38.28396416615624%"
+-                               left: "41.9377%"
++                               top: "13.464741896663213%"
+-                               top: "87.742%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"62.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "62.32467027464982%"
+-                               left: "83.4021%"
++                               top: "60.29759114137367%"
+-                               top: "12.1353%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"94.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "94.58122768005896%"
+-                               left: "78.7887%"
++                               top: "35.075385200197495%"
+-                               top: "89.9634%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"5.77...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "5.7737195982986655%"
+-                               left: "71.531%"
++                               top: "82.3877488422329%"
+-                               top: "1.04791%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"44.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "44.82172088401085%"
+-                               left: "59.9601%"
++                               top: "61.3363085524226%"
+-                               top: "78.828%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"12.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "12.992895548257932%"
+-                               left: "98.9288%"
++                               top: "91.94987781929497%"
+-                               top: "49.645%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"65.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "65.58256480111264%"
+-                               left: "1.50112%"
++                               top: "14.279017950642192%"
+-                               top: "47.4074%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+ GET /api/auth/session 200 in 9ms (next.js: 2ms, application-code: 7ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET / 200 in 197ms (next.js: 104ms, application-code: 94ms)
+[browser] ./src/app/busgo/page.tsx:371:10
+the name `useRouter` is defined multiple times
+  369 |
+  370 | // Need router import
+> 371 | import { useRouter } from 'next/navigation';
+      |          ^^^^^^^^^
+  372 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/app/busgo/page.tsx [Client Component Browser]
+    ./src/app/busgo/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/busgo/page.tsx [Client Component SSR]
+    ./src/app/busgo/page.tsx [Server Component] 
+[browser] ./src/app/busgo/page.tsx:371:10
+the name `useRouter` is defined multiple times
+  369 |
+  370 | // Need router import
+> 371 | import { useRouter } from 'next/navigation';
+      |          ^^^^^^^^^
+  372 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/app/busgo/page.tsx [Client Component Browser]
+    ./src/app/busgo/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/busgo/page.tsx [Client Component SSR]
+    ./src/app/busgo/page.tsx [Server Component] 
+[browser] ./src/app/busgo/page.tsx:371:10
+the name `useRouter` is defined multiple times
+  369 |
+  370 | // Need router import
+> 371 | import { useRouter } from 'next/navigation';
+      |          ^^^^^^^^^
+  372 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/app/busgo/page.tsx [Client Component Browser]
+    ./src/app/busgo/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/busgo/page.tsx [Client Component SSR]
+    ./src/app/busgo/page.tsx [Server Component] 
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"46.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "46.972716739916685%"
+-                               left: "50.1551%"
++                               top: "6.249986440787659%"
+-                               top: "95.2244%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"36.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "36.554046182725905%"
+-                               left: "12.1696%"
++                               top: "70.74472182686232%"
+-                               top: "63.4215%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"22.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "22.18575686258234%"
+-                               left: "71.0926%"
++                               top: "78.45573276265164%"
+-                               top: "69.5639%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"75.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "75.45862850710778%"
+-                               left: "62.5044%"
++                               top: "14.357119341298885%"
+-                               top: "61.8093%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"70.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "70.36548055033755%"
+-                               left: "64.4415%"
++                               top: "85.05566397017239%"
+-                               top: "8.87418%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"9.27...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "9.275741065857657%"
+-                               left: "86.6433%"
++                               top: "97.91308809450963%"
+-                               top: "66.1543%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"44.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "44.77318872156795%"
+-                               left: "51.5169%"
++                               top: "43.99700314765861%"
+-                               top: "44.6291%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"59.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "59.23727631761659%"
+-                               left: "15.7149%"
++                               top: "1.6222478461723422%"
+-                               top: "22.0879%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"9.68...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "9.687519425601499%"
+-                               left: "96.4834%"
++                               top: "28.07151452167386%"
+-                               top: "61.9052%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"67.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "67.13512746422195%"
+-                               left: "13.8537%"
++                               top: "5.422972176422192%"
+-                               top: "31.965%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"44.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "44.041124189866444%"
+-                               left: "8.81979%"
++                               top: "82.9526687200895%"
+-                               top: "69.5514%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"24.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "24.00763046899056%"
+-                               left: "29.5875%"
++                               top: "85.77120217499808%"
+-                               top: "36.8651%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"30.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "30.543637846256633%"
+-                               left: "17.664%"
++                               top: "91.74715851792364%"
+-                               top: "43.2097%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"74.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "74.86567252841533%"
+-                               left: "84.1677%"
++                               top: "42.394890197691296%"
+-                               top: "2.93055%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"48.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "48.017609932167694%"
+-                               left: "83.9016%"
++                               top: "52.57990721800252%"
+-                               top: "71.9456%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"75.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "75.53799633123185%"
+-                               left: "17.0609%"
++                               top: "49.84451808746386%"
+-                               top: "70.6747%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"85.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "85.18086923144982%"
+-                               left: "59.3485%"
++                               top: "98.53232087240846%"
+-                               top: "1.94498%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"1.57...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "1.5791326113899662%"
+-                               left: "88.0959%"
++                               top: "98.36530447693366%"
+-                               top: "70.0369%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"83.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "83.85168224858552%"
+-                               left: "94.2227%"
++                               top: "17.514487105685816%"
+-                               top: "9.87877%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"41.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "41.49634048592322%"
+-                               left: "46.9889%"
++                               top: "50.7969708529633%"
+-                               top: "76.955%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+[browser] ./src/app/busgo/page.tsx:371:10
+the name `useRouter` is defined multiple times
+  369 |
+  370 | // Need router import
+> 371 | import { useRouter } from 'next/navigation';
+      |          ^^^^^^^^^
+  372 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/app/busgo/page.tsx [Client Component Browser]
+    ./src/app/busgo/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/busgo/page.tsx [Client Component SSR]
+    ./src/app/busgo/page.tsx [Server Component] 
+ GET /api/auth/session 500 in 1385ms (next.js: 1280ms, application-code: 104ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 500 in 28ms (next.js: 19ms, application-code: 10ms)
+[browser] ./src/app/busgo/page.tsx:372:10
+the name `useRouter` is defined multiple times
+  370 |
+  371 | // Need router import
+> 372 | import { useRouter } from 'next/navigation';
+      |          ^^^^^^^^^
+  373 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/app/busgo/page.tsx [Client Component Browser]
+    ./src/app/busgo/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/busgo/page.tsx [Client Component SSR]
+    ./src/app/busgo/page.tsx [Server Component] 
+[browser] ./src/app/busgo/page.tsx:372:10
+the name `useRouter` is defined multiple times
+  370 |
+  371 | // Need router import
+> 372 | import { useRouter } from 'next/navigation';
+      |          ^^^^^^^^^
+  373 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/app/busgo/page.tsx [Client Component Browser]
+    ./src/app/busgo/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/busgo/page.tsx [Client Component SSR]
+    ./src/app/busgo/page.tsx [Server Component] 
+✓ Compiled in 303ms
+ GET / 200 in 30ms (next.js: 3ms, application-code: 27ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 3ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+✓ Compiled in 340ms
+ GET / 200 in 129ms (next.js: 73ms, application-code: 56ms)
+ GET / 200 in 33ms (next.js: 3ms, application-code: 30ms)
+ GET / 200 in 34ms (next.js: 3ms, application-code: 30ms)
+ GET / 200 in 35ms (next.js: 3ms, application-code: 32ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET / 200 in 39ms (next.js: 3ms, application-code: 36ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 27ms)
+ GET / 200 in 34ms (next.js: 4ms, application-code: 30ms)
+ GET / 200 in 23ms (next.js: 2ms, application-code: 20ms)
+ GET / 200 in 26ms (next.js: 2ms, application-code: 24ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 21ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 29ms (next.js: 3ms, application-code: 26ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 33ms (next.js: 4ms, application-code: 30ms)
+ GET / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+ GET / 200 in 21ms (next.js: 2ms, application-code: 18ms)
+ GET / 200 in 32ms (next.js: 3ms, application-code: 29ms)
+ GET / 200 in 32ms (next.js: 3ms, application-code: 29ms)
+ GET / 200 in 28ms (next.js: 2ms, application-code: 25ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 22ms (next.js: 2ms, application-code: 20ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 32ms (next.js: 3ms, application-code: 29ms)
+ GET / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET / 200 in 24ms (next.js: 4ms, application-code: 20ms)
+ GET / 200 in 23ms (next.js: 2ms, application-code: 21ms)
+ GET / 200 in 32ms (next.js: 3ms, application-code: 29ms)
+ GET / 200 in 33ms (next.js: 3ms, application-code: 30ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 35ms (next.js: 4ms, application-code: 31ms)
+ GET / 200 in 44ms (next.js: 3ms, application-code: 41ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+ GET / 200 in 29ms (next.js: 3ms, application-code: 27ms)
+ GET / 200 in 64ms (next.js: 2ms, application-code: 62ms)
+ GET / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+ GET / 200 in 36ms (next.js: 3ms, application-code: 33ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 52ms (next.js: 37ms, application-code: 15ms)
+ GET / 200 in 24ms (next.js: 2ms, application-code: 21ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 23ms)
+ GET / 200 in 21ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 23ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 23ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 35ms (next.js: 3ms, application-code: 32ms)
+ GET / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 33ms (next.js: 3ms, application-code: 30ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 40ms (next.js: 3ms, application-code: 38ms)
+ GET / 200 in 40ms (next.js: 21ms, application-code: 19ms)
+ GET / 200 in 28ms (next.js: 2ms, application-code: 25ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 21ms (next.js: 2ms, application-code: 19ms)
+ GET / 200 in 130ms (next.js: 5ms, application-code: 126ms)
+ GET / 200 in 98ms (next.js: 3ms, application-code: 95ms)
+ GET / 200 in 58ms (next.js: 4ms, application-code: 55ms)
+ GET / 200 in 58ms (next.js: 31ms, application-code: 27ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 137ms (next.js: 3ms, application-code: 135ms)
+ GET / 200 in 137ms (next.js: 23ms, application-code: 115ms)
+ GET / 200 in 95ms (next.js: 23ms, application-code: 72ms)
+ GET / 200 in 96ms (next.js: 3ms, application-code: 93ms)
+ GET / 200 in 55ms (next.js: 2ms, application-code: 53ms)
+ GET / 200 in 25ms (next.js: 2ms, application-code: 23ms)
+ GET / 200 in 126ms (next.js: 4ms, application-code: 123ms)
+ GET / 200 in 126ms (next.js: 22ms, application-code: 104ms)
+ GET / 200 in 126ms (next.js: 41ms, application-code: 85ms)
+ GET / 200 in 65ms (next.js: 4ms, application-code: 61ms)
+ GET / 200 in 64ms (next.js: 22ms, application-code: 42ms)
+ GET / 200 in 64ms (next.js: 40ms, application-code: 24ms)
+ GET / 200 in 127ms (next.js: 23ms, application-code: 104ms)
+ GET / 200 in 129ms (next.js: 4ms, application-code: 125ms)
+ GET / 200 in 74ms (next.js: 37ms, application-code: 37ms)
+ GET / 200 in 75ms (next.js: 20ms, application-code: 55ms)
+ GET / 200 in 75ms (next.js: 53ms, application-code: 21ms)
+ GET / 200 in 77ms (next.js: 3ms, application-code: 74ms)
+ GET / 200 in 128ms (next.js: 21ms, application-code: 107ms)
+ GET / 200 in 130ms (next.js: 3ms, application-code: 127ms)
+ GET / 200 in 89ms (next.js: 20ms, application-code: 68ms)
+ GET / 200 in 89ms (next.js: 38ms, application-code: 51ms)
+ GET / 200 in 89ms (next.js: 56ms, application-code: 34ms)
+ GET / 200 in 91ms (next.js: 3ms, application-code: 88ms)
+ GET / 200 in 113ms (next.js: 3ms, application-code: 110ms)
+ GET / 200 in 90ms (next.js: 53ms, application-code: 37ms)
+ GET / 200 in 92ms (next.js: 3ms, application-code: 89ms)
+ GET / 200 in 92ms (next.js: 37ms, application-code: 55ms)
+ GET / 200 in 93ms (next.js: 21ms, application-code: 72ms)
+ GET / 200 in 92ms (next.js: 70ms, application-code: 22ms)
+ GET / 200 in 43ms (next.js: 3ms, application-code: 40ms)
+ GET / 200 in 210ms (next.js: 5ms, application-code: 206ms)
+ GET / 200 in 213ms (next.js: 39ms, application-code: 175ms)
+ GET / 200 in 215ms (next.js: 65ms, application-code: 150ms)
+ GET / 200 in 215ms (next.js: 89ms, application-code: 126ms)
+ GET / 200 in 215ms (next.js: 111ms, application-code: 105ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 100ms (next.js: 3ms, application-code: 97ms)
+ GET / 200 in 100ms (next.js: 22ms, application-code: 78ms)
+ GET / 200 in 59ms (next.js: 3ms, application-code: 56ms)
+ GET / 200 in 59ms (next.js: 20ms, application-code: 39ms)
+ GET / 200 in 59ms (next.js: 37ms, application-code: 22ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 24ms)
+ GET / 200 in 195ms (next.js: 3ms, application-code: 192ms)
+ GET / 200 in 162ms (next.js: 3ms, application-code: 159ms)
+ GET / 200 in 163ms (next.js: 31ms, application-code: 132ms)
+ GET / 200 in 163ms (next.js: 63ms, application-code: 100ms)
+ GET / 200 in 70ms (next.js: 4ms, application-code: 66ms)
+ GET / 200 in 71ms (next.js: 32ms, application-code: 39ms)
+ GET / 200 in 172ms (next.js: 4ms, application-code: 169ms)
+ GET / 200 in 172ms (next.js: 34ms, application-code: 138ms)
+ GET / 200 in 109ms (next.js: 6ms, application-code: 103ms)
+ GET / 200 in 107ms (next.js: 50ms, application-code: 57ms)
+ GET / 200 in 107ms (next.js: 70ms, application-code: 37ms)
+ GET / 200 in 109ms (next.js: 30ms, application-code: 79ms)
+ GET / 200 in 119ms (next.js: 3ms, application-code: 117ms)
+ GET / 200 in 93ms (next.js: 71ms, application-code: 22ms)
+ GET / 200 in 96ms (next.js: 3ms, application-code: 92ms)
+ GET / 200 in 95ms (next.js: 53ms, application-code: 42ms)
+ GET / 200 in 96ms (next.js: 20ms, application-code: 76ms)
+ GET / 200 in 97ms (next.js: 37ms, application-code: 60ms)
+ GET / 200 in 125ms (next.js: 24ms, application-code: 101ms)
+ GET / 200 in 128ms (next.js: 4ms, application-code: 123ms)
+ GET / 200 in 126ms (next.js: 44ms, application-code: 82ms)
+ GET / 200 in 64ms (next.js: 4ms, application-code: 60ms)
+ GET / 200 in 63ms (next.js: 39ms, application-code: 24ms)
+ GET / 200 in 64ms (next.js: 21ms, application-code: 43ms)
+ GET / 200 in 152ms (next.js: 3ms, application-code: 149ms)
+ GET / 200 in 127ms (next.js: 4ms, application-code: 123ms)
+ GET / 200 in 127ms (next.js: 22ms, application-code: 105ms)
+ GET / 200 in 127ms (next.js: 57ms, application-code: 70ms)
+ GET / 200 in 127ms (next.js: 75ms, application-code: 52ms)
+ GET / 200 in 128ms (next.js: 39ms, application-code: 89ms)
+ GET / 200 in 117ms (next.js: 3ms, application-code: 114ms)
+ GET / 200 in 94ms (next.js: 4ms, application-code: 90ms)
+ GET / 200 in 93ms (next.js: 55ms, application-code: 38ms)
+ GET / 200 in 94ms (next.js: 39ms, application-code: 55ms)
+ GET / 200 in 93ms (next.js: 72ms, application-code: 21ms)
+ GET / 200 in 95ms (next.js: 21ms, application-code: 74ms)
+ GET / 200 in 114ms (next.js: 39ms, application-code: 75ms)
+ GET / 200 in 115ms (next.js: 22ms, application-code: 93ms)
+ GET / 200 in 116ms (next.js: 3ms, application-code: 113ms)
+ GET / 200 in 57ms (next.js: 19ms, application-code: 39ms)
+ GET / 200 in 59ms (next.js: 3ms, application-code: 56ms)
+ GET / 200 in 24ms (next.js: 2ms, application-code: 22ms)
+ GET / 200 in 116ms (next.js: 6ms, application-code: 110ms)
+ GET / 200 in 145ms (next.js: 4ms, application-code: 141ms)
+ GET / 200 in 114ms (next.js: 22ms, application-code: 92ms)
+ GET / 200 in 95ms (next.js: 54ms, application-code: 41ms)
+ GET / 200 in 62ms (next.js: 39ms, application-code: 23ms)
+ GET / 200 in 97ms (next.js: 36ms, application-code: 60ms)
+ GET / 200 in 128ms (next.js: 3ms, application-code: 126ms)
+ GET / 200 in 99ms (next.js: 21ms, application-code: 77ms)
+ GET / 200 in 99ms (next.js: 40ms, application-code: 59ms)
+ GET / 200 in 99ms (next.js: 57ms, application-code: 42ms)
+ GET / 200 in 104ms (next.js: 6ms, application-code: 97ms)
+ GET / 200 in 24ms (next.js: 2ms, application-code: 22ms)
+ GET / 200 in 181ms (next.js: 3ms, application-code: 178ms)
+ GET / 200 in 151ms (next.js: 3ms, application-code: 148ms)
+ GET / 200 in 151ms (next.js: 31ms, application-code: 120ms)
+ GET / 200 in 92ms (next.js: 4ms, application-code: 87ms)
+ GET / 200 in 91ms (next.js: 30ms, application-code: 60ms)
+ GET / 200 in 91ms (next.js: 57ms, application-code: 33ms)
+ GET / 200 in 204ms (next.js: 3ms, application-code: 201ms)
+ GET / 200 in 152ms (next.js: 5ms, application-code: 147ms)
+ GET / 200 in 151ms (next.js: 61ms, application-code: 90ms)
+ GET / 200 in 153ms (next.js: 34ms, application-code: 119ms)
+ GET / 200 in 152ms (next.js: 88ms, application-code: 64ms)
+ GET / 200 in 152ms (next.js: 116ms, application-code: 36ms)
+ GET / 200 in 159ms (next.js: 3ms, application-code: 156ms)
+ GET / 200 in 131ms (next.js: 3ms, application-code: 128ms)
+ GET / 200 in 131ms (next.js: 27ms, application-code: 104ms)
+ GET / 200 in 131ms (next.js: 52ms, application-code: 79ms)
+ GET / 200 in 56ms (next.js: 4ms, application-code: 52ms)
+ GET / 200 in 56ms (next.js: 26ms, application-code: 30ms)
+ GET / 200 in 164ms (next.js: 3ms, application-code: 160ms)
+ GET / 200 in 127ms (next.js: 4ms, application-code: 123ms)
+ GET / 200 in 126ms (next.js: 62ms, application-code: 64ms)
+ GET / 200 in 128ms (next.js: 22ms, application-code: 105ms)
+ GET / 200 in 128ms (next.js: 41ms, application-code: 86ms)
+ GET / 200 in 109ms (next.js: 82ms, application-code: 26ms)
+ GET / 200 in 114ms (next.js: 3ms, application-code: 111ms)
+ GET / 200 in 114ms (next.js: 21ms, application-code: 93ms)
+ GET / 200 in 75ms (next.js: 36ms, application-code: 39ms)
+ GET / 200 in 76ms (next.js: 2ms, application-code: 74ms)
+ GET / 200 in 77ms (next.js: 20ms, application-code: 56ms)
+ GET / 200 in 23ms (next.js: 1906µs, application-code: 21ms)
+ GET / 200 in 174ms (next.js: 5ms, application-code: 169ms)
+ GET / 200 in 174ms (next.js: 34ms, application-code: 139ms)
+ GET / 200 in 174ms (next.js: 65ms, application-code: 109ms)
+ GET / 200 in 77ms (next.js: 54ms, application-code: 23ms)
+ GET / 200 in 80ms (next.js: 4ms, application-code: 75ms)
+ GET / 200 in 79ms (next.js: 33ms, application-code: 46ms)
+ GET / 200 in 213ms (next.js: 4ms, application-code: 209ms)
+ GET / 200 in 179ms (next.js: 5ms, application-code: 174ms)
+ GET / 200 in 179ms (next.js: 36ms, application-code: 143ms)
+ GET / 200 in 178ms (next.js: 91ms, application-code: 87ms)
+ GET / 200 in 179ms (next.js: 63ms, application-code: 116ms)
+ GET / 200 in 150ms (next.js: 113ms, application-code: 36ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 102ms (next.js: 2ms, application-code: 100ms)
+ GET / 200 in 82ms (next.js: 3ms, application-code: 79ms)
+ GET / 200 in 82ms (next.js: 20ms, application-code: 62ms)
+ GET / 200 in 82ms (next.js: 40ms, application-code: 42ms)
+ GET / 200 in 25ms (next.js: 2ms, application-code: 22ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET / 200 in 103ms (next.js: 3ms, application-code: 100ms)
+ GET / 200 in 80ms (next.js: 3ms, application-code: 77ms)
+ GET / 200 in 80ms (next.js: 20ms, application-code: 59ms)
+ GET / 200 in 80ms (next.js: 39ms, application-code: 41ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 139ms (next.js: 3ms, application-code: 137ms)
+ GET / 200 in 103ms (next.js: 4ms, application-code: 99ms)
+ GET / 200 in 103ms (next.js: 22ms, application-code: 81ms)
+ GET / 200 in 103ms (next.js: 39ms, application-code: 64ms)
+ GET / 200 in 103ms (next.js: 56ms, application-code: 47ms)
+ GET / 200 in 103ms (next.js: 80ms, application-code: 24ms)
+ GET / 200 in 116ms (next.js: 4ms, application-code: 113ms)
+ GET / 200 in 96ms (next.js: 4ms, application-code: 92ms)
+ GET / 200 in 76ms (next.js: 20ms, application-code: 56ms)
+ GET / 200 in 77ms (next.js: 4ms, application-code: 73ms)
+ GET / 200 in 76ms (next.js: 53ms, application-code: 23ms)
+ GET / 200 in 77ms (next.js: 36ms, application-code: 41ms)
+ GET / 200 in 165ms (next.js: 5ms, application-code: 160ms)
+ GET / 200 in 129ms (next.js: 33ms, application-code: 96ms)
+ GET / 200 in 131ms (next.js: 6ms, application-code: 125ms)
+ GET / 200 in 129ms (next.js: 59ms, application-code: 70ms)
+ GET / 200 in 128ms (next.js: 90ms, application-code: 38ms)
+ GET / 200 in 130ms (next.js: 75ms, application-code: 55ms)
+ GET / 200 in 118ms (next.js: 3ms, application-code: 115ms)
+ GET / 200 in 94ms (next.js: 19ms, application-code: 75ms)
+ GET / 200 in 95ms (next.js: 3ms, application-code: 92ms)
+ GET / 200 in 94ms (next.js: 53ms, application-code: 42ms)
+ GET / 200 in 96ms (next.js: 36ms, application-code: 60ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 120ms (next.js: 22ms, application-code: 97ms)
+ GET / 200 in 121ms (next.js: 3ms, application-code: 118ms)
+ GET / 200 in 121ms (next.js: 41ms, application-code: 80ms)
+ GET / 200 in 59ms (next.js: 3ms, application-code: 56ms)
+ GET / 200 in 59ms (next.js: 37ms, application-code: 22ms)
+ GET / 200 in 59ms (next.js: 20ms, application-code: 39ms)
+ GET / 200 in 138ms (next.js: 3ms, application-code: 135ms)
+ GET / 200 in 115ms (next.js: 3ms, application-code: 112ms)
+ GET / 200 in 114ms (next.js: 20ms, application-code: 94ms)
+ GET / 200 in 114ms (next.js: 37ms, application-code: 77ms)
+ GET / 200 in 44ms (next.js: 23ms, application-code: 21ms)
+ GET / 200 in 98ms (next.js: 56ms, application-code: 42ms)
+ GET / 200 in 120ms (next.js: 4ms, application-code: 116ms)
+ GET / 200 in 120ms (next.js: 22ms, application-code: 98ms)
+ GET / 200 in 120ms (next.js: 39ms, application-code: 81ms)
+ GET / 200 in 63ms (next.js: 3ms, application-code: 60ms)
+ GET / 200 in 62ms (next.js: 21ms, application-code: 42ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 23ms)
+ GET / 200 in 114ms (next.js: 22ms, application-code: 92ms)
+ GET / 200 in 116ms (next.js: 3ms, application-code: 113ms)
+ GET / 200 in 75ms (next.js: 4ms, application-code: 71ms)
+ GET / 200 in 75ms (next.js: 38ms, application-code: 37ms)
+ GET / 200 in 76ms (next.js: 21ms, application-code: 55ms)
+ GET / 200 in 76ms (next.js: 54ms, application-code: 21ms)
+ GET / 200 in 159ms (next.js: 3ms, application-code: 156ms)
+ GET / 200 in 136ms (next.js: 3ms, application-code: 133ms)
+ GET / 200 in 136ms (next.js: 54ms, application-code: 82ms)
+ GET / 200 in 137ms (next.js: 37ms, application-code: 99ms)
+ GET / 200 in 136ms (next.js: 113ms, application-code: 23ms)
+ GET / 200 in 138ms (next.js: 21ms, application-code: 117ms)
+ GET / 200 in 121ms (next.js: 4ms, application-code: 117ms)
+ GET / 200 in 121ms (next.js: 22ms, application-code: 99ms)
+ GET / 200 in 122ms (next.js: 40ms, application-code: 82ms)
+ GET / 200 in 65ms (next.js: 19ms, application-code: 46ms)
+ GET / 200 in 66ms (next.js: 3ms, application-code: 64ms)
+ GET / 200 in 66ms (next.js: 35ms, application-code: 30ms)
+ GET / 200 in 179ms (next.js: 4ms, application-code: 175ms)
+ GET / 200 in 149ms (next.js: 32ms, application-code: 117ms)
+ GET / 200 in 151ms (next.js: 6ms, application-code: 145ms)
+ GET / 200 in 93ms (next.js: 4ms, application-code: 88ms)
+ GET / 200 in 93ms (next.js: 31ms, application-code: 62ms)
+ GET / 200 in 93ms (next.js: 58ms, application-code: 35ms)
+ GET / 200 in 195ms (next.js: 3ms, application-code: 191ms)
+ GET / 200 in 164ms (next.js: 5ms, application-code: 158ms)
+ GET / 200 in 163ms (next.js: 50ms, application-code: 113ms)
+ GET / 200 in 163ms (next.js: 77ms, application-code: 86ms)
+ GET / 200 in 163ms (next.js: 103ms, application-code: 60ms)
+ GET / 200 in 119ms (next.js: 85ms, application-code: 33ms)
+ GET / 200 in 160ms (next.js: 4ms, application-code: 156ms)
+ GET / 200 in 160ms (next.js: 32ms, application-code: 128ms)
+ GET / 200 in 70ms (next.js: 4ms, application-code: 66ms)
+ GET / 200 in 161ms (next.js: 61ms, application-code: 100ms)
+ GET / 200 in 71ms (next.js: 28ms, application-code: 42ms)
+ GET / 200 in 71ms (next.js: 46ms, application-code: 25ms)
+ GET / 200 in 127ms (next.js: 2ms, application-code: 124ms)
+ GET / 200 in 127ms (next.js: 21ms, application-code: 106ms)
+ GET / 200 in 90ms (next.js: 3ms, application-code: 87ms)
+ GET / 200 in 90ms (next.js: 18ms, application-code: 71ms)
+ GET / 200 in 90ms (next.js: 35ms, application-code: 56ms)
+ GET / 200 in 90ms (next.js: 51ms, application-code: 40ms)
+ GET / 200 in 126ms (next.js: 4ms, application-code: 123ms)
+ GET / 200 in 126ms (next.js: 24ms, application-code: 103ms)
+ GET / 200 in 83ms (next.js: 4ms, application-code: 80ms)
+ GET / 200 in 83ms (next.js: 39ms, application-code: 44ms)
+ GET / 200 in 84ms (next.js: 21ms, application-code: 63ms)
+ GET / 200 in 83ms (next.js: 59ms, application-code: 24ms)
+ GET / 200 in 122ms (next.js: 3ms, application-code: 119ms)
+ GET / 200 in 99ms (next.js: 40ms, application-code: 59ms)
+ GET / 200 in 99ms (next.js: 57ms, application-code: 42ms)
+ GET / 200 in 100ms (next.js: 22ms, application-code: 78ms)
+ GET / 200 in 101ms (next.js: 3ms, application-code: 98ms)
+ GET / 200 in 25ms (next.js: 2ms, application-code: 23ms)
+ GET / 200 in 139ms (next.js: 23ms, application-code: 116ms)
+ GET / 200 in 141ms (next.js: 4ms, application-code: 137ms)
+ GET / 200 in 140ms (next.js: 40ms, application-code: 100ms)
+ GET / 200 in 82ms (next.js: 20ms, application-code: 63ms)
+ GET / 200 in 83ms (next.js: 3ms, application-code: 81ms)
+ GET / 200 in 83ms (next.js: 37ms, application-code: 46ms)
+ GET / 200 in 119ms (next.js: 4ms, application-code: 115ms)
+ GET / 200 in 118ms (next.js: 24ms, application-code: 94ms)
+ GET / 200 in 118ms (next.js: 42ms, application-code: 77ms)
+ GET / 200 in 118ms (next.js: 59ms, application-code: 60ms)
+ GET / 200 in 41ms (next.js: 19ms, application-code: 22ms)
+ GET / 200 in 42ms (next.js: 2ms, application-code: 40ms)
+ GET / 200 in 119ms (next.js: 3ms, application-code: 116ms)
+ GET / 200 in 119ms (next.js: 21ms, application-code: 99ms)
+ GET / 200 in 80ms (next.js: 20ms, application-code: 60ms)
+ GET / 200 in 81ms (next.js: 3ms, application-code: 78ms)
+ GET / 200 in 81ms (next.js: 40ms, application-code: 41ms)
+ GET / 200 in 81ms (next.js: 59ms, application-code: 22ms)
+ GET / 200 in 168ms (next.js: 4ms, application-code: 164ms)
+ GET / 200 in 168ms (next.js: 22ms, application-code: 146ms)
+ GET / 200 in 168ms (next.js: 40ms, application-code: 128ms)
+ GET / 200 in 95ms (next.js: 5ms, application-code: 90ms)
+ GET / 200 in 93ms (next.js: 59ms, application-code: 34ms)
+ GET / 200 in 94ms (next.js: 33ms, application-code: 61ms)
+ GET / 200 in 117ms (next.js: 3ms, application-code: 114ms)
+ GET / 200 in 92ms (next.js: 71ms, application-code: 21ms)
+ GET / 200 in 94ms (next.js: 36ms, application-code: 57ms)
+ GET / 200 in 96ms (next.js: 3ms, application-code: 93ms)
+ GET / 200 in 95ms (next.js: 54ms, application-code: 41ms)
+ GET / 200 in 96ms (next.js: 20ms, application-code: 76ms)
+ GET / 200 in 192ms (next.js: 4ms, application-code: 188ms)
+ GET / 200 in 158ms (next.js: 5ms, application-code: 153ms)
+ GET / 200 in 157ms (next.js: 61ms, application-code: 96ms)
+ GET / 200 in 157ms (next.js: 89ms, application-code: 68ms)
+ GET / 200 in 160ms (next.js: 33ms, application-code: 126ms)
+ GET / 200 in 40ms (next.js: 3ms, application-code: 37ms)
+ GET / 200 in 230ms (next.js: 4ms, application-code: 226ms)
+ GET / 200 in 160ms (next.js: 5ms, application-code: 155ms)
+ GET / 200 in 159ms (next.js: 63ms, application-code: 96ms)
+ GET / 200 in 161ms (next.js: 35ms, application-code: 126ms)
+ GET / 200 in 160ms (next.js: 92ms, application-code: 68ms)
+ GET / 200 in 160ms (next.js: 122ms, application-code: 38ms)
+ GET / 200 in 186ms (next.js: 3ms, application-code: 182ms)
+ GET / 200 in 150ms (next.js: 5ms, application-code: 145ms)
+ GET / 200 in 150ms (next.js: 86ms, application-code: 64ms)
+ GET / 200 in 151ms (next.js: 59ms, application-code: 92ms)
+ GET / 200 in 151ms (next.js: 114ms, application-code: 37ms)
+ GET / 200 in 153ms (next.js: 32ms, application-code: 121ms)
+ GET / 200 in 193ms (next.js: 34ms, application-code: 159ms)
+ GET / 200 in 195ms (next.js: 5ms, application-code: 191ms)
+ GET / 200 in 194ms (next.js: 65ms, application-code: 129ms)
+ GET / 200 in 102ms (next.js: 5ms, application-code: 97ms)
+ GET / 200 in 101ms (next.js: 34ms, application-code: 67ms)
+ GET / 200 in 101ms (next.js: 58ms, application-code: 44ms)
+ GET / 200 in 118ms (next.js: 25ms, application-code: 93ms)
+ GET / 200 in 120ms (next.js: 3ms, application-code: 117ms)
+ GET / 200 in 119ms (next.js: 43ms, application-code: 76ms)
+ GET / 200 in 59ms (next.js: 3ms, application-code: 56ms)
+ GET / 200 in 58ms (next.js: 36ms, application-code: 23ms)
+ GET / 200 in 59ms (next.js: 19ms, application-code: 40ms)
+ GET / 200 in 117ms (next.js: 3ms, application-code: 114ms)
+ GET / 200 in 93ms (next.js: 39ms, application-code: 55ms)
+ GET / 200 in 94ms (next.js: 21ms, application-code: 73ms)
+ GET / 200 in 97ms (next.js: 3ms, application-code: 93ms)
+ GET / 200 in 95ms (next.js: 56ms, application-code: 39ms)
+ GET / 200 in 78ms (next.js: 55ms, application-code: 23ms)
+ GET / 200 in 129ms (next.js: 3ms, application-code: 127ms)
+ GET / 200 in 108ms (next.js: 3ms, application-code: 105ms)
+ GET / 200 in 108ms (next.js: 36ms, application-code: 72ms)
+ GET / 200 in 108ms (next.js: 20ms, application-code: 89ms)
+ GET / 200 in 108ms (next.js: 53ms, application-code: 55ms)
+ GET / 200 in 92ms (next.js: 69ms, application-code: 23ms)
+ GET / 200 in 125ms (next.js: 3ms, application-code: 122ms)
+ GET / 200 in 101ms (next.js: 4ms, application-code: 97ms)
+ GET / 200 in 100ms (next.js: 40ms, application-code: 61ms)
+ GET / 200 in 101ms (next.js: 22ms, application-code: 80ms)
+ GET / 200 in 101ms (next.js: 78ms, application-code: 23ms)
+ GET / 200 in 102ms (next.js: 58ms, application-code: 44ms)
+ GET / 200 in 180ms (next.js: 3ms, application-code: 177ms)
+ GET / 200 in 147ms (next.js: 57ms, application-code: 90ms)
+ GET / 200 in 148ms (next.js: 31ms, application-code: 118ms)
+ GET / 200 in 150ms (next.js: 4ms, application-code: 145ms)
+ GET / 200 in 149ms (next.js: 83ms, application-code: 66ms)
+ GET / 200 in 38ms (next.js: 3ms, application-code: 35ms)
+ GET / 200 in 217ms (next.js: 3ms, application-code: 214ms)
+ GET / 200 in 185ms (next.js: 6ms, application-code: 179ms)
+ GET / 200 in 184ms (next.js: 96ms, application-code: 87ms)
+ GET / 200 in 185ms (next.js: 68ms, application-code: 117ms)
+ GET / 200 in 120ms (next.js: 88ms, application-code: 32ms)
+ GET / 200 in 184ms (next.js: 123ms, application-code: 61ms)
+ GET / 200 in 100ms (next.js: 20ms, application-code: 80ms)
+ GET / 200 in 100ms (next.js: 75ms, application-code: 24ms)
+ GET / 200 in 101ms (next.js: 36ms, application-code: 66ms)
+ GET / 200 in 102ms (next.js: 54ms, application-code: 48ms)
+ GET / 200 in 104ms (next.js: 3ms, application-code: 101ms)
+ GET / 200 in 128ms (next.js: 2ms, application-code: 125ms)
+ GET / 200 in 139ms (next.js: 3ms, application-code: 135ms)
+ GET / 200 in 58ms (next.js: 22ms, application-code: 36ms)
+ GET / 200 in 115ms (next.js: 23ms, application-code: 92ms)
+ GET / 200 in 115ms (next.js: 39ms, application-code: 75ms)
+ GET / 200 in 95ms (next.js: 37ms, application-code: 58ms)
+ GET / 200 in 119ms (next.js: 4ms, application-code: 115ms)
+ GET / 200 in 111ms (next.js: 3ms, application-code: 109ms)
+ GET / 200 in 111ms (next.js: 23ms, application-code: 88ms)
+ GET / 200 in 72ms (next.js: 35ms, application-code: 37ms)
+ GET / 200 in 74ms (next.js: 3ms, application-code: 71ms)
+ GET / 200 in 73ms (next.js: 52ms, application-code: 20ms)
+ GET / 200 in 74ms (next.js: 18ms, application-code: 56ms)
+ GET / 200 in 207ms (next.js: 3ms, application-code: 204ms)
+ GET / 200 in 172ms (next.js: 5ms, application-code: 167ms)
+ GET / 200 in 170ms (next.js: 94ms, application-code: 76ms)
+ GET / 200 in 172ms (next.js: 64ms, application-code: 108ms)
+ GET / 200 in 171ms (next.js: 121ms, application-code: 50ms)
+ GET / 200 in 174ms (next.js: 35ms, application-code: 139ms)
+ GET / 200 in 196ms (next.js: 99ms, application-code: 97ms)
+ GET / 200 in 198ms (next.js: 52ms, application-code: 147ms)
+ GET / 200 in 198ms (next.js: 82ms, application-code: 117ms)
+ GET / 200 in 198ms (next.js: 118ms, application-code: 80ms)
+ GET / 200 in 197ms (next.js: 153ms, application-code: 44ms)
+ GET / 200 in 27ms (next.js: 2ms, application-code: 25ms)
+ GET / 200 in 118ms (next.js: 3ms, application-code: 115ms)
+ GET / 200 in 96ms (next.js: 3ms, application-code: 93ms)
+ GET / 200 in 95ms (next.js: 38ms, application-code: 58ms)
+ GET / 200 in 96ms (next.js: 56ms, application-code: 39ms)
+ GET / 200 in 96ms (next.js: 74ms, application-code: 22ms)
+ GET / 200 in 98ms (next.js: 20ms, application-code: 77ms)
+ GET / 200 in 122ms (next.js: 3ms, application-code: 119ms)
+ GET / 200 in 123ms (next.js: 43ms, application-code: 80ms)
+ GET / 200 in 124ms (next.js: 24ms, application-code: 100ms)
+ GET / 200 in 60ms (next.js: 38ms, application-code: 23ms)
+ GET / 200 in 62ms (next.js: 3ms, application-code: 59ms)
+ GET / 200 in 63ms (next.js: 20ms, application-code: 43ms)
+ GET / 200 in 119ms (next.js: 6ms, application-code: 113ms)
+ GET / 200 in 118ms (next.js: 61ms, application-code: 57ms)
+ GET / 200 in 117ms (next.js: 78ms, application-code: 39ms)
+ GET / 200 in 119ms (next.js: 43ms, application-code: 76ms)
+ GET / 200 in 120ms (next.js: 25ms, application-code: 95ms)
+ GET / 200 in 98ms (next.js: 75ms, application-code: 23ms)
+ GET / 200 in 182ms (next.js: 3ms, application-code: 178ms)
+ GET / 200 in 160ms (next.js: 83ms, application-code: 78ms)
+ GET / 200 in 162ms (next.js: 64ms, application-code: 98ms)
+ GET / 200 in 60ms (next.js: 3ms, application-code: 57ms)
+ GET / 200 in 61ms (next.js: 20ms, application-code: 40ms)
+ GET / 200 in 61ms (next.js: 39ms, application-code: 22ms)
+ GET / 200 in 172ms (next.js: 4ms, application-code: 168ms)
+ GET / 200 in 172ms (next.js: 53ms, application-code: 119ms)
+ GET / 200 in 173ms (next.js: 26ms, application-code: 147ms)
+ GET / 200 in 173ms (next.js: 73ms, application-code: 99ms)
+ GET / 200 in 57ms (next.js: 3ms, application-code: 53ms)
+ GET / 200 in 57ms (next.js: 24ms, application-code: 33ms)
+ GET / 200 in 128ms (next.js: 2ms, application-code: 126ms)
+ GET / 200 in 104ms (next.js: 43ms, application-code: 60ms)
+ GET / 200 in 105ms (next.js: 25ms, application-code: 80ms)
+ GET / 200 in 107ms (next.js: 5ms, application-code: 103ms)
+ GET / 200 in 105ms (next.js: 80ms, application-code: 25ms)
+ GET / 200 in 106ms (next.js: 62ms, application-code: 43ms)
+ GET / 200 in 107ms (next.js: 3ms, application-code: 104ms)
+ GET / 200 in 81ms (next.js: 4ms, application-code: 77ms)
+ GET / 200 in 81ms (next.js: 41ms, application-code: 40ms)
+ GET / 200 in 80ms (next.js: 58ms, application-code: 22ms)
+ GET / 200 in 82ms (next.js: 23ms, application-code: 60ms)
+ GET / 200 in 123ms (next.js: 3ms, application-code: 121ms)
+ GET / 200 in 101ms (next.js: 58ms, application-code: 43ms)
+ GET / 200 in 103ms (next.js: 3ms, application-code: 100ms)
+ GET / 200 in 103ms (next.js: 20ms, application-code: 83ms)
+ GET / 200 in 104ms (next.js: 39ms, application-code: 64ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 23ms)
+ GET / 200 in 125ms (next.js: 4ms, application-code: 122ms)
+ GET / 200 in 125ms (next.js: 23ms, application-code: 102ms)
+ GET / 200 in 83ms (next.js: 39ms, application-code: 44ms)
+ GET / 200 in 85ms (next.js: 3ms, application-code: 82ms)
+ GET / 200 in 26ms (next.js: 3ms, application-code: 24ms)
+ GET / 200 in 86ms (next.js: 21ms, application-code: 65ms)
+ GET / 200 in 126ms (next.js: 5ms, application-code: 121ms)
+ GET / 200 in 99ms (next.js: 39ms, application-code: 61ms)
+ GET / 200 in 101ms (next.js: 3ms, application-code: 98ms)
+ GET / 200 in 101ms (next.js: 21ms, application-code: 81ms)
+ GET / 200 in 45ms (next.js: 3ms, application-code: 42ms)
+ GET / 200 in 45ms (next.js: 20ms, application-code: 25ms)
+ GET / 200 in 148ms (next.js: 3ms, application-code: 145ms)
+ GET / 200 in 148ms (next.js: 25ms, application-code: 124ms)
+ GET / 200 in 80ms (next.js: 3ms, application-code: 76ms)
+ GET / 200 in 79ms (next.js: 40ms, application-code: 39ms)
+ GET / 200 in 79ms (next.js: 56ms, application-code: 23ms)
+ GET / 200 in 80ms (next.js: 22ms, application-code: 58ms)
+ GET / 200 in 122ms (next.js: 3ms, application-code: 119ms)
+ GET / 200 in 100ms (next.js: 4ms, application-code: 96ms)
+ GET / 200 in 100ms (next.js: 23ms, application-code: 77ms)
+ GET / 200 in 59ms (next.js: 20ms, application-code: 39ms)
+ GET / 200 in 61ms (next.js: 3ms, application-code: 57ms)
+ GET / 200 in 60ms (next.js: 37ms, application-code: 23ms)
+ GET / 200 in 147ms (next.js: 2ms, application-code: 145ms)
+ GET / 200 in 123ms (next.js: 42ms, application-code: 81ms)
+ GET / 200 in 125ms (next.js: 4ms, application-code: 121ms)
+ GET / 200 in 124ms (next.js: 60ms, application-code: 64ms)
+ GET / 200 in 125ms (next.js: 23ms, application-code: 102ms)
+ GET / 200 in 125ms (next.js: 79ms, application-code: 46ms)
+ GET / 200 in 119ms (next.js: 3ms, application-code: 116ms)
+ GET / 200 in 95ms (next.js: 3ms, application-code: 91ms)
+ GET / 200 in 94ms (next.js: 55ms, application-code: 39ms)
+ GET / 200 in 95ms (next.js: 38ms, application-code: 57ms)
+ GET / 200 in 95ms (next.js: 73ms, application-code: 22ms)
+ GET / 200 in 96ms (next.js: 20ms, application-code: 76ms)
+ GET / 200 in 147ms (next.js: 52ms, application-code: 96ms)
+ GET / 200 in 150ms (next.js: 3ms, application-code: 147ms)
+ GET / 200 in 151ms (next.js: 34ms, application-code: 117ms)
+ GET / 200 in 78ms (next.js: 4ms, application-code: 74ms)
+ GET / 200 in 78ms (next.js: 29ms, application-code: 49ms)
+ GET / 200 in 78ms (next.js: 52ms, application-code: 27ms)
+ GET / 200 in 155ms (next.js: 3ms, application-code: 152ms)
+ GET / 200 in 135ms (next.js: 4ms, application-code: 130ms)
+ GET / 200 in 112ms (next.js: 21ms, application-code: 91ms)
+ GET / 200 in 113ms (next.js: 3ms, application-code: 110ms)
+ GET / 200 in 113ms (next.js: 38ms, application-code: 75ms)
+ GET / 200 in 113ms (next.js: 81ms, application-code: 31ms)
+ GET / 200 in 104ms (next.js: 23ms, application-code: 82ms)
+ GET / 200 in 106ms (next.js: 3ms, application-code: 103ms)
+ GET / 200 in 106ms (next.js: 42ms, application-code: 64ms)
+ GET / 200 in 106ms (next.js: 59ms, application-code: 47ms)
+ GET / 200 in 28ms (next.js: 2ms, application-code: 26ms)
+ GET / 200 in 124ms (next.js: 3ms, application-code: 121ms)
+ GET / 200 in 125ms (next.js: 24ms, application-code: 100ms)
+ GET / 200 in 80ms (next.js: 22ms, application-code: 58ms)
+ GET / 200 in 81ms (next.js: 3ms, application-code: 78ms)
+ GET / 200 in 80ms (next.js: 40ms, application-code: 41ms)
+ GET / 200 in 24ms (next.js: 1966µs, application-code: 22ms)
+ GET / 200 in 147ms (next.js: 3ms, application-code: 143ms)
+ GET / 200 in 125ms (next.js: 3ms, application-code: 122ms)
+ GET / 200 in 125ms (next.js: 53ms, application-code: 71ms)
+ GET / 200 in 125ms (next.js: 69ms, application-code: 56ms)
+ GET / 200 in 127ms (next.js: 21ms, application-code: 106ms)
+ GET / 200 in 127ms (next.js: 37ms, application-code: 90ms)
+ GET / 200 in 225ms (next.js: 72ms, application-code: 153ms)
+ GET / 200 in 231ms (next.js: 44ms, application-code: 187ms)
+ GET / 200 in 233ms (next.js: 5ms, application-code: 228ms)
+ GET / 200 in 126ms (next.js: 4ms, application-code: 122ms)
+ GET / 200 in 126ms (next.js: 32ms, application-code: 94ms)
+ GET / 200 in 126ms (next.js: 69ms, application-code: 58ms)
+ GET / 200 in 123ms (next.js: 3ms, application-code: 121ms)
+ GET / 200 in 97ms (next.js: 21ms, application-code: 76ms)
+ GET / 200 in 96ms (next.js: 57ms, application-code: 39ms)
+ GET / 200 in 97ms (next.js: 38ms, application-code: 59ms)
+ GET / 200 in 97ms (next.js: 74ms, application-code: 23ms)
+ GET / 200 in 100ms (next.js: 3ms, application-code: 96ms)
+ GET / 200 in 131ms (next.js: 3ms, application-code: 128ms)
+ GET / 200 in 132ms (next.js: 22ms, application-code: 111ms)
+ GET / 200 in 132ms (next.js: 108ms, application-code: 25ms)
+ GET / 200 in 134ms (next.js: 57ms, application-code: 76ms)
+ GET / 200 in 161ms (next.js: 2ms, application-code: 159ms)
+ GET / 200 in 137ms (next.js: 39ms, application-code: 98ms)
+ GET / 200 in 118ms (next.js: 24ms, application-code: 94ms)
+ GET / 200 in 118ms (next.js: 41ms, application-code: 78ms)
+ GET / 200 in 119ms (next.js: 58ms, application-code: 61ms)
+ GET / 200 in 119ms (next.js: 76ms, application-code: 43ms)
+ GET / 200 in 124ms (next.js: 5ms, application-code: 119ms)
+ GET / 200 in 26ms (next.js: 1993µs, application-code: 24ms)
+ GET / 200 in 119ms (next.js: 23ms, application-code: 96ms)
+ GET / 200 in 121ms (next.js: 3ms, application-code: 118ms)
+ GET / 200 in 77ms (next.js: 19ms, application-code: 58ms)
+ GET / 200 in 79ms (next.js: 3ms, application-code: 76ms)
+ GET / 200 in 78ms (next.js: 36ms, application-code: 42ms)
+ GET / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+ GET / 200 in 157ms (next.js: 4ms, application-code: 154ms)
+ GET / 200 in 135ms (next.js: 4ms, application-code: 131ms)
+ GET / 200 in 135ms (next.js: 21ms, application-code: 114ms)
+ GET / 200 in 72ms (next.js: 5ms, application-code: 67ms)
+ GET / 200 in 72ms (next.js: 25ms, application-code: 47ms)
+ GET / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+ GET / 200 in 126ms (next.js: 4ms, application-code: 122ms)
+ GET / 200 in 126ms (next.js: 24ms, application-code: 102ms)
+ GET / 200 in 126ms (next.js: 44ms, application-code: 82ms)
+ GET / 200 in 63ms (next.js: 22ms, application-code: 41ms)
+ GET / 200 in 65ms (next.js: 3ms, application-code: 62ms)
+ GET / 200 in 64ms (next.js: 39ms, application-code: 25ms)
+ GET / 200 in 117ms (next.js: 2ms, application-code: 114ms)
+ GET / 200 in 96ms (next.js: 3ms, application-code: 93ms)
+ GET / 200 in 96ms (next.js: 20ms, application-code: 76ms)
+ GET / 200 in 96ms (next.js: 36ms, application-code: 60ms)
+ GET / 200 in 96ms (next.js: 53ms, application-code: 43ms)
+ GET / 200 in 26ms (next.js: 2ms, application-code: 24ms)
+ GET / 200 in 160ms (next.js: 23ms, application-code: 136ms)
+ GET / 200 in 161ms (next.js: 3ms, application-code: 158ms)
+ GET / 200 in 85ms (next.js: 4ms, application-code: 80ms)
+ GET / 200 in 84ms (next.js: 58ms, application-code: 26ms)
+ GET / 200 in 85ms (next.js: 34ms, application-code: 51ms)
+ GET / 200 in 130ms (next.js: 3ms, application-code: 127ms)
+ GET / 200 in 109ms (next.js: 5ms, application-code: 104ms)
+ GET / 200 in 108ms (next.js: 23ms, application-code: 85ms)
+ GET / 200 in 88ms (next.js: 22ms, application-code: 67ms)
+ GET / 200 in 88ms (next.js: 39ms, application-code: 49ms)
+ GET / 200 in 30ms (next.js: 2ms, application-code: 27ms)
+ GET / 200 in 168ms (next.js: 2ms, application-code: 166ms)
+ GET / 200 in 148ms (next.js: 22ms, application-code: 126ms)
+ GET / 200 in 149ms (next.js: 3ms, application-code: 146ms)
+ GET / 200 in 149ms (next.js: 39ms, application-code: 110ms)
+ GET / 200 in 44ms (next.js: 3ms, application-code: 42ms)
+ GET / 200 in 44ms (next.js: 21ms, application-code: 23ms)
+ GET / 200 in 166ms (next.js: 5ms, application-code: 161ms)
+ GET / 200 in 166ms (next.js: 32ms, application-code: 134ms)
+ GET / 200 in 165ms (next.js: 85ms, application-code: 80ms)
+ GET / 200 in 59ms (next.js: 37ms, application-code: 22ms)
+ GET / 200 in 61ms (next.js: 4ms, application-code: 57ms)
+ GET / 200 in 61ms (next.js: 21ms, application-code: 40ms)
+ GET / 200 in 123ms (next.js: 4ms, application-code: 120ms)
+ GET / 200 in 124ms (next.js: 25ms, application-code: 99ms)
+ GET / 200 in 124ms (next.js: 45ms, application-code: 79ms)
+ GET / 200 in 82ms (next.js: 22ms, application-code: 60ms)
+ GET / 200 in 62ms (next.js: 21ms, application-code: 41ms)
+ GET / 200 in 43ms (next.js: 19ms, application-code: 24ms)
+ GET / 200 in 162ms (next.js: 3ms, application-code: 159ms)
+ GET / 200 in 132ms (next.js: 10ms, application-code: 122ms)
+ GET / 200 in 132ms (next.js: 32ms, application-code: 100ms)
+ GET / 200 in 132ms (next.js: 51ms, application-code: 81ms)
+ GET / 200 in 84ms (next.js: 21ms, application-code: 63ms)
+ GET / 200 in 47ms (next.js: 2ms, application-code: 45ms)
+ GET / 200 in 103ms (next.js: 2ms, application-code: 100ms)
+ GET / 200 in 78ms (next.js: 54ms, application-code: 24ms)
+ GET / 200 in 79ms (next.js: 36ms, application-code: 43ms)
+ GET / 200 in 80ms (next.js: 20ms, application-code: 60ms)
+ GET / 200 in 81ms (next.js: 3ms, application-code: 78ms)
+ GET / 200 in 22ms (next.js: 2ms, application-code: 20ms)
+ GET / 200 in 995ms (next.js: 61ms, application-code: 933ms)
+ GET / 200 in 994ms (next.js: 89ms, application-code: 906ms)
+ GET / 200 in 998ms (next.js: 6ms, application-code: 992ms)
+ GET / 200 in 997ms (next.js: 34ms, application-code: 963ms)
+ GET / 200 in 876ms (next.js: 51ms, application-code: 825ms)
+ GET / 200 in 754ms (next.js: 8ms, application-code: 746ms)
+ GET / 200 in 155ms (next.js: 4ms, application-code: 151ms)
+ GET / 200 in 155ms (next.js: 38ms, application-code: 117ms)
+ GET / 200 in 87ms (next.js: 21ms, application-code: 66ms)
+ GET / 200 in 88ms (next.js: 3ms, application-code: 85ms)
+ GET / 200 in 88ms (next.js: 39ms, application-code: 49ms)
+ GET / 200 in 88ms (next.js: 57ms, application-code: 31ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 72ms (next.js: 50ms, application-code: 21ms)
+ GET / 200 in 112ms (next.js: 8ms, application-code: 104ms)
+ GET / 200 in 111ms (next.js: 50ms, application-code: 61ms)
+ GET / 200 in 112ms (next.js: 31ms, application-code: 81ms)
+ GET / 200 in 42ms (next.js: 2ms, application-code: 40ms)
+ GET / 200 in 42ms (next.js: 20ms, application-code: 22ms)
+ GET / 200 in 31ms (next.js: 3ms, application-code: 28ms)
+ GET / 200 in 21ms (next.js: 2ms, application-code: 19ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 15ms (next.js: 5ms, application-code: 10ms)
+[departure-reminders] ✅ Done in 10ms — checked: 0, sent: 0, skipped: 0, errors: 0
+ POST /api/cron/departure-reminders 200 in 213ms (next.js: 196ms, application-code: 16ms)
+ GET /pwa-passager 200 in 805ms (next.js: 635ms, application-code: 170ms)
+ GET /pwa-passager 200 in 51ms (next.js: 3ms, application-code: 48ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ POST /api/auth/login 200 in 232ms (next.js: 112ms, application-code: 121ms)
+ GET /busgo/connexion 200 in 212ms (next.js: 11ms, proxy.ts: 56ms, application-code: 145ms)
+ GET /api/busgo/voix 401 in 36ms (next.js: 27ms, application-code: 8ms)
+ GET /api/auth/session 200 in 33ms (next.js: 25ms, application-code: 7ms)
+ GET /busgo/connexion 200 in 13ms (next.js: 3ms, proxy.ts: 4ms, application-code: 6ms)
+ GET /busgo/connexion 200 in 28ms (next.js: 2ms, proxy.ts: 3ms, application-code: 22ms)
+ GET /busgo 200 in 114ms (next.js: 34ms, proxy.ts: 7ms, application-code: 73ms)
+ GET /api/auth/session 200 in 15ms (next.js: 9ms, application-code: 7ms)
+ GET /api/busgo/voix 200 in 19ms (next.js: 3ms, application-code: 16ms)
+ GET /api/busgo/trajets 200 in 44ms (next.js: 29ms, application-code: 15ms)
+ GET /busgo/embarquement/dep-demo-agency-1-route-Dakar-Thi%C3%A8s-17 200 in 1205ms (next.js: 1156ms, proxy.ts: 4ms, application-code: 45ms)
+ GET /api/busgo/voix 200 in 42ms (next.js: 12ms, application-code: 30ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/busgo/trajets/dep-demo-agency-1-route-Dakar-Thi%C3%A8s-17 200 in 743ms (next.js: 729ms, application-code: 15ms)
+ GET /busgo/scanner 200 in 101ms (next.js: 16ms, proxy.ts: 6ms, application-code: 79ms)
+ GET /api/auth/session 200 in 23ms (next.js: 4ms, application-code: 19ms)
+ GET /api/busgo/voix 200 in 36ms (next.js: 14ms, application-code: 22ms)
+[browser] Camera error: Error getting userMedia, error = NotFoundError: Requested device not found 
+    at ScannerComponent.useEffect.startScanner (src/app/busgo/scanner/page.tsx:213:17)
+  211 |         }
+  212 |       } catch (err: any) {
+> 213 |         console.error('Camera error:', err);
+      |                 ^
+  214 |         if (cancelled) return;
+  215 |
+  216 |         // Granular error handling (src/app/busgo/scanner/page.tsx:213:17)
+ GET /busgo/voix 200 in 77ms (next.js: 14ms, proxy.ts: 4ms, application-code: 58ms)
+ GET /api/auth/session 200 in 13ms (next.js: 2ms, application-code: 11ms)
+ GET /api/busgo/voix 200 in 20ms (next.js: 8ms, application-code: 12ms)
+ GET /api/busgo/notification-templates 200 in 50ms (next.js: 32ms, application-code: 18ms)
+ GET /api/busgo/voix 200 in 51ms (next.js: 38ms, application-code: 13ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ POST /api/busgo/notification-templates 200 in 15ms (next.js: 4ms, application-code: 11ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 13ms (next.js: 3ms, application-code: 10ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/demo/missing-passengers?agencyId=demo-agency-1 200 in 10ms (next.js: 2ms, application-code: 8ms)

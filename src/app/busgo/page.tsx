@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Clock, ScanLine, MapPin, Bus, Loader2, AlertCircle, ChevronRight,
   Play, CheckCircle2, UserCheck, Navigation, BarChart3, Bell,
@@ -54,6 +55,7 @@ function getMinutesUntil(iso: string): number {
 
 export default function BusGoDashboard() {
   const { user } = useAuth();
+  const router = useRouter();
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -367,4 +369,4 @@ export default function BusGoDashboard() {
 }
 
 // Need router import
-import { useRouter } from 'next/navigation';
+// (useRouter is now imported at the top of the file and used inside BusGoDashboard)

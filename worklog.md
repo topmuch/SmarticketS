@@ -2008,3 +2008,42 @@ Prisma:
 - `prisma/schema.prisma` lines 930-943: BusGoNotificationTemplate model
 - `prisma/schema.prisma` lines 946-957: BusGoNotificationLog model
 
+
+---
+Task ID: FIX-BUSGO-BUGS
+Agent: Main Agent
+Task: Fix 5 BUSGO bugs (P0: #1→#3→#2→#5, P1: #4)
+
+Work Log:
+- BUG #1 (Toasts muets): Added `<SonnerToaster />` from `@/components/ui/sonner` to root layout (`src/app/layout.tsx:5,336`) alongside existing shadcn `<Toaster />`. 40 files were calling `toast.success/error` from sonner but the Toaster was never mounted → toasts silently swallowed.
+- BUG #3a (Scanner crash): Rewrote `src/app/busgo/scanner/page.tsx` camera effect (lines 154-256):
+  - Added `scannerStartedRef` to track if `scanner.start()` succeeded
+  - Cleanup now only calls `.stop()` if scanner was actually started (was throwing "Cannot stop, scanner is not running or paused" → caught by ErrorBoundary → "Oups!")
+  - Added pre-checks for HTTPS + getUserMedia API availability
+  - Added granular error handling: NotAllowedError, NotFoundError, NotReadableError, OverconstrainedError → each with specific user-facing message
+  - Added `cameraError` state + error card UI with "Saisie manuelle" and "Réessayer" buttons
+- BUG #3b (Dashboard crash): Added `import { useRouter } from 'next/navigation'` + `const router = useRouter()` in `BusGoDashboard()` (`src/app/busgo/page.tsx:13,58`). The component referenced `router.push()` in 3 KPI card onClick handlers but never instantiated the router → ReferenceError.
+- BUG #2 (QR→SmarticketS): Created `public/manifest-busgo.json` (BusGo branding: short_name "Bus Go", theme_color "#F97316", scope "/pwa-passager/") + `src/app/pwa-passager/layout.tsx` that overrides `metadata.manifest` to "/manifest-busgo.json". Root manifest.json (SmarticketS) unchanged.
+- BUG #5 (No T-5min scheduler): Created `src/app/api/cron/departure-reminders/route.ts` — handles 4 reminder types (reminder_1h, bags_45min, boarding_30min, departure_5min) with ±60s tolerance window. Uses BusGoNotificationLog existence check for idempotency (no schema change needed). GET + POST methods (cron-friendly + browser-testable).
+- BUG #4 (Ding-dong muet): Modified `src/hooks/use-agent-vocal-alerts.ts`:
+  - Added `dingDongUrlRef` + fetch from `/api/busgo/voix` on mount (lines 78-126)
+  - Preloads the MP3 via `new Audio(url).load()` for instant playback
+  - `speak()` now passes `dingDongUrlRef.current` as `customAudioUrl` (3rd arg) to `manager.enqueue()` (line 196) — was always `undefined`
+  - Added user-gesture unlock effect (lines 136-181): listens for first click/touch/keydown, resumes AudioContext + unlocks speechSynthesis with silent utterance (Chrome/Safari autoplay policy)
+
+Verification (Agent Browser + curl):
+- Bug #1: `sonnerToasterExists: true`, `sonnerToastVisible: true`, `toastText: "Template client enregistré !"` ✅
+- Bug #2: `<link rel="manifest" href="/manifest-busgo.json">` + `<meta theme-color="#F97316">` + `<meta apple-mobile-web-app-title="Bus Go">` in /pwa-passager HTML ✅
+- Bug #3a: Scanner page shows "⚠️ Erreur caméra" card with retry/manual buttons (no more "Oups!") ✅
+- Bug #3b: Click "Gérer l'embarquement" → navigates to /busgo/embarquement/dep-... (was crashing with ReferenceError) ✅
+- Bug #5: POST /api/cron/departure-reminders → 200 `{success: true, departuresFound: 1, errors: 0}` ✅
+- Bug #4: Code-level fix (dingDongUrl fetched + passed to enqueue + user-gesture unlock) — runtime audio verification requires real agency MP3 upload + user gesture, not testable in headless browser ✅
+
+Lint: 0 errors, 3 warnings (all pre-existing in untouched files pwa-passager/scan + pwa-passager/settings)
+
+Stage Summary:
+- All 5 bugs fixed and verified (4 via runtime browser test, 1 via code review)
+- 6 files modified: layout.tsx, busgo/scanner/page.tsx, busgo/page.tsx, use-agent-vocal-alerts.ts
+- 3 files created: public/manifest-busgo.json, src/app/pwa-passager/layout.tsx, src/app/api/cron/departure-reminders/route.ts
+- No schema migration needed (reused BusGoNotificationLog for idempotency tracking)
+- Screenshots: bug-proof/fix1-toast-visible.png, bug-proof/fix3-scanner-fixed.png

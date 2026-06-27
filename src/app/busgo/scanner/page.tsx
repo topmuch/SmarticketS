@@ -75,8 +75,10 @@ function ScannerComponent() {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<{ title: string; message: string } | null>(null);
   const scannerRef = useRef<any>(null);
   const html5QrcodeRef = useRef<any>(null);
+  const scannerStartedRef = useRef(false);
 
   const handleScanResult = async (decodedText: string) => {
     if (scanning) return; // Prevent multiple scans
@@ -154,6 +156,28 @@ function ScannerComponent() {
     if (mode !== 'camera') return;
 
     let cancelled = false;
+    setCameraError(null);
+
+    // Pre-check: HTTPS requirement (camera needs secure context)
+    if (typeof window !== 'undefined' &&
+        window.location.protocol !== 'https:' &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1') {
+      setCameraError({
+        title: '🔒 HTTPS requis',
+        message: 'La caméra nécessite une connexion sécurisée (HTTPS). Utilisez la saisie manuelle.',
+      });
+      return;
+    }
+
+    // Pre-check: getUserMedia API availability
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError({
+        title: '📷 Caméra non supportée',
+        message: 'Votre navigateur ne supporte pas l\'accès caméra. Utilisez la saisie manuelle.',
+      });
+      return;
+    }
 
     const startScanner = async () => {
       try {
@@ -174,20 +198,42 @@ function ScannerComponent() {
           (decodedText) => {
             handleScanResult(decodedText);
           },
-          () => { /* QR not found — ignore */ }
+          () => { /* QR not found — ignore (normal during scanning) */ }
         );
 
         if (!cancelled) {
+          scannerStartedRef.current = true;
           setCameraActive(true);
         } else {
-          scanner.stop().catch(() => {});
+          // Cancelled during async start — clean up safely
+          try { await scanner.stop(); } catch { /* not started or already stopped */ }
+          try { scanner.clear(); } catch { /* ignore */ }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Camera error:', err);
-        if (!cancelled) {
-          toast.error('Caméra non disponible. Utilisez la saisie manuelle.');
-          setMode('manual');
+        if (cancelled) return;
+
+        // Granular error handling
+        const errName = err?.name || '';
+        let title = '⚠️ Erreur caméra';
+        let message = err?.message || 'Erreur inattendue lors de l\'accès caméra.';
+
+        if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+          title = '📷 Permission caméra refusée';
+          message = 'Veuillez autoriser l\'accès à la caméra dans les paramètres de votre navigateur, puis réessayez.';
+        } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+          title = '📷 Aucune caméra détectée';
+          message = 'Aucune caméra n\'a été trouvée sur cet appareil. Utilisez la saisie manuelle.';
+        } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+          title = '📷 Caméra occupée';
+          message = 'La caméra est utilisée par une autre application. Fermez-la et réessayez.';
+        } else if (errName === 'OverconstrainedError' || errName === 'ConstraintNotSatisfiedError') {
+          title = '📷 Caméra arrière indisponible';
+          message = 'La caméra arrière n\'est pas disponible. Utilisez la saisie manuelle.';
         }
+
+        setCameraError({ title, message });
+        toast.error(title);
       }
     };
 
@@ -195,12 +241,18 @@ function ScannerComponent() {
 
     return () => {
       cancelled = true;
-      if (html5QrcodeRef.current) {
-        html5QrcodeRef.current.stop().catch(() => {});
-        html5QrcodeRef.current.clear().catch(() => {});
+      // Only call stop() if scanner was actually started — otherwise it throws
+      // "Cannot stop, scanner is not running or paused" which crashes the ErrorBoundary.
+      if (html5QrcodeRef.current && scannerStartedRef.current) {
+        html5QrcodeRef.current.stop().catch(() => { /* already stopped */ });
+        html5QrcodeRef.current.clear().catch(() => { /* already cleared */ });
+        scannerStartedRef.current = false;
+      } else if (html5QrcodeRef.current) {
+        // Scanner instance exists but never started — only clear, never stop.
+        html5QrcodeRef.current.clear().catch(() => { /* ignore */ });
       }
+      html5QrcodeRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   return (
@@ -268,18 +320,51 @@ function ScannerComponent() {
         {mode === 'camera' && (
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4">
-              <div id="qr-reader" className="w-full rounded-lg overflow-hidden bg-black" style={{ minHeight: '300px' }} />
-              {!cameraActive && (
-                <div className="text-center py-8">
-                  <Camera className="h-12 w-12 text-slate-500 mx-auto mb-2" />
-                  <p className="text-sm text-slate-400">Activation de la caméra...</p>
-                  <Loader2 className="h-4 w-4 animate-spin text-amber-500 mx-auto mt-2" />
+              {cameraError ? (
+                <div className="text-center py-8 space-y-4">
+                  <AlertCircle className="h-12 w-12 text-rose-400 mx-auto mb-2" />
+                  <p className="font-bold text-rose-400">{cameraError.title}</p>
+                  <p className="text-sm text-slate-400">{cameraError.message}</p>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button
+                      onClick={() => {
+                        setCameraError(null);
+                        setMode('manual');
+                      }}
+                      className="bg-amber-600 hover:bg-amber-700"
+                    >
+                      <Keyboard className="h-4 w-4 mr-2" /> Saisie manuelle
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCameraError(null);
+                        // Force re-mount of the effect by toggling mode
+                        setMode('manual');
+                        setTimeout(() => setMode('camera'), 100);
+                      }}
+                      className="text-white border-white/30"
+                    >
+                      <Camera className="h-4 w-4 mr-2" /> Réessayer la caméra
+                    </Button>
+                  </div>
                 </div>
-              )}
-              {cameraActive && (
-                <p className="text-xs text-center text-slate-400 mt-2">
-                  Pointez la caméra vers le QR code du passager
-                </p>
+              ) : (
+                <>
+                  <div id="qr-reader" className="w-full rounded-lg overflow-hidden bg-black" style={{ minHeight: '300px' }} />
+                  {!cameraActive && (
+                    <div className="text-center py-8">
+                      <Camera className="h-12 w-12 text-slate-500 mx-auto mb-2" />
+                      <p className="text-sm text-slate-400">Activation de la caméra...</p>
+                      <Loader2 className="h-4 w-4 animate-spin text-amber-500 mx-auto mt-2" />
+                    </div>
+                  )}
+                  {cameraActive && (
+                    <p className="text-xs text-center text-slate-400 mt-2">
+                      Pointez la caméra vers le QR code du passager
+                    </p>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

@@ -75,6 +75,12 @@ export function useAgentVocalAlerts() {
   const configRef = useRef(config);
   const managerRef = useRef<VocalManager | null>(null);
 
+  // ─── BUG #4 fix: fetch agency's dingDongUrl from /api/busgo/voix ───
+  // The uploaded MP3 was stored in DB but never passed to the audio system.
+  // We keep it in a ref so `speak()` can pass it as customAudioUrl to enqueue().
+  const dingDongUrlRef = useRef<string | null>(null);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+
   // Keep ref synced with state for use in event handlers
   useEffect(() => {
     configRef.current = config;
@@ -97,6 +103,28 @@ export function useAgentVocalAlerts() {
     // Get VocalManager singleton
     managerRef.current = VocalManager.getInstance();
 
+    // ─── BUG #4 fix: fetch dingDongUrl from agency config ───
+    // This runs once on mount. If the admin updates the ding-dong, the user
+    // needs to reload the page (acceptable trade-off vs. polling).
+    fetch('/api/busgo/voix', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.data?.dingDongUrl) {
+          dingDongUrlRef.current = data.data.dingDongUrl;
+          // Preload the audio file so it plays instantly when needed
+          try {
+            const audio = new Audio(data.data.dingDongUrl);
+            audio.preload = 'auto';
+            audio.load();
+          } catch {
+            /* ignore preload errors */
+          }
+        }
+      })
+      .catch(() => {
+        /* ignore — fallback to synthesized ding-dong */
+      });
+
     return () => {
       // Cleanup on unmount — cancel any pending speech
       if (managerRef.current) {
@@ -104,6 +132,53 @@ export function useAgentVocalAlerts() {
       }
     };
   }, []);
+
+  // ─── BUG #4 fix: AudioContext user-gesture unlock ───
+  // Chrome/Safari block AudioContext + speechSynthesis until a user gesture.
+  // We listen for the first click/touch and unlock the audio system.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (audioUnlocked) return;
+
+    const unlockAudio = () => {
+      try {
+        // Resume AudioContext if suspended
+        const AudioCtx =
+          (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          // The audioSystem manages its own AudioContext; we just trigger a
+          // silent playDingDong() call to force resume.
+          // Importing dynamically to avoid circular deps in SSR.
+          import('@/lib/audioSystem').then(({ playDingDong }) => {
+            try { playDingDong(); } catch { /* silent */ }
+          });
+        }
+        // Unlock speechSynthesis with a silent utterance
+        if ('speechSynthesis' in window) {
+          const u = new SpeechSynthesisUtterance('');
+          u.volume = 0;
+          window.speechSynthesis.speak(u);
+        }
+        setAudioUnlocked(true);
+      } catch {
+        /* ignore */
+      }
+      // Remove listeners after first gesture
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
+    document.addEventListener('keydown', unlockAudio, { once: true });
+
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+  }, [audioUnlocked]);
 
   // Speak text immediately (respects enabled flag)
   const speak = useCallback((text: string, priority: AnnouncementPriority = AnnouncementPriority.NORMAL) => {
@@ -114,8 +189,12 @@ export function useAgentVocalAlerts() {
     const manager = managerRef.current ?? VocalManager.getInstance();
     managerRef.current = manager;
 
+    // ─── BUG #4 fix: pass dingDongUrl as customAudioUrl ───
     // VocalManager.enqueue signature: (text, priority, customAudioUrl?, departureKey?)
-    manager.enqueue(text, priority, undefined, undefined);
+    // - If dingDongUrl is set (admin uploaded MP3), play it BEFORE the TTS.
+    // - If null, the audioSystem falls back to its synthesized oscillator ding-dong.
+    const customAudioUrl = dingDongUrlRef.current || undefined;
+    manager.enqueue(text, priority, customAudioUrl, undefined);
   }, []);
 
   // Higher-level helpers — use the build* functions from audioSystem
