@@ -42,6 +42,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: [
     "preview-chat-85c5b960-1b57-4ff4-a65d-6df0767d05e6.space-z.ai",
+    "preview-chat-d9d309ca-5de3-407b-a6cf-1f50ae1048d3.space-z.ai",
   ],
 };
 

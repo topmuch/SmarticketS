@@ -1,55 +1,14 @@
 [kiosk-service] Installing dependencies...
 bun install v1.3.14 (0d9b296a)
 
-Checked 22 installs across 23 packages (no changes) [1.00ms]
++ socket.io@4.8.3
+
+22 packages installed [157.00ms]
 [kiosk-service] Running bun run dev...
-$ bun --hot
-[KioskSer46 |     }
-47 |   }
-48 |   let er;
-49 |   if (args.length > 0)
-50 |     er = args[0];
-51 |     throw er;
-                 ^
-error: Failed to start server. Is port 3004 in use?
-      at emitError (node:events:51:13)
-dpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-03T09:33:18.652Z | CORS: all origins (gateway proxy mode)
-
-
-[KioskService] 🟢 2026-06-03T16:28:09.538Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-03T16:28:09.538Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-03T16:28:09.538Z | REST endpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-03T16:28:09.538Z | CORS: all origins (gateway proxy mode)
-
-
-[KioskService] 🟢 2026-06-03T16:33:49.251Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-03T16:33:49.251Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-03T16:33:49.251Z | REST endpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-03T16:33:49.251Z | CORS: all origins (gateway proxy mode)
-
-[KioskService] 📢 2026-06-03T18:50:33.148Z | REST broadcast-ad → ALL stations
-[KioskService] 📢 2026-06-03T18:50:55.357Z | REST broadcast-ad → ALL stations
-
-[KioskService] 🛑 2026-06-03T18:52:28.502Z | SIGTERM received — shutting down…
-
-[KioskService] 🛑 2026-06-03T18:52:28.503Z | SIGTERM received — shutting down…
-
-[KioskService] 🛑 2026-06-03T18:52:28.503Z | SIGTERM received — shutting down…
-[KioskService] 🛑 2026-06-03T18:52:28.504Z | HTTP server closed. Goodbye.
 $ bun --hot index.ts
 
-[KioskService] 🟢 2026-06-03T19:25:38.033Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-03T19:25:38.034Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-03T19:25:38.034Z | REST endpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-03T19:25:38.034Z | CORS: all origins (gateway proxy mode)
+[KioskService] 🟢 2026-06-27T17:07:10.924Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-27T17:07:10.924Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-27T17:07:10.924Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-27T17:07:10.924Z | CORS: all origins (gateway proxy mode)
 
-[KioskService] 📢 2026-06-03T19:25:40.958Z | REST broadcast-ad → ALL stations
-$ bun --hot index.ts
-
-[KioskService] 🟢 2026-06-03T19:30:58.904Z | Kiosk WebSocket service running on port 3004
-[KioskService] 🟢 2026-06-03T19:30:58.904Z | Transports: websocket, polling
-[KioskService] 🟢 2026-06-03T19:30:58.904Z | REST endpoint: POST /api/push/:slug
-[KioskService] 🟢 2026-06-03T19:30:58.904Z | CORS: all origins (gateway proxy mode)
-
-[KioskService] 📢 2026-06-03T19:31:01.833Z | REST broadcast-ad → ALL stations
