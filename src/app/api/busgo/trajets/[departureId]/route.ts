@@ -222,6 +222,115 @@ export async function PATCH(
       data: updateData,
     });
 
+    // FIX: émettre les events kiosk + push aux passagers pour les changements de statut
+    // Avant, aucune notification n'était envoyée quand l'admin changeait le statut du départ.
+    const kioskServiceUrl = process.env.KIOSK_SERVICE_URL || 'http://localhost:3004';
+    const stationSlug = departure.originStationId || departure.agencyId;
+
+    // Map action → kiosk event + notification
+    const eventMap: Record<string, { event: string; notifType: string; title: string; body: string }> = {
+      'start-boarding': {
+        event: 'kiosk:boarding',
+        notifType: 'boarding_started',
+        title: '🚨 Embarquement en cours',
+        body: `Embarquement pour ${updated.destination}. Quai ${updated.platform || '—'}.`,
+      },
+      'depart': {
+        event: 'kiosk:departed',
+        notifType: 'departure_confirmed',
+        title: '🏁 Le bus est parti',
+        body: `Le bus pour ${updated.destination} est parti. Bon voyage !`,
+      },
+      'delay': {
+        event: 'kiosk:delay',
+        notifType: 'delay_notice',
+        title: '⏰ Retard de départ',
+        body: `Le bus pour ${updated.destination} a ${newDelayMinutes} min de retard. Nouvel horaire: ${new Date(updated.scheduledTime.getTime() + (newDelayMinutes || 0) * 60000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`,
+      },
+      'cancel': {
+        event: 'kiosk:cancelled',
+        notifType: 'cancellation',
+        title: '❌ Départ annulé',
+        body: `Le départ pour ${updated.destination} a été annulé. Contactez l'agence.`,
+      },
+    };
+
+    const eventInfo = eventMap[action];
+    if (eventInfo && stationSlug) {
+      // 1. Émettre l'event kiosk (temps réel pour les agents + kiosks)
+      try {
+        await fetch(`${kioskServiceUrl}/api/push/${encodeURIComponent(String(stationSlug))}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: eventInfo.event,
+            broadcast: false,
+            data: {
+              departureId,
+              destination: updated.destination,
+              status: updated.status,
+              delayMinutes: newDelayMinutes,
+              platform: updated.platform,
+            },
+          }),
+        });
+      } catch (kioskErr) {
+        console.warn('[trajets PATCH] kiosk emit failed (non-fatal):', kioskErr);
+      }
+
+      // 2. Envoyer push notifications aux passagers ayant un billet actif
+      try {
+        const tickets = await db.passengerTicket.findMany({
+          where: { departureId, ticketStatus: { in: ['ACTIVE', 'BOARDED'] } },
+          select: { id: true },
+        });
+
+        if (tickets.length > 0) {
+          const subscriptions = await db.busGoPushSubscription.findMany({
+            where: { passengerTicketId: { in: tickets.map((t) => t.id) } },
+          });
+
+          if (subscriptions.length > 0) {
+            const { sendPushToSubscriptions } = await import('@/lib/push-service');
+            await sendPushToSubscriptions(subscriptions, {
+              title: eventInfo.title,
+              body: eventInfo.body,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-72x72.png',
+              tag: `${eventInfo.notifType}-${departureId}`,
+              requireInteraction: action === 'depart',
+              vibrate: action === 'delay' ? [100, 50, 100, 50, 100] : [100, 50, 100],
+              data: {
+                type: eventInfo.notifType.toUpperCase(),
+                departureId,
+                ttsMessage: eventInfo.body,
+                url: '/pwa-passager/?action=ticket',
+              },
+              actions: [
+                { action: 'open', title: '🎫 Voir mon billet' },
+                { action: 'dismiss', title: 'Fermer' },
+              ],
+            });
+
+            // 3. Logger les notifications
+            for (const ticket of tickets) {
+              await db.busGoNotificationLog.create({
+                data: {
+                  ticketId: ticket.id,
+                  templateType: eventInfo.notifType,
+                  messageText: eventInfo.body,
+                  ttsText: eventInfo.body,
+                  status: 'sent',
+                },
+              }).catch(() => {});
+            }
+          }
+        }
+      } catch (pushErr) {
+        console.warn('[trajets PATCH] push failed (non-fatal):', pushErr);
+      }
+    }
+
     return NextResponse.json({
       data: {
         id: updated.id,

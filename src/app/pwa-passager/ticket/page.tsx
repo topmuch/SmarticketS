@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { QRCodeSVG } from 'qrcode.react';
 import { BusGoSWRegistration } from '@/components/busgo/pwa-sw-registration';
 import { OfferList, useSponsoredOffers } from '@/components/busgo/offer-card';
+import { usePassengerTtsAlerts } from '@/hooks/use-passenger-tts-alerts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -119,6 +120,16 @@ function DashboardInner() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { offers: sponsoredOffers } = useSponsoredOffers('passenger');
   const [welcomeShown, setWelcomeShown] = useState(false);
+
+  // FIX: écouter les events kiosk en temps réel pour les annonces vocales TTS
+  // (boarding, departed, delay, cancel) + ding-dong avant chaque annonce
+  const passengerTicketId = typeof window !== 'undefined' ? localStorage.getItem('busgo_ticket_id') : null;
+  const passengerDepartureId = data?.departure?.id || (typeof window !== 'undefined' ? localStorage.getItem('busgo_departure_id') : null);
+  usePassengerTtsAlerts({
+    ticketId: passengerTicketId,
+    departureId: passengerDepartureId,
+    enabled: !!passengerTicketId,
+  });
 
   const fetchData = useCallback(async () => {
     const ticketId = localStorage.getItem('busgo_ticket_id');
