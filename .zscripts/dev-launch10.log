@@ -947,3 +947,7 @@ https://react.dev/link/hydration-mismatch
  GET /busgo/connexion 200 in 23ms (next.js: 5ms, proxy.ts: 4ms, application-code: 15ms)
  GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 14ms (next.js: 2ms, application-code: 11ms)
  GET /busgo/connexion 200 in 50ms (next.js: 3ms, proxy.ts: 3ms, application-code: 43ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 1849µs, application-code: 10ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 2ms, application-code: 6ms)
+ POST /api/cron/departure-reminders 200 in 9ms (next.js: 1672µs, application-code: 7ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 5ms (next.js: 1798µs, application-code: 3ms)
