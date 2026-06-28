@@ -137,6 +137,13 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
     }
   }, [loading, isAuthenticated, router]);
 
+  // FIX: ne pas appliquer le layout BusGo sur la page de connexion
+  // (sinon boucle de redirection ou affichage du dashboard au lieu du form)
+  const isLoginPage = pathname === '/busgo/connexion';
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
