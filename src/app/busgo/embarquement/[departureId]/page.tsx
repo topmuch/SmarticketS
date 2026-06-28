@@ -16,7 +16,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Bus, MapPin, Clock, QrCode, Users, UserCheck, UserX,
   Loader2, AlertCircle, Phone, Plus, Timer, ScanLine, Bell,
-  CheckCircle2,
+  CheckCircle2, Play, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -131,6 +131,44 @@ export default function EmbarquementPage() {
     }
   };
 
+  // FIX: ajout des actions de statut (start-boarding, depart, delay, cancel)
+  const handleStatusAction = async (action: 'start-boarding' | 'depart' | 'delay' | 'cancel') => {
+    if (!params.departureId) return;
+    const confirmMap: Record<string, string> = {
+      'start-boarding': 'Démarrer l\'embarquement ?',
+      'depart': 'Confirmer le départ du bus ? Les passagers seront notifiés.',
+      'delay': 'Marquer un retard de 10 minutes ?',
+      'cancel': 'Annuler ce départ ? (irréversible)',
+    };
+    if (!confirm(confirmMap[action])) return;
+
+    try {
+      const res = await fetch(`/api/busgo/trajets/${params.departureId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action,
+          ...(action === 'delay' ? { delayMinutes: 10 } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Erreur');
+      }
+      const successMap: Record<string, string> = {
+        'start-boarding': '🚪 Embarquement démarré ! Les passagers sont notifiés.',
+        'depart': '🚌 Bus parti ! Les passagers sont notifiés. Bon voyage !',
+        'delay': '⏰ Retard de 10 min appliqué. Les passagers sont notifiés.',
+        'cancel': '❌ Départ annulé. Les passagers sont notifiés.',
+      };
+      toast.success(successMap[action]);
+      fetchDeparture();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
   // Generate agent QR data (just the departure ID)
   const agentQrData = params.departureId || '';
 
@@ -178,6 +216,56 @@ export default function EmbarquementPage() {
         scheduledTime={departure.scheduledTime}
         delayMinutes={departure.delayMinutes}
       />
+
+      {/* FIX: Actions de statut (Démarrer embarquement / Bus parti / Retard / Annuler) */}
+      {departure.status !== 'DEPARTED' && departure.status !== 'CANCELLED' && (
+        <div className="grid grid-cols-2 gap-2">
+          {departure.status !== 'BOARDING' && (
+            <Button
+              onClick={() => handleStatusAction('start-boarding')}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Play className="h-4 w-4 mr-1" />
+              Démarrer embarquement
+            </Button>
+          )}
+          <Button
+            onClick={() => handleStatusAction('delay')}
+            variant="outline"
+            className="border-orange-400 text-orange-600 hover:bg-orange-50"
+          >
+            <Clock className="h-4 w-4 mr-1" />
+            Retard +10min
+          </Button>
+          <Button
+            onClick={() => handleStatusAction('depart')}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white col-span-2"
+          >
+            <Bus className="h-4 w-4 mr-2" />
+            Bus parti — Confirmer le départ
+          </Button>
+          <Button
+            onClick={() => handleStatusAction('cancel')}
+            variant="outline"
+            className="border-rose-300 text-rose-600 hover:bg-rose-50 col-span-2"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Annuler ce départ
+          </Button>
+        </div>
+      )}
+
+      {departure.status === 'DEPARTED' && (
+        <Card className="border-2 border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20">
+          <CardContent className="p-4 text-center">
+            <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
+            <p className="font-bold text-emerald-700">Bus parti !</p>
+            <p className="text-xs text-emerald-600 mt-1">
+              {departure.departedAt && new Date(departure.departedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* QR code de l'agent */}
       <Card className="border-2 border-amber-300">
