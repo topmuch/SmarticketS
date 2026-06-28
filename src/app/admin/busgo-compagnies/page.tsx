@@ -111,7 +111,12 @@ export default function BusGoCompagniesPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Erreur');
+        // Si erreur de validation Zod, afficher le premier message clair
+        if (err.details && Array.isArray(err.details)) {
+          const firstError = err.details[0];
+          throw new Error(firstError.message || err.error || 'Données invalides');
+        }
+        throw new Error(err.error || 'Erreur serveur');
       }
 
       const data = await res.json();
@@ -135,6 +140,11 @@ Email admin: ${credentials.admin.email}
 Mot de passe: ${credentials.generatedPassword}`;
     navigator.clipboard.writeText(text);
     toast.success('Identifiants copiés !');
+  };
+
+  const copyField = (label: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success(`${label} copié !`);
   };
 
   return (
@@ -261,12 +271,14 @@ Mot de passe: ${credentials.generatedPassword}`;
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="email">Email compagnie</Label>
+                <Label htmlFor="email">Email compagnie *</Label>
                 <Input
                   id="email"
                   type="email"
+                  required
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="contact@compagnie.com"
                 />
               </div>
               <div className="space-y-2">
@@ -275,6 +287,7 @@ Mot de passe: ${credentials.generatedPassword}`;
                   id="phone"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="+221 78 000 00 00"
                 />
               </div>
             </div>
@@ -331,36 +344,89 @@ Mot de passe: ${credentials.generatedPassword}`;
           {credentials && (
             <div className="space-y-4">
               <div className="rounded-lg border p-4 bg-muted/50 space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Compagnie</p>
-                  <p className="font-medium">{credentials.compagnie.name}</p>
+                {/* Compagnie name */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Compagnie</p>
+                    <p className="font-medium truncate">{credentials.compagnie.name}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 h-8 w-8 p-0"
+                    onClick={() => copyField('Nom', credentials.compagnie.name)}
+                    title="Copier"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">URL BusGo</p>
-                  <p className="font-mono text-sm">{credentials.busgoUrl}</p>
+
+                {/* URL BusGo */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">URL BusGo</p>
+                    <p className="font-mono text-sm truncate">{credentials.busgoUrl}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 h-8 w-8 p-0"
+                    onClick={() => copyField('URL', credentials.busgoUrl)}
+                    title="Copier"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Email admin</p>
-                  <p className="font-mono text-sm font-medium">{credentials.admin.email}</p>
+
+                {/* Email admin */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Email admin</p>
+                    <p className="font-mono text-sm font-medium truncate">{credentials.admin.email}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 h-8 w-8 p-0"
+                    onClick={() => copyField('Email', credentials.admin.email)}
+                    title="Copier"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Mot de passe généré</p>
-                  <p className="font-mono text-sm font-medium text-amber-700 dark:text-amber-300">
-                    {credentials.generatedPassword}
-                  </p>
+
+                {/* Mot de passe */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Mot de passe généré</p>
+                    <p className="font-mono text-sm font-bold text-amber-700 dark:text-amber-300 truncate">
+                      {credentials.generatedPassword}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 h-8 w-8 p-0"
+                    onClick={() => copyField('Mot de passe', credentials.generatedPassword)}
+                    title="Copier"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
+
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50 p-3 text-sm text-amber-800 dark:text-amber-300">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 <p>
-                  L&apos;admin peut se connecter sur /login puis accéder à /busgo.
+                  L&apos;admin peut se connecter sur <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">/login</code> puis accéder à <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">/busgo</code>.
                   Le mot de passe ne sera plus affiché — copiez-le maintenant.
                 </p>
               </div>
+
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={copyCredentials}>
                   <Copy className="h-4 w-4 mr-2" />
-                  Copier les identifiants
+                  Tout copier
                 </Button>
                 <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={() => setCredentials(null)}>
                   Fermer
