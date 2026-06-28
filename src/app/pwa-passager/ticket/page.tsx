@@ -249,15 +249,33 @@ function DashboardInner() {
               });
             }
 
-            // TTS
-            if ('speechSynthesis' in window) {
-              window.speechSynthesis.cancel();
-              const u = new SpeechSynthesisUtterance(notif.ttsText);
-              u.lang = 'fr-FR';
-              u.rate = 0.9;
-              u.volume = 1.0;
-              window.speechSynthesis.speak(u);
-            }
+            // FIX: play ding-dong BEFORE the welcome TTS
+            import('@/lib/audioSystem')
+              .then(({ playDingDong }) => {
+                try { playDingDong(); } catch { /* non-fatal */ }
+                // Wait 1.5s for ding-dong, then speak
+                setTimeout(() => {
+                  if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(notif.ttsText);
+                    u.lang = 'fr-FR';
+                    u.rate = 0.9;
+                    u.volume = 1.0;
+                    window.speechSynthesis.speak(u);
+                  }
+                }, 1500);
+              })
+              .catch(() => {
+                // Fallback: speak without ding-dong if audioSystem fails to load
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                  const u = new SpeechSynthesisUtterance(notif.ttsText);
+                  u.lang = 'fr-FR';
+                  u.rate = 0.9;
+                  u.volume = 1.0;
+                  window.speechSynthesis.speak(u);
+                }
+              });
 
             // Toast
             toast.success(notif.messageText);
