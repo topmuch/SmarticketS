@@ -951,3 +951,839 @@ https://react.dev/link/hydration-mismatch
  GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 2ms, application-code: 6ms)
  POST /api/cron/departure-reminders 200 in 9ms (next.js: 1672µs, application-code: 7ms)
  GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 5ms (next.js: 1798µs, application-code: 3ms)
+ GET / 200 in 158ms (next.js: 2ms, application-code: 156ms)
+ GET / 200 in 78ms (next.js: 4ms, application-code: 74ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 12ms (next.js: 4ms, application-code: 8ms)
+ POST /api/cron/departure-reminders 200 in 12ms (next.js: 2ms, application-code: 10ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 2ms, application-code: 5ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 2ms, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 3ms, application-code: 5ms)
+ POST /api/cron/departure-reminders 200 in 12ms (next.js: 2ms, application-code: 10ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 2ms, application-code: 6ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1951µs, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1911µs, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET / 200 in 88ms (next.js: 2ms, application-code: 86ms)
+[browser] Image with src "/logo-full.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+ GET /api/auth/session 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1809µs, application-code: 5ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<SegmentViewNode>} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+            <SegmentViewNode type="page" pagePath="page.tsx">
+              <SegmentTrieNode>
+              <ClientPageRoot Component={function HomePage} serverProvidedParams={{...}}>
+                <HomePage params={Promise} searchParams={Promise}>
+                  <LoadableComponent>
+                  <Navigation>
+                  <main id="main-content">
+                    <HeroSection>
+                      <section ref={{current:null}} id="accueil" className="relative m...">
+                        <div>
+                        <div className="absolute i...">
+                          <motion.div className="absolute w..." style={{left:"30.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "30.003057736129136%"
+-                               left: "14.2485%"
++                               top: "99.35412971905116%"
+-                               top: "30.1415%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"48.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "48.40082662720635%"
+-                               left: "24.2736%"
++                               top: "44.557255190826965%"
+-                               top: "77.9951%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"37.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "37.38303415968958%"
+-                               left: "63.4925%"
++                               top: "92.72296612359504%"
+-                               top: "15.642%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"83.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "83.86980197916479%"
+-                               left: "7.54%"
++                               top: "31.673140609475702%"
+-                               top: "89.0855%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"48.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "48.3510114951067%"
+-                               left: "23.0589%"
++                               top: "16.108701390240377%"
+-                               top: "19.9107%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"3.18...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "3.183768496929973%"
+-                               left: "69.5425%"
++                               top: "42.03109318541121%"
+-                               top: "21.1691%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"84.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "84.23878408762052%"
+-                               left: "73.2971%"
++                               top: "70.42923959583163%"
+-                               top: "19.4758%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"36.9...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "36.91882836572383%"
+-                               left: "1.64256%"
++                               top: "6.594952055533065%"
+-                               top: "61.3328%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"66.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "66.5980457509119%"
+-                               left: "14.2034%"
++                               top: "93.98818248459378%"
+-                               top: "34.7702%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"10.1...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "10.12506433123691%"
+-                               left: "71.938%"
++                               top: "61.31822673627728%"
+-                               top: "69.198%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"46.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "46.0736636380889%"
+-                               left: "43.092%"
++                               top: "25.693407455798457%"
+-                               top: "50.6562%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"37.0...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "37.04056636555295%"
+-                               left: "87.3433%"
++                               top: "73.15913106232593%"
+-                               top: "85.0878%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"71.8...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "71.87815911860294%"
+-                               left: "2.79794%"
++                               top: "31.478546969704134%"
+-                               top: "68.5522%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"52.3...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "52.34240682862562%"
+-                               left: "91.3043%"
++                               top: "53.75006849770795%"
+-                               top: "76.6439%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"88.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "88.46708522873735%"
+-                               left: "51.2623%"
++                               top: "16.156856236196447%"
+-                               top: "36.0627%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"17.7...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "17.71168844466161%"
+-                               left: "53.0728%"
++                               top: "44.74046202364954%"
+-                               top: "46.7967%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"20.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "20.460110978018342%"
+-                               left: "73.6392%"
++                               top: "84.59909648167242%"
+-                               top: "99.7897%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"62.2...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "62.29113329955154%"
+-                               left: "23.141%"
++                               top: "73.18754423027308%"
+-                               top: "35.9532%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"90.4...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "90.48858147270424%"
+-                               left: "87.2089%"
++                               top: "37.414719819215314%"
+-                               top: "38.7055%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                          <motion.div className="absolute w..." style={{left:"70.5...", ...}} animate={{y:[...], ...}} ...>
+                            <div
+                              className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+                              style={{
++                               left: "70.55689755122671%"
+-                               left: "9.40851%"
++                               top: "95.46401990295018%"
+-                               top: "98.7341%"
+                              }}
+                              ref={function useMotionRef.useCallback}
+                            >
+                        ...
+                    ...
+                  ...
+            ...
+          ...
+ 
+[browser] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. (<anonymous>)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 13ms (next.js: 2ms, application-code: 11ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 2ms, application-code: 5ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1763µs, application-code: 5ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1687µs, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 9ms (next.js: 4ms, application-code: 5ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1920µs, application-code: 5ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1797µs, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1679µs, application-code: 5ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 10ms (next.js: 2ms, application-code: 8ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 1887µs, application-code: 9ms)
+ POST /api/cron/departure-reminders 200 in 13ms (next.js: 5ms, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 2ms, application-code: 4ms)
+ POST /api/cron/departure-reminders 200 in 9ms (next.js: 1657µs, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 2ms, application-code: 3ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 2ms, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 3ms, application-code: 3ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 1517µs, application-code: 10ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1766µs, application-code: 4ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1831µs, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 2ms, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 2ms, application-code: 4ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1761µs, application-code: 4ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 2ms, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 2ms, application-code: 4ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1636µs, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 2ms, application-code: 4ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1624µs, application-code: 8ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1841µs, application-code: 4ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 5ms (next.js: 1500µs, application-code: 4ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1892µs, application-code: 4ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1664µs, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1944µs, application-code: 5ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1822µs, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 12ms (next.js: 3ms, application-code: 9ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 5ms (next.js: 1874µs, application-code: 4ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1694µs, application-code: 4ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1689µs, application-code: 8ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1882µs, application-code: 4ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 2ms, application-code: 6ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1772µs, application-code: 8ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 1728µs, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1844µs, application-code: 4ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1935µs, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1726µs, application-code: 6ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1536µs, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 9ms (next.js: 2ms, application-code: 6ms)
+ POST /api/cron/departure-reminders 200 in 11ms (next.js: 1771µs, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1944µs, application-code: 4ms)
+ POST /api/cron/departure-reminders 200 in 15ms (next.js: 3ms, application-code: 12ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 3ms, application-code: 5ms)
+ POST /api/cron/departure-reminders 200 in 13ms (next.js: 2ms, application-code: 10ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 9ms (next.js: 3ms, application-code: 7ms)
+ POST /api/cron/departure-reminders 200 in 14ms (next.js: 2ms, application-code: 12ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 10ms (next.js: 2ms, application-code: 7ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1609µs, application-code: 9ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 10ms (next.js: 3ms, application-code: 7ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1645µs, application-code: 8ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1945µs, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1806µs, application-code: 5ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1763µs, application-code: 5ms)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1917µs, application-code: 8ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 14ms (next.js: 2ms, application-code: 11ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 3ms, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 7ms (next.js: 1888µs, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1672µs, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 10ms (next.js: 1625µs, application-code: 8ms)
+ POST /api/auth/login 403 in 85ms (next.js: 1887µs, application-code: 83ms)
+ POST /api/auth/login 200 in 87ms (next.js: 1395µs, application-code: 86ms)
+ POST /api/auth/login 200 in 85ms (next.js: 1601µs, application-code: 83ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 2ms, application-code: 6ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 8ms (next.js: 2ms, application-code: 6ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/cron/departure-reminders 200 in 9ms (next.js: 1882µs, application-code: 7ms)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 6ms (next.js: 1908µs, application-code: 5ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ POST /api/auth/login 200 in 86ms (next.js: 3ms, application-code: 83ms)
+ POST /api/auth/login 200 in 84ms (next.js: 1527µs, application-code: 82ms)
+ POST /api/auth/login 200 in 82ms (next.js: 2ms, application-code: 80ms)
+ POST /api/auth/login 403 in 84ms (next.js: 3ms, application-code: 81ms)

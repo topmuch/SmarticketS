@@ -107,7 +107,24 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Role-based access check
-    if ((role === 'admin' || role === 'superadmin') && user.role !== 'superadmin') {
+    // FIX: previously, role === 'admin' was rejected unless user was superadmin.
+    // This blocked BusGo admins (role='admin') from logging in via /busgo/connexion.
+    // Now: role='admin' accepts admin + superadmin; role='superadmin' accepts only superadmin.
+    if (role === 'superadmin' && user.role !== 'superadmin') {
+      await logLoginAttempt({
+        userId: user.id,
+        email,
+        success: false,
+        failureReason: 'Accès superadmin non autorisé',
+      });
+      return NextResponse.json(
+        { error: 'Accès non autorisé' },
+        { status: 403 }
+      );
+    }
+
+    // role='admin' accepts admin, superadmin (and agent for BusGo)
+    if (role === 'admin' && !['admin', 'superadmin', 'agent'].includes(user.role)) {
       await logLoginAttempt({
         userId: user.id,
         email,
