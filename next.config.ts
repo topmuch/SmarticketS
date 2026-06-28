@@ -8,6 +8,20 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // FIX: disable caching in dev to always see latest changes
+  // (prevents stale pages in private browsing / hard refresh)
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Pragma', value: 'no-cache' },
+          { key: 'Expires', value: '0' },
+        ],
+      },
+    ];
+  },
   images: {
     formats: ['image/webp'],
     qualities: [75, 90],

@@ -20,7 +20,8 @@
  *   - action 'dismiss' ou default → ouvre PWA sans TTS
  */
 
-const CACHE_NAME = 'busgo-passenger-v1';
+// FIX: bump version to force cache invalidation after updates
+const CACHE_NAME = 'busgo-passenger-v2';
 const STATIC_ASSETS = [
   '/pwa-passager',
   '/pwa-passager/install',
