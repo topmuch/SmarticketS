@@ -1,8 +1,10 @@
 # SmarticketS - Dockerfile for Coolify
-FROM node:20-alpine
+FROM node:20-slim
 
-# Install required packages (openssl for secret generation in entrypoint)
-RUN apk add --no-cache git libc6-compat sqlite openssl
+# Install required packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git libc6 sqlite3 openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 RUN npm install -g bun
 
 WORKDIR /app
@@ -10,8 +12,8 @@ WORKDIR /app
 # Clone the repository
 RUN git clone https://github.com/topmuch/SmarticketS.git .
 
-# Install dependencies
-RUN bun install
+# Install dependencies (frozen lockfile for reproducible builds)
+RUN bun install --frozen-lockfile
 
 # Generate Prisma Client
 RUN npx prisma generate
@@ -19,6 +21,7 @@ RUN npx prisma generate
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=file:/app/data/qrtrans.db
+ENV NODE_OPTIONS=--max-old-space-size=2048
 RUN bun run build
 
 # Create data directory
