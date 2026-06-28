@@ -4,19 +4,17 @@
  * TripDetailModal — Full-screen bottom sheet for a single trip on the
  * BusGo Live Board (passenger PWA).
  *
- * FitNexus dashboard style:
- *   - White background modal (not dark slate)
- *   - Rounded corners (rounded-2xl)
- *   - Header: "Détails du trajet" in dark gray + close button
- *   - Info card: white with light border, showing time (large teal), route, line, platform
- *   - GPS map: Leaflet with light border styling
- *   - Occupation bar: teal gradient instead of orange
- *   - Buttons: "Réserver" = teal #10B981, "Contacter" = white with border
- *   - Share: text link style
- *
  * Layout:
  *   - Bottom sheet on mobile (rounded-t-2xl, anchored to bottom)
  *   - Centered modal on desktop (sm:rounded-2xl, max-w-md)
+ *
+ * Content:
+ *   - Header with close button
+ *   - Main info card (orange time, route, line + platform)
+ *   - Live GPS map (Leaflet) when `gpsPosition` is present, otherwise a
+ *     dashed placeholder
+ *   - Occupation progress bar (occupied / total seats)
+ *   - Action buttons: Réserver, Contacter, Partager
  *
  * SSR safety:
  *   - Leaflet's react-leaflet components are dynamically imported with
@@ -34,12 +32,12 @@ import {
   X,
   MapPin,
   Phone,
+  Share2,
   Navigation,
   Users,
   Clock,
   ArrowRight,
   Ticket,
-  Share2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,7 +47,7 @@ import type { LiveTrip } from '@/stores/live-board-store';
 // Leaflet components must be loaded client-side only.
 const MapContainer = dynamic(() => import('react-leaflet').then((mod) => mod.MapContainer), {
   ssr: false,
-  loading: () => <div className="h-full w-full animate-pulse bg-gray-100" />,
+  loading: () => <div className="h-full w-full animate-pulse bg-slate-800" />,
 });
 const TileLayer = dynamic(() => import('react-leaflet').then((mod) => mod.TileLayer), {
   ssr: false,
@@ -131,13 +129,13 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
             <div style="
               display:flex;align-items:center;justify-content:center;
               width:36px;height:36px;border-radius:50%;
-              background:#10B981;border:3px solid #fff;
-              box-shadow:0 4px 12px rgba(16,185,129,0.45);
+              background:#f97316;border:3px solid #fff;
+              box-shadow:0 4px 12px rgba(0,0,0,0.4);
             ">
               <div style="
                 width:10px;height:10px;border-radius:50%;
                 background:#fff;
-                box-shadow:0 0 0 4px rgba(16,185,129,0.4);
+                box-shadow:0 0 0 4px rgba(249,115,22,0.4);
                 animation:busgo-ping 1.5s ease-out infinite;
               "></div>
             </div>
@@ -187,25 +185,17 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
 
   const statusKey = trip.status;
   const statusLabelMap: Record<string, string> = {
-    BOARDING: 'Embarquement',
-    SCHEDULED: "À l'heure",
-    ON_TIME: "À l'heure",
-    DELAYED: 'Retard',
-    DEPARTED: 'Parti',
-    CANCELLED: 'Annulé',
-  };
-  const statusBadgeMap: Record<string, string> = {
-    BOARDING: 'bg-orange-100 text-orange-700',
-    SCHEDULED: 'bg-green-100 text-green-700',
-    ON_TIME: 'bg-green-100 text-green-700',
-    DELAYED: 'bg-red-100 text-red-700',
-    DEPARTED: 'bg-gray-100 text-gray-600',
-    CANCELLED: 'bg-gray-100 text-gray-500',
+    BOARDING: '🟠 Embarquement',
+    SCHEDULED: "✅ À l'heure",
+    ON_TIME: "✅ À l'heure",
+    DELAYED: '⚠️ Retard',
+    DEPARTED: '🏁 Parti',
+    CANCELLED: '❌ Annulé',
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -214,70 +204,68 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative w-full max-w-md transform bg-white shadow-2xl transition-all duration-300 ease-out',
-          'max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl',
+          'relative w-full max-w-md transform bg-slate-900 shadow-2xl transition-all duration-300 ease-out',
+          'max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl',
           mounted ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 sm:translate-y-4',
         )}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur">
-          <div className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-gray-200 sm:hidden" aria-hidden />
-          <h2 className="text-base font-semibold text-gray-800">Détails du trajet</h2>
+        {/* Drag handle (mobile) */}
+        <div className="sticky top-0 z-10 flex items-center justify-between bg-slate-900/95 px-5 pb-3 pt-3 backdrop-blur">
+          <div className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-slate-700" aria-hidden />
+          <h2 className="mt-2 text-base font-semibold text-white">Détails du trajet</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fermer"
-            className="rounded-full bg-gray-100 p-2 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+            className="mt-2 rounded-full bg-slate-800 p-2 text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="space-y-4 px-5 pb-8 pt-4">
+        <div className="space-y-4 px-5 pb-8">
           {/* Main info card */}
-          <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl bg-gradient-to-br from-slate-800 to-slate-800/40 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold tabular-nums text-emerald-500">
+                  <span className="text-4xl font-bold tabular-nums text-orange-500">
                     {formatTime(trip.scheduledTime)}
                   </span>
                   {trip.delayMinutes > 0 && (
-                    <span className="text-sm font-semibold text-red-600">+{trip.delayMinutes}min</span>
+                    <span className="text-sm font-semibold text-red-400">+{trip.delayMinutes}min</span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs capitalize text-gray-500">
+                <p className="mt-0.5 text-xs capitalize text-slate-400">
                   {formatDate(trip.scheduledTime)}
                 </p>
               </div>
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold',
-                  statusBadgeMap[statusKey] ?? 'bg-gray-100 text-gray-600',
-                )}
+              <Badge
+                variant="outline"
+                className="border-orange-500/50 bg-orange-500/15 px-2 py-1 text-[11px] font-semibold text-orange-400"
               >
                 {statusLabelMap[statusKey] ?? statusKey}
-              </span>
+              </Badge>
             </div>
 
             <div className="mt-4 flex items-center gap-1.5 text-sm">
-              <MapPin className="h-4 w-4 shrink-0 text-gray-400" />
-              <span className="font-medium text-gray-600">{trip.origin}</span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-              <span className="font-semibold text-gray-800">{trip.destination}</span>
+              <MapPin className="h-4 w-4 shrink-0 text-slate-500" />
+              <span className="font-medium text-slate-200">{trip.origin}</span>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+              <span className="font-semibold text-white">{trip.destination}</span>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 font-semibold text-blue-700">
+              <span className="inline-flex items-center gap-1 rounded-md bg-slate-700/60 px-2 py-1 font-semibold text-slate-200">
                 <Ticket className="h-3 w-3" /> Ligne {trip.lineNumber}
               </span>
               {trip.platform && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 font-semibold text-gray-700">
+                <span className="inline-flex items-center gap-1 rounded-md bg-slate-700/60 px-2 py-1 font-semibold text-slate-200">
                   <MapPin className="h-3 w-3" /> Quai {trip.platform}
                 </span>
               )}
               {trip.agentName && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-600">
+                <span className="inline-flex items-center gap-1 rounded-md bg-slate-700/60 px-2 py-1 font-medium text-slate-300">
                   Agent · {trip.agentName}
                 </span>
               )}
@@ -287,18 +275,18 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
           {/* GPS map / placeholder */}
           <section>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Position en temps réel
               </h3>
               {hasGps && typeof trip.etaMinutes === 'number' && trip.etaMinutes > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-400">
                   <Navigation className="h-3 w-3" /> ETA {trip.etaMinutes} min
                 </span>
               )}
             </div>
 
             {hasGps && gps && mounted ? (
-              <div className="h-56 w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+              <div className="h-56 w-full overflow-hidden rounded-2xl border border-slate-700">
                 <MapContainer
                   center={[gps.lat, gps.lng]}
                   zoom={15}
@@ -326,12 +314,12 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
                 </MapContainer>
               </div>
             ) : (
-              <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 text-center">
-                <MapPin className="h-7 w-7 text-gray-300" />
-                <p className="text-sm font-medium text-gray-500">
+              <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-800/40 text-center">
+                <MapPin className="h-7 w-7 text-slate-600" />
+                <p className="text-sm font-medium text-slate-400">
                   Position GPS non disponible
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-500">
                   Le bus n&apos;est pas encore parti ou le suivi est désactivé.
                 </p>
               </div>
@@ -339,40 +327,39 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
           </section>
 
           {/* Occupation progress */}
-          <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl bg-slate-800/60 p-4">
             <div className="flex items-center justify-between text-sm">
-              <span className="inline-flex items-center gap-1.5 font-medium text-gray-700">
-                <Users className="h-4 w-4 text-gray-400" /> Occupation
+              <span className="inline-flex items-center gap-1.5 font-medium text-slate-300">
+                <Users className="h-4 w-4 text-slate-500" /> Occupation
               </span>
               <span
                 className={cn(
                   'font-semibold tabular-nums',
-                  occupancyHigh ? 'text-pink-600' : occupancyMid ? 'text-amber-500' : 'text-emerald-600',
+                  occupancyHigh ? 'text-orange-400' : occupancyMid ? 'text-amber-400' : 'text-green-400',
                 )}
               >
                 {occupied}/{trip.totalSeats}
               </span>
             </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-700">
               <div
                 className={cn(
-                  'h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all',
-                  occupancyHigh && 'from-pink-400 to-pink-500',
-                  occupancyMid && !occupancyHigh && 'from-amber-400 to-amber-500',
+                  'h-full rounded-full transition-all',
+                  occupancyHigh ? 'bg-orange-500' : occupancyMid ? 'bg-amber-500' : 'bg-green-500',
                 )}
                 style={{ width: `${occupancyPct}%` }}
               />
             </div>
-            <p className="mt-1.5 text-xs text-gray-500">
+            <p className="mt-1.5 text-xs text-slate-500">
               {trip.availableSeats} place{trip.availableSeats !== 1 ? 's' : ''} disponible{trip.availableSeats !== 1 ? 's' : ''}
             </p>
           </section>
 
           {/* Action buttons */}
-          <section className="space-y-3">
+          <section className="space-y-2">
             {trip.status !== 'DEPARTED' && trip.status !== 'CANCELLED' && (
               <Button
-                className="h-12 w-full bg-emerald-500 text-base font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600"
+                className="h-12 w-full bg-orange-500 text-base font-semibold text-white hover:bg-orange-600"
                 onClick={() => {
                   /* hook point — parent page handles reservation */
                 }}
@@ -385,8 +372,8 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
               {trip.agentPhone ? (
                 <Button
                   asChild
-                  variant="outline"
-                  className="h-11 border-gray-200 bg-white font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  variant="secondary"
+                  className="h-11 bg-slate-700 font-medium text-white hover:bg-slate-600"
                 >
                   <a href={`tel:${trip.agentPhone}`}>
                     <Phone className="h-4 w-4" /> Contacter
@@ -394,9 +381,9 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
                 </Button>
               ) : (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   disabled
-                  className="h-11 border-gray-200 bg-white font-medium text-gray-400 hover:bg-white"
+                  className="h-11 bg-slate-700 font-medium text-slate-400 hover:bg-slate-700"
                 >
                   <Phone className="h-4 w-4" /> Contacter
                 </Button>
@@ -405,7 +392,7 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
               <Button
                 variant="outline"
                 onClick={handleShare}
-                className="h-11 border-gray-200 bg-white font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                className="h-11 border-slate-600 bg-slate-800 font-medium text-slate-200 hover:bg-slate-700 hover:text-white"
               >
                 <Share2 className="h-4 w-4" /> Partager
               </Button>
@@ -416,10 +403,10 @@ export function TripDetailModal({ trip, onClose }: TripDetailModalProps) {
           {(trip.status === 'DEPARTED' || trip.status === 'CANCELLED') && (
             <div
               className={cn(
-                'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs',
+                'flex items-center gap-2 rounded-xl border px-3 py-2 text-xs',
                 trip.status === 'CANCELLED'
-                  ? 'border-gray-200 bg-gray-50 text-gray-600'
-                  : 'border-gray-200 bg-gray-50 text-gray-600',
+                  ? 'border-gray-700 bg-gray-800 text-gray-400'
+                  : 'border-slate-700 bg-slate-800/60 text-slate-400',
               )}
             >
               <Clock className="h-3.5 w-3.5 shrink-0" />

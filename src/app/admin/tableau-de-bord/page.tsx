@@ -137,7 +137,7 @@ function QuickActions() {
       description: "Créer des codes",
       icon: <QrCode className="w-7 h-7" />, 
       href: "/admin/generer",
-      gradient: "from-emerald-500 to-emerald-700",
+      gradient: "from-emerald-500 to-emerald-600",
       hoverShadow: "hover:shadow-emerald-500/25",
       bgPattern: "bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_60%)]"
     },
@@ -146,7 +146,7 @@ function QuickActions() {
       description: "Demandes",
       icon: <ShoppingCart className="w-7 h-7" />, 
       href: "/admin/messages",
-      gradient: "from-amber-500 to-orange-600",
+      gradient: "from-orange-500 to-orange-600",
       hoverShadow: "hover:shadow-orange-500/25",
       bgPattern: "bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.15),transparent_60%)]"
     },
@@ -155,8 +155,8 @@ function QuickActions() {
       description: "Partenaires",
       icon: <Building className="w-7 h-7" />, 
       href: "/admin/agences",
-      gradient: "from-violet-500 to-purple-700",
-      hoverShadow: "hover:shadow-purple-500/25",
+      gradient: "from-blue-500 to-blue-600",
+      hoverShadow: "hover:shadow-blue-500/25",
       bgPattern: "bg-[radial-gradient(circle_at_80%_70%,rgba(255,255,255,0.15),transparent_60%)]"
     },
   ];
@@ -378,74 +378,74 @@ export default function DashboardPage() {
     });
   };
 
-  // Multicolored KPI Cards
+  // FitNexus-style KPI Cards — 4 main colors (teal, orange, blue, pink)
   const kpiCards = [
     { 
       title: 'Total QR Codes', 
       value: stats.totalQR, 
       subtitle: `${stats.activeBaggages} actifs`,
       icon: <QrCode className="w-6 h-6 text-white" />,
-      colorVariant: 'green' as const
+      colorVariant: 'green' as const  // teal #10B981
     },
     { 
       title: 'QR Activés', 
       value: stats.activeBaggages, 
       subtitle: 'En service',
       icon: <Package className="w-6 h-6 text-white" />,
-      colorVariant: 'blue' as const
+      colorVariant: 'orange' as const  // orange #F97316
     },
     { 
       title: 'Voyageurs', 
       value: stats.uniqueTravelers, 
       subtitle: 'Utilisateurs uniques',
       icon: <Users className="w-6 h-6 text-white" />,
-      colorVariant: 'purple' as const
+      colorVariant: 'blue' as const  // blue #3B82F6
     },
     { 
       title: 'Commandes', 
       value: stats.pendingOrders, 
       subtitle: 'En attente',
       icon: <ShoppingCart className="w-6 h-6 text-white" />,
-      colorVariant: 'orange' as const
+      colorVariant: 'pink' as const  // pink #EC4899
     },
     { 
       title: 'Agences', 
       value: stats.totalAgencies, 
       subtitle: 'Partenaires',
       icon: <Building className="w-6 h-6 text-white" />,
-      colorVariant: 'cyan' as const
+      colorVariant: 'green' as const  // teal
     },
     { 
       title: 'Expiration', 
       value: stats.expiringSoon, 
       subtitle: 'À renouveler',
       icon: <Clock className="w-6 h-6 text-white" />,
-      colorVariant: 'red' as const
+      colorVariant: 'pink' as const  // pink
     },
   ];
 
   return (
     <div className="max-w-7xl mx-auto">
       {/* Page Title */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Tableau de bord</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">Vue d'ensemble de votre activité SmarticketS</p>
       </div>
 
       {/* Quick Actions */}
-      <div className="mb-8">
+      <div className="mb-6">
         <QuickActions />
       </div>
 
       {/* Multicolored KPI Cards */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-slate-200 dark:bg-slate-700 rounded-2xl p-6 h-40 animate-pulse"></div>
+            <div key={i} className="bg-white rounded-2xl p-6 h-40 animate-pulse border border-emerald-100"></div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
           {kpiCards.map((card, index) => (
             <div key={index} className={`stagger-${index + 1}`}>
               <KPICard {...card} />
@@ -458,8 +458,8 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-6">
         {loading ? (
           <>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 animate-pulse h-80"></div>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 animate-pulse h-80"></div>
+            <div className="bg-white rounded-2xl p-6 border border-emerald-100 animate-pulse h-80"></div>
+            <div className="bg-white rounded-2xl p-6 border border-emerald-100 animate-pulse h-80"></div>
           </>
         ) : (
           <>

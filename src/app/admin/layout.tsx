@@ -200,25 +200,28 @@ function Sidebar({
         />
       )}
 
-      {/* Sidebar - Orange Background */}
+      {/* Sidebar - FitNexus Light Teal Theme */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-[280px] bg-[#FF1D8D]
+        w-[240px] bg-emerald-50/80 dark:bg-slate-900
+        border-r border-emerald-100 dark:border-slate-800
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        flex flex-col shadow-2xl
+        flex flex-col
       `}>
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-5 border-b border-emerald-100 dark:border-slate-800">
           <Link href="/admin/tableau-de-bord" className="flex items-center gap-3">
-            <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-7 w-auto" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
+              <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-5 w-auto" />
+            </div>
             <div>
-              <span className="text-white font-bold text-xl tracking-tight">SmarticketS</span>
-              <span className="block text-xs text-white/60 font-medium">Administration</span>
+              <span className="text-slate-800 dark:text-white font-bold text-lg tracking-tight">SmarticketS</span>
+              <span className="block text-xs text-emerald-600 dark:text-emerald-400 font-medium">Administration</span>
             </div>
           </Link>
           <button
-            className="lg:hidden absolute top-6 right-4 text-white/60 hover:text-white transition-colors"
+            className="lg:hidden absolute top-6 right-4 text-slate-500 hover:text-slate-800 transition-colors"
             onClick={() => setIsOpen(false)}
           >
             <X className="w-5 h-5" />
@@ -226,13 +229,13 @@ function Sidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <ul className="space-y-1">
+        <nav className="flex-1 p-3 overflow-y-auto">
+          <ul className="space-y-0.5">
             {menuItems.map((item, index) => {
               if (item.isCategory) {
                 return (
                   <li key={index} className="pt-4 first:pt-0">
-                    <span className="px-4 text-xs font-semibold text-white uppercase tracking-wider">
+                    <span className="px-3 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                       {item.label}
                     </span>
                   </li>
@@ -246,21 +249,21 @@ function Sidebar({
                   <Link
                     href={item.href!}
                     className={`
-                      relative flex items-center gap-3 px-4 py-2.5 rounded-xl
+                      relative flex items-center gap-3 px-3 py-2.5 rounded-lg
                       transition-all duration-200 group
                       ${isActive
-                        ? 'bg-black text-white shadow-lg'
-                        : 'bg-black text-white hover:bg-black/80'
+                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-emerald-100 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'
                       }
                     `}
                     onClick={() => setIsOpen(false)}
                   >
-                    <span className="shrink-0 text-white">
+                    <span className="shrink-0">
                       {item.icon}
                     </span>
                     <span className="font-medium text-sm flex-1">{item.label}</span>
                     {item.badge && item.badge > 0 && (
-                      <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      <span className="bg-pink-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
                         {item.badge}
                       </span>
                     )}
@@ -270,11 +273,11 @@ function Sidebar({
             })}
           </ul>
 
-          {/* Logout Button - Below Fonctionnalités */}
-          <div className="mt-6 pt-4 border-t border-white/10">
+          {/* Logout Button */}
+          <div className="mt-4 pt-3 border-t border-emerald-100 dark:border-slate-800">
             <button
               onClick={onLogout}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black text-white hover:bg-red-600 transition-all duration-200 w-full"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-all duration-200 w-full"
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium text-sm">Déconnexion</span>
@@ -283,16 +286,16 @@ function Sidebar({
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-black/20">
-            <div className={`w-10 h-10 rounded-full ${roleColor} flex items-center justify-center`}>
+        <div className="p-3 border-t border-emerald-100 dark:border-slate-800">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-100 dark:border-slate-700">
+            <div className={`w-9 h-9 rounded-full ${roleColor} flex items-center justify-center shrink-0`}>
               <span className="text-white font-semibold text-sm">
                 {userName?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{userName || 'Utilisateur'}</p>
-              <p className="text-xs text-white/60">{roleLabel}</p>
+              <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{userName || 'Utilisateur'}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{roleLabel}</p>
             </div>
           </div>
         </div>
@@ -320,20 +323,20 @@ function Header({
   const roleColor = ROLE_COLORS[userRole as keyof typeof ROLE_COLORS] || 'bg-gray-500';
 
   return (
-    <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 sticky top-0 z-30">
+    <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-emerald-100 dark:border-slate-800 px-6 py-3.5 sticky top-0 z-30">
       <div className="flex items-center justify-between">
         {/* Left */}
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            className="lg:hidden p-2 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
           </button>
 
           {/* Search */}
-          <div className="hidden md:flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2.5 w-80">
-            <Search className="w-4 h-4 text-slate-400" />
+          <div className="hidden md:flex items-center gap-3 bg-emerald-50/50 dark:bg-slate-800 rounded-xl px-4 py-2.5 w-80 border border-emerald-100 dark:border-slate-700">
+            <Search className="w-4 h-4 text-emerald-400" />
             <input
               type="text"
               placeholder="Rechercher..."
@@ -349,13 +352,13 @@ function Header({
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            className="p-2.5 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
             title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
           >
             {theme === 'dark' ? (
               <Sun className="w-5 h-5 text-amber-500" />
             ) : (
-              <Moon className="w-5 h-5 text-slate-600" />
+              <Moon className="w-5 h-5 text-emerald-500" />
             )}
           </button>
 
@@ -363,7 +366,7 @@ function Header({
           <NotificationBell />
 
           {/* User */}
-          <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 pl-3 border-l border-emerald-100 dark:border-slate-700">
             <div className={`w-9 h-9 rounded-full ${roleColor} flex items-center justify-center`}>
               <span className="text-white font-semibold text-sm">
                 {userName?.charAt(0)?.toUpperCase() || 'U'}
@@ -425,9 +428,9 @@ export default function AdminRootLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-emerald-50/30 flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border-2 border-[#FF1D8D]/30 border-t-[#FF1D8D] rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
           <span className="text-slate-500">Vérification...</span>
         </div>
       </div>
@@ -439,7 +442,7 @@ export default function AdminRootLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex transition-colors duration-300">
+    <div className="min-h-screen bg-emerald-50/30 dark:bg-slate-950 flex transition-colors duration-300">
       <Sidebar
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
