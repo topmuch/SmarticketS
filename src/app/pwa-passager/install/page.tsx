@@ -177,7 +177,8 @@ function InstallForm() {
       setDeferredPrompt(null);
     }
     // Redirect to dashboard regardless
-    router.push('/pwa-passager?welcome=1');
+    // FIX (audit #8): redirect to /ticket page (not home) since welcome=1 is handled there
+    router.push('/pwa-passager/ticket?welcome=1');
   };
 
   const steps = ['Bienvenue', 'Téléphone', 'Notifications', 'Installation'];
@@ -312,13 +313,13 @@ function InstallForm() {
                   <Smartphone className="h-4 w-4 mr-2" /> Installer l'app
                 </Button>
               ) : (
-                <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/pwa-passager?welcome=1')}>
+                <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/pwa-passager/ticket?welcome=1')}>
                   Aller au dashboard <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
             </div>
             {deferredPrompt && (
-              <button onClick={() => router.push('/pwa-passager?welcome=1')} className="text-xs text-muted-foreground hover:underline">
+              <button onClick={() => router.push('/pwa-passager/ticket?welcome=1')} className="text-xs text-muted-foreground hover:underline">
                 Continuer sans installer
               </button>
             )}

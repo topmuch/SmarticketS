@@ -69,20 +69,55 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // C3 fix (partial): attempt Web Push if subscriptions exist
-    // Full implementation in /api/busgo/notifications/send/route.ts
+    // FIX (audit #5): emit kiosk:delay event + add ttsMessage + actions to push
+    try {
+      const kioskServiceUrl = process.env.KIOSK_SERVICE_URL || 'http://localhost:3004';
+      const stationSlug = ticket.departure?.originStation?.slug || ticket.departure?.agency?.slug;
+      if (stationSlug) {
+        await fetch(`${kioskServiceUrl}/api/push/${encodeURIComponent(stationSlug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'kiosk:delay',
+            broadcast: false,
+            data: {
+              departureId: ticket.departureId,
+              ticketId,
+              destination: ticket.destination,
+              delayMinutes: minutes,
+              passengerName: ticket.passengerName,
+            },
+          }),
+        });
+      }
+    } catch (kioskErr) {
+      console.warn('[retard] kiosk emit failed (non-fatal):', kioskErr);
+    }
+
+    // FIX (audit #5): push with ttsMessage + listen action
     try {
       const subscriptions = await db.busGoPushSubscription.findMany({
         where: { passengerTicketId: ticketId },
       });
       if (subscriptions.length > 0) {
-        // Delegate to the push service (imported dynamically to avoid loading web-push on every request)
         const { sendPushToSubscriptions } = await import('@/lib/push-service');
         await sendPushToSubscriptions(subscriptions, {
           title: '⏰ Retard de départ',
           body: delayMessage,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-72x72.png',
           tag: `delay-${ticketId}`,
-          data: { type: 'DELAY_NOTICE', ticketId },
+          vibrate: [100, 50, 100, 50, 100],
+          data: {
+            type: 'DELAY_NOTICE',
+            ticketId,
+            ttsMessage: delayMessage,
+            url: '/pwa-passager/?action=ticket',
+          },
+          actions: [
+            { action: 'listen', title: '🔊 Écouter' },
+            { action: 'open', title: '🎫 Voir mon billet' },
+          ],
         });
       }
     } catch (pushErr) {

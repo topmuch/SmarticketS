@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentVocalAlerts } from '@/hooks/use-agent-vocal-alerts';
+import { AnnouncementPriority } from '@/lib/audioSystem';
 import { useKioskSocket } from '@/hooks/use-kiosk-socket';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -103,9 +104,10 @@ export default function BusGoLayout({ children }: { children: React.ReactNode })
     onEvent: (event, data) => {
       if (!config.autoTTS) return;
       if (event === 'passenger:missing' && data.passengerName && data.seatNumber) {
-        announceCustom(`Passager manquant: ${data.passengerName}, siège ${data.seatNumber}.`, 'high');
+        // FIX (audit #7): pass AnnouncementPriority enum instead of string
+        announceCustom(`Passager manquant: ${data.passengerName}, siège ${data.seatNumber}.`, AnnouncementPriority.URGENT);
       } else if (event === 'announcement' && data.message) {
-        announceCustom(data.message, 'normal');
+        announceCustom(data.message, AnnouncementPriority.NORMAL);
       }
     },
   });

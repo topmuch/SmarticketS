@@ -181,7 +181,7 @@ export function useAgentVocalAlerts() {
   }, [audioUnlocked]);
 
   // Speak text immediately (respects enabled flag)
-  const speak = useCallback((text: string, priority: AnnouncementPriority = AnnouncementPriority.NORMAL) => {
+  const speak = useCallback((text: string, priority: AnnouncementPriority = AnnouncementPriority.NORMAL, departureKey?: string) => {
     const cfg = configRef.current;
     if (!cfg.enabled || cfg.muted) return;
     if (typeof window === 'undefined') return;
@@ -189,16 +189,8 @@ export function useAgentVocalAlerts() {
     const manager = managerRef.current ?? VocalManager.getInstance();
     managerRef.current = manager;
 
-    // VocalManager.enqueue signature: (text, priority, customAudioUrl?, departureKey?)
-    //
-    // `customAudioUrl` is intentionally `undefined` here:
-    // - The ding-dong chime (custom MP3 or synthesized) is played AUTOMATICALLY
-    //   by `speakAnnouncement()` via `playDingDong()`, which reads the URL from
-    //   the module-level `_customDingDongUrl` set by `setCustomDingDongUrl()`.
-    // - If we passed dingDongUrl here as customAudioUrl, it would REPLACE the
-    //   TTS message text with the MP3 — the announcement text would never be
-    //   spoken. That was the bug in the first fix attempt.
-    manager.enqueue(text, priority, undefined, undefined);
+    // FIX (audit #6): pass departureKey for dedup (prevents repeat announcements)
+    manager.enqueue(text, priority, undefined, departureKey);
   }, []);
 
   // Higher-level helpers — use the build* functions from audioSystem
@@ -221,9 +213,11 @@ export function useAgentVocalAlerts() {
   }, [speak]);
 
   const announceMissingPassenger = useCallback((passengerName: string, seatNumber: string) => {
+    // FIX (audit #6): dedup key prevents repeat announcements every 10s (polling)
     speak(
       `Attention ! Le passager ${passengerName}, siège ${seatNumber}, n'a pas embarqué. Merci de se présenter immédiatement au quai.`,
-      AnnouncementPriority.URGENT
+      AnnouncementPriority.URGENT,
+      `missing:${passengerName}:${seatNumber}` // dedup key
     );
   }, [speak]);
 

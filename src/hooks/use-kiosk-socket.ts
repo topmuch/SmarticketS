@@ -101,7 +101,8 @@ export function useKioskSocket(options: UseKioskSocketOptions): UseKioskSocketRe
       setIsConnected(true);
       // Join the station room if a slug is provided
       if (stationSlug) {
-        socket.emit('join', { station: stationSlug });
+        // FIX (audit #1): kiosk-service listens for 'join:station' not 'join'
+        socket.emit('join:station', { slug: stationSlug, role: 'agent' });
       }
     });
 

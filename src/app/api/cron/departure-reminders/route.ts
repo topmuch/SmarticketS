@@ -69,8 +69,9 @@ export async function POST(request: NextRequest) {
           },
         },
         include: {
-          agency: { select: { id: true, name: true } },
+          agency: { select: { id: true, name: true, slug: true } },
           route: { select: { origin: true, destination: true } },
+          originStation: { select: { id: true, name: true, slug: true } },
           tickets: {
             where: {
               ticketStatus: { in: ['ACTIVE', 'BOARDED'] },
@@ -190,8 +191,8 @@ export async function POST(request: NextRequest) {
                     url: `/pwa-passager/?action=ticket`,
                   },
                   actions: [
+                    { action: 'listen', title: '🔊 Écouter' },
                     { action: 'open', title: '🎫 Voir mon billet' },
-                    { action: 'dismiss', title: 'Fermer' },
                   ],
                 });
               } catch (pushErr) {

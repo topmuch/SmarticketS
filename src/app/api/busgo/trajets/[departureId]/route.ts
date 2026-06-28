@@ -307,8 +307,8 @@ export async function PATCH(
                 url: '/pwa-passager/?action=ticket',
               },
               actions: [
+                { action: 'listen', title: '🔊 Écouter' },
                 { action: 'open', title: '🎫 Voir mon billet' },
-                { action: 'dismiss', title: 'Fermer' },
               ],
             });
 
