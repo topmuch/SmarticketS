@@ -106,3 +106,51 @@ Use 'kill 13531' to stop it.
  POST /api/busgo/voix 200 in 42ms (next.js: 30ms, application-code: 12ms)
  GET /api/busgo/voix 200 in 10ms (next.js: 1721µs, application-code: 8ms)
  PATCH /api/busgo/trajets/dep-demo-agency-1-route-Dakar-Mbour-ret-6 200 in 1113ms (next.js: 994ms, application-code: 119ms)
+ POST /api/cron/departure-reminders 200 in 95ms (next.js: 74ms, application-code: 21ms)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 401
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+[browser] [MissingPassengerAlert] Fetch error: Error: HTTP 502
+    at MissingPassengerAlert.useCallback[fetchAlerts] (src/components/dashboard/MissingPassengerAlert.tsx:389:26)
+  387 |         : '/api/dashboard/missing-alerts';
+  388 |       const res = await fetch(url, { credentials: 'include' });
+> 389 |       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      |                          ^
+  390 |
+  391 |       const json: ApiResponse = await res.json();
+  392 |       setData(json); (src/components/dashboard/MissingPassengerAlert.tsx:395:15)
+ GET /api/dashboard/missing-alerts?agencyId=demo-agency-1 401 in 50ms (next.js: 40ms, application-code: 10ms)
+ GET / 200 in 130ms (next.js: 4ms, application-code: 126ms)
