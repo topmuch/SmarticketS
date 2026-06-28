@@ -1,0 +1,74 @@
+==========================================
+[2026-06-28 14:01:54] Starting: bun install
+==========================================
+[BUN] Installing dependencies...
+[0.20ms] ".env"
+bun install v1.3.14 (0d9b296a)
+
+Checked 987 installs across 1052 packages (no changes) [53.00ms]
+==========================================
+[2026-06-28 14:01:54] Completed: bun install
+[LOG] Step: bun install | Duration: 0s
+==========================================
+
+==========================================
+[2026-06-28 14:01:54] Starting: bun run db:push
+==========================================
+[BUN] Setting up database...
+$ prisma db push
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "custom.db" at "file:/home/z/my-project/db/custom.db"
+
+The database is already in sync with the Prisma schema.
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[G✔ Generated Prisma Client (v6.19.2) to ./node_modules/@prisma/client in 322ms
+
+==========================================
+[2026-06-28 14:01:56] Completed: bun run db:push
+[LOG] Step: bun run db:push | Duration: 2s
+==========================================
+
+==========================================
+[2026-06-28 14:01:56] Starting: Starting Next.js dev server
+==========================================
+[BUN] Starting development server...
+==========================================
+$ next dev -p 3000 2>&1 | tee dev.log
+[2026-06-28 14:01:56] Completed: Starting Next.js dev server
+[LOG] Step: Starting Next.js dev server | Duration: 0s
+==========================================
+
+==========================================
+[2026-06-28 14:01:56] Starting: Waiting for Next.js dev server
+==========================================
+Waiting for Next.js dev server to be ready on localhost:3000...
+Attempt 1/60: Next.js dev server not ready yet, waiting...
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://21.0.7.22:3000
+- Environments: .env
+✓ Ready in 395ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          3492
+- Dir:          /home/z/my-project
+- Log:          .next/dev/logs/next-development.log
+
+Run kill 3492 to stop it.
+Attempt 2/60: Next.js dev server not ready yet, waiting...
+[?25h
+Attempt 3/60: Next.js dev server not ready yet, waiting...
+Attempt 4/60: Next.js dev server not ready yet, waiting...
+Attempt 5/60: Next.js dev server not ready yet, waiting...
+Attempt 6/60: Next.js dev server not ready yet, waiting...
+Attempt 7/60: Next.js dev server not ready yet, waiting...
+Attempt 8/60: Next.js dev server not ready yet, waiting...
+Attempt 9/60: Next.js dev server not ready yet, waiting...
+Attempt 10/60: Next.js dev server not ready yet, waiting...
+Attempt 11/60: Next.js dev server not ready yet, waiting...
+Attempt 12/60: Next.js dev server not ready yet, waiting...
+Attempt 13/60: Next.js dev server not ready yet, waiting...

@@ -1,15 +1,12 @@
 [kiosk-service] Installing dependencies...
 bun install v1.3.14 (0d9b296a)
 
-Checked 22 installs across 23 packages (no changes) [10.00ms]
+Checked 22 installs across 23 packages (no changes) [9.00ms]
 [kiosk-service] Running bun run dev...
 $ bun --hot index.ts
-46 |     }
-47 |   }
-48 |   let er;
-49 |   if (args.length > 0)
-50 |     er = args[0];
-51 |     throw er;
-                 ^
-error: Failed to start server. Is port 3004 in use?
-      at emitError (node:events:51:13)
+
+[KioskService] 🟢 2026-06-28T14:02:50.426Z | Kiosk WebSocket service running on port 3004
+[KioskService] 🟢 2026-06-28T14:02:50.426Z | Transports: websocket, polling
+[KioskService] 🟢 2026-06-28T14:02:50.426Z | REST endpoint: POST /api/push/:slug
+[KioskService] 🟢 2026-06-28T14:02:50.426Z | CORS: all origins (gateway proxy mode)
+
