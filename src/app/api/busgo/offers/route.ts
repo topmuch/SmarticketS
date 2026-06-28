@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, imageUrl, partnerName, actionUrl, actionLabel, targetAudience, startDate, endDate, priority } = body;
+    const { title, description, imageUrl, videoUrl, partnerName, actionUrl, actionLabel, targetAudience, startDate, endDate, priority } = body;
 
     if (!title || !description || !partnerName || !actionUrl) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 });
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
         title,
         description,
         imageUrl: imageUrl || null,
+        videoUrl: videoUrl || null,
         partnerName,
         actionUrl,
         actionLabel: actionLabel || 'Voir',

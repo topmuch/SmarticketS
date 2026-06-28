@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { BottomNav } from '@/components/pwa-passenger/BottomNav';
+import { PwaAdsBanner } from '@/components/pwa-passenger/PwaAdsBanner';
 
 /**
  * PWA Passager — Layout Client avec BottomNav
@@ -38,6 +39,12 @@ export function PwaPassagerNavWrapper({ children }: { children: React.ReactNode 
   return (
     <>
       <div className={isInstallPage ? '' : 'pb-20'}>
+        {/* Ads banner en haut de chaque page PWA (sauf install) */}
+        {!isInstallPage && (
+          <div className="px-4 pt-3">
+            <PwaAdsBanner />
+          </div>
+        )}
         {children}
       </div>
       {!isInstallPage && (

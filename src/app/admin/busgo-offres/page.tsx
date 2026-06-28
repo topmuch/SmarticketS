@@ -32,6 +32,7 @@ interface Offer {
   title: string;
   description: string;
   imageUrl: string | null;
+  videoUrl: string | null;
   partnerName: string;
   actionUrl: string;
   actionLabel: string;
@@ -51,7 +52,7 @@ const AUDIENCE_LABELS: Record<string, { label: string; icon: typeof Bus }> = {
 };
 
 const emptyForm = {
-  title: '', description: '', imageUrl: '', partnerName: '',
+  title: '', description: '', imageUrl: '', videoUrl: '', partnerName: '',
   actionUrl: '', actionLabel: 'Voir', targetAudience: 'all',
   endDate: '', priority: 0,
 };
@@ -114,6 +115,7 @@ export default function BusGoOffresPage() {
       title: offer.title,
       description: offer.description,
       imageUrl: offer.imageUrl || '',
+      videoUrl: offer.videoUrl || '',
       partnerName: offer.partnerName,
       actionUrl: offer.actionUrl,
       actionLabel: offer.actionLabel,
@@ -268,7 +270,13 @@ export default function BusGoOffresPage() {
               </div>
               <div className="space-y-1">
                 <Label>Image URL</Label>
-                <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="/upload/logos/..." />
+                <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="/sounds/busgo/... ou URL externe" />
+                <p className="text-xs text-muted-foreground">Uploadez via /busgo/voix → utilisez l'URL retournée</p>
+              </div>
+              <div className="space-y-1">
+                <Label>Video URL (MP4)</Label>
+                <Input value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} placeholder="/sounds/busgo/video.mp4 ou URL externe" />
+                <p className="text-xs text-muted-foreground">Vidéo optionnelle (remplace l'image si définie)</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -310,7 +318,9 @@ export default function BusGoOffresPage() {
                 <p className="text-xs text-muted-foreground mb-2">Aperçu:</p>
                 <OfferCard offer={{
                   id: 'preview', title: form.title, description: form.description,
-                  imageUrl: form.imageUrl || null, partnerName: form.partnerName,
+                  imageUrl: form.imageUrl || null,
+                  videoUrl: form.videoUrl || null,
+                  partnerName: form.partnerName,
                   actionUrl: form.actionUrl || '#', actionLabel: form.actionLabel,
                   targetAudience: form.targetAudience, priority: form.priority,
                 }} />
