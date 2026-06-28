@@ -2505,3 +2505,34 @@ Stage Summary:
   - src/components/pwa-passenger/LiveBoard.tsx — added fixed Sidebar (220px, light teal), KPI cards row (4 colored), white trip-list card with sticky grouped headers, preserved useLiveTrips + useLiveBoardStore + TripDetailModal integration
 - Color palette applied: teal #10B981 (primary), orange #F97316 (brand/boarding), blue #3B82F6 (info), pink #EC4899 (alerts/delays), light teal #F0FDF4 (sidebar bg), gray-800/500/200 (text/borders), green #22C55E (success), red #EF4444 (delays).
 - Responsive: sidebar hidden on mobile (hidden md:flex), bottom nav hidden on desktop (flex md:hidden), KPI grid 2-col on mobile / 4-col on md+, search input compact on mobile.
+
+---
+Task ID: LOGIN-REDESIGN
+Agent: Frontend Styling Expert
+Task: Redesign 3 login pages with distinct multicolor themes
+
+Work Log:
+- Read worklog tail for prior context (FitNexus PWA redesign using Tailwind color palette conventions).
+- Inspected existing /home/z/my-project/src/components/auth/LoginPage.tsx (671 lines) — single shared component driven by `variant` prop ('superadmin' | 'agence' | 'busgo') with CONFIGS object; previously used a single dark navy left panel + image background for both superadmin and agence, with pink/orange accent classes hardcoded via `isAgence` ternaries.
+- Verified useAuth() hook shape in src/contexts/AuthContext.tsx (user, login, loading, isAgency, isSuperAdmin).
+- Completely rewrote LoginPage.tsx (now 795 lines) with split-screen layout and 3 distinct, immediately-recognizable color themes:
+  · SuperAdmin → Purple/Violet: panelGradient `from-violet-600 via-purple-600 to-indigo-700`, button `from-violet-600 to-indigo-600`, accent `text-violet-600`, orbs `#A78BFA` + `#4F46E5`, main icon Shield, vibe "Sécurité & Pouvoir".
+  · Agence → Teal/Cyan: panelGradient `from-teal-500 via-cyan-600 to-sky-700`, button `from-teal-600 to-cyan-600`, accent `text-teal-600`, orbs `#2DD4BF` + `#0891B2`, main icon Truck, vibe "Transport & Logistique".
+  · BusGo → Orange/Amber: panelGradient `from-orange-500 via-amber-500 to-red-500`, button `from-orange-500 to-amber-500`, accent `text-orange-600`, orbs `#FB923C` + `#D97706`, main icon Bus, vibe "Transport de voyageurs".
+- Refactored CONFIGS to replace hardcoded ternaries with explicit per-variant Tailwind class strings (panelGradient, buttonGradient, buttonShadow, accentText, accentBorder, accentRing, accentBgSoft, accentTextSoft, accentBgHover, iconGradient, checkboxGradient) so JIT sees them statically. Inline-style hexes used only for orb backgrounds.
+- Left panel (hidden lg:flex lg:w-[55%]): full-height variant gradient bg + 2 animated blurred orbs (8s scale loop, 2s stagger delay) + subtle white grid pattern (opacity 8%); logo (brightness-0 invert for white), role tagline; bottom content = vibe badge + 4xl/5xl bold white headline + lg white/70 subtitle + 2x2 feature cards (white/10 backdrop-blur, white/15 border, hover y-4 lift) + divider tagline + switch link to other login.
+- Right panel (w-full lg:w-[45%], bg-white): centered max-w-[420px] card; mobile-only header with Home link back to "/" + logo; form title block = 48px gradient icon tile + 2xl bold slate-800 title + subtitle; error alert (red-50/red-200 with AlertCircle icon); email input (Mail icon, pl-10 pr-4 py-3, rounded-xl border-slate-200 bg-slate-50, focus adds accentBorder + ring-2 accentRing + bg-white); password input (Lock icon + show/hide Eye/EyeOff button); "Se souvenir de moi" gradient-checkbox + "Mot de passe oublié ?" link in accentText; submit button = full-width rounded-xl py-3 font-semibold gradient text-white + shadow + whileHover scale 1.01 / whileTap scale 0.95 + loading state (Loader2 spinner + "Connexion...").
+- Collapsible demo section (chevron-down header, AnimatePresence height animation): shows demo email + masked password (• chars) + accent-soft demoLabel badge + full-width "Auto-remplir" gradient button (fillDemo) + "Connexion rapide" links to the other 2 login variants (each link tinted with its own variant color: violet for SuperAdmin, teal for Transporteur, orange for BusGo).
+- Always-visible bottom "Changer d'espace" switch row (3 colored links, current variant hidden) + copyright footer.
+- Removed FloatingParticles component and its usage entirely (per spec).
+- Removed unused imports (Building2, CheckCircle, Package — Building2 replaced by Truck for agence main icon). Added new imports: Truck, ChevronDown, Home, Sparkles, AlertCircle.
+- Preserved ALL existing logic: `variant` prop typing, full CONFIGS shape (demoEmail/demoPassword/role/redirectPath/switchHref etc.), useAuth() destructure (user, login, loading, isAgency, isSuperAdmin), dev-only /api/init-demo ping, redirect useEffect for the 3 variants, handleSubmit (POST /api/auth/login + login(data.user) + router.push), fillDemo, setError, rememberMe state, showPassword toggle, focusedField state for input ring.
+- Verified `bunx tsc --noEmit` → 0 errors in src/components/auth/LoginPage.tsx (only pre-existing errors remain in unrelated API routes / layouts / pwa-passager pages).
+- Verified `bunx eslint src/components/auth/LoginPage.tsx` → exit 0, clean.
+
+Stage Summary:
+- 1 file modified: src/components/auth/LoginPage.tsx (671 → 795 lines, complete rewrite).
+- 3 distinct color themes applied: SuperAdmin = purple/violet (#7C3AED/#4F46E5/#A78BFA), Agence = teal/cyan (#0D9488/#0891B2/#2DD4BF), BusGo = orange/amber (#EA580C/#D97706/#FB923C).
+- Layout: split screen 55/45 — left desktop-only gradient panel with animated orbs + 4 feature badges + tagline + switch link; right always-visible white form panel with icon-titled form, email/password inputs with focus rings, gradient submit button, collapsible demo section with auto-fill + quick-login links, mobile back-to-home link.
+- All variant logic preserved (useAuth, handleSubmit, fillDemo, redirect useEffect, error/remember/showPassword state); FloatingParticles removed; lucide-react icons used throughout (Shield/Truck/Bus for main icon, Mail/Lock/Eye/EyeOff for inputs, AlertCircle for errors, Sparkles + ChevronDown for demo card, Home for mobile back, ArrowRight for submit).
+- TypeScript + ESLint clean on the modified file.

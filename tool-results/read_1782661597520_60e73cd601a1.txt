@@ -1,0 +1,672 @@
+     1→// @ts-nocheck
+     2→'use client';
+     3→
+     4→import { useState, useEffect } from 'react';
+     5→import { useRouter } from 'next/navigation';
+     6→import Link from 'next/link';
+     7→import Image from 'next/image';
+     8→import { motion, AnimatePresence } from 'framer-motion';
+     9→import {
+    10→  QrCode,
+    11→  Eye,
+    12→  EyeOff,
+    13→  Loader2,
+    14→  Shield,
+    15→  Building2,
+    16→  ArrowRight,
+    17→  CheckCircle,
+    18→  Lock,
+    19→  Mail,
+    20→  Zap,
+    21→  Globe,
+    22→  Bus,
+    23→  Package,
+    24→  MapPin,
+    25→  Bell,
+    26→  Fingerprint,
+    27→  ScanLine,
+    28→} from "lucide-react";
+    29→import { useAuth } from '@/contexts/AuthContext';
+    30→
+    31→/* ══════════════════════════════════════════════
+    32→   CONFIG PER VARIANT
+    33→   ══════════════════════════════════════════════ */
+    34→type LoginVariant = 'agence' | 'superadmin' | 'busgo';
+    35→
+    36→interface LoginConfig {
+    37→  type: LoginVariant;
+    38→  title: string;
+    39→  subtitle: string;
+    40→  demoEmail: string;
+    41→  demoPassword: string;
+    42→  demoLabel: string;
+    43→  role: string;
+    44→  redirectPath: string;
+    45→  accentBg: string;
+    46→  accentHover: string;
+    47→  accentText: string;
+    48→  accentGradient: string;
+    49→  accentShadow: string;
+    50→  leftTitle: string;
+    51→  leftSubtitle: string;
+    52→  leftTagline: string;
+    53→  switchText: string;
+    54→  switchLink: string;
+    55→  switchHref: string;
+    56→  features: { icon: typeof QrCode; title: string; desc: string }[];
+    57→}
+    58→
+    59→const CONFIGS: Record<LoginVariant, LoginConfig> = {
+    60→  agence: {
+    61→    type: 'agence',
+    62→    title: 'Espace Transporteur',
+    63→    subtitle: 'Connectez-vous pour gérer vos billets et colis',
+    64→    demoEmail: 'agence@smartickets.com',
+    65→    demoPassword: 'agence123',
+    66→    demoLabel: 'Agence',
+    67→    role: 'agency',
+    68→    redirectPath: '/agence/tableau-de-bord',
+    69→    accentBg: 'bg-[#FF6B35]',
+    70→    accentHover: 'hover:bg-[#e55a25]',
+    71→    accentText: 'text-[#FF6B35]',
+    72→    accentGradient: 'from-[#FF6B35] to-[#FF1D8D]',
+    73→    accentShadow: 'shadow-[#FF6B35]/30',
+    74→    leftTitle: 'Gérez votre activité de transport en toute simplicité',
+    75→    leftSubtitle: 'Billets, colis, suivi en temps réel — tout est dans votre tableau de bord.',
+    76→    leftTagline: 'Conçu pour la performance',
+    77→    switchText: 'Vous êtes administrateur ?',
+    78→    switchLink: 'Connexion Admin',
+    79→    switchHref: '/admin/connexion',
+    80→    features: [
+    81→      { icon: Bus, title: 'Billets & Colis', desc: 'Gestion unifiée' },
+    82→      { icon: QrCode, title: 'QR Codes', desc: 'Génération instantanée' },
+    83→      { icon: MapPin, title: 'Suivi GPS', desc: 'Temps réel' },
+    84→      { icon: Bell, title: 'Notifications', desc: 'WhatsApp & SMS' },
+    85→    ],
+    86→  },
+    87→  superadmin: {
+    88→    type: 'superadmin',
+    89→    title: 'Espace Administrateur',
+    90→    subtitle: 'Accès réservé aux administrateurs système',
+    91→    demoEmail: 'admin@smartickets.com',
+    92→    demoPassword: 'admin123',
+    93→    demoLabel: 'SuperAdmin',
+    94→    role: 'superadmin',
+    95→    redirectPath: '/admin/tableau-de-bord',
+    96→    accentBg: 'bg-[#FF1D8D]',
+    97→    accentHover: 'hover:bg-[#e0167a]',
+    98→    accentText: 'text-[#FF1D8D]',
+    99→    accentGradient: 'from-[#FF1D8D] to-[#7c3aed]',
+   100→    accentShadow: 'shadow-[#FF1D8D]/30',
+   101→    leftTitle: 'Contrôle centralisé de tout le réseau',
+   102→    leftSubtitle: 'Agences, QR codes, utilisateurs et analytics — pilotés depuis un seul panneau.',
+   103→    leftTagline: 'Sécurité & Performance',
+   104→    switchText: 'Vous êtes un transporteur ?',
+   105→    switchLink: 'Connexion Transporteur',
+   106→    switchHref: '/agence/connexion',
+   107→    features: [
+   108→      { icon: Shield, title: 'Sécurité', desc: 'Authentification renforcée' },
+   109→      { icon: Globe, title: 'Multi-agences', desc: 'Vue centralisée' },
+   110→      { icon: Zap, title: 'API intégrées', desc: 'Webhooks & PDF' },
+   111→      { icon: Fingerprint, title: 'Rôles', desc: 'Permissions avancées' },
+   112→    ],
+   113→  },
+   114→  busgo: {
+   115→    type: 'busgo',
+   116→    title: 'Espace BusGo',
+   117→    subtitle: 'Gestion de transport en bus — embarquement, billetterie, annonces vocales',
+   118→    demoEmail: 'admin@smartickets.com',
+   119→    demoPassword: 'admin123',
+   120→    demoLabel: 'BusGo',
+   121→    role: 'admin',
+   122→    redirectPath: '/busgo',
+   123→    accentBg: 'bg-[#F59E0B]',
+   124→    accentHover: 'hover:bg-[#D97706]',
+   125→    accentText: 'text-[#F59E0B]',
+   126→    accentGradient: 'from-[#F59E0B] to-[#EA580C]',
+   127→    accentShadow: 'shadow-[#F59E0B]/30',
+   128→    leftTitle: 'Gérez vos bus et embarquements en temps réel',
+   129→    leftSubtitle: 'Billetterie, scan QR, plan de sièges, annonces vocales — tout dans une seule app.',
+   130→    leftTagline: 'Transport intelligent',
+   131→    switchText: 'Vous êtes administrateur ?',
+   132→    switchLink: 'Connexion Admin',
+   133→    switchHref: '/admin/connexion',
+   134→    features: [
+   135→      { icon: Bus, title: 'Billetterie', desc: 'Vente de billets' },
+   136→      { icon: ScanLine, title: 'Scan QR', desc: 'Embarquement rapide' },
+   137→      { icon: Bell, title: 'Annonces vocales', desc: 'TTS gratuit' },
+   138→      { icon: MapPin, title: 'Temps réel', desc: 'WebSocket live' },
+   139→    ],
+   140→  },
+   141→};
+   142→
+   143→/* ══════════════════════════════════════════════
+   144→   ANIMATION VARIANTS
+   145→   ══════════════════════════════════════════════ */
+   146→const fadeUp = {
+   147→  hidden: { opacity: 0, y: 24 },
+   148→  visible: (i: number) => ({
+   149→    opacity: 1,
+   150→    y: 0,
+   151→    transition: { delay: i * 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+   152→  }),
+   153→};
+   154→
+   155→const stagger = {
+   156→  hidden: {},
+   157→  visible: { transition: { staggerChildren: 0.06 } },
+   158→};
+   159→
+   160→/* ══════════════════════════════════════════════
+   161→   FLOATING PARTICLES (decorative)
+   162→   ══════════════════════════════════════════════ */
+   163→function FloatingParticles({ color }: { color: string }) {
+   164→  const particles = Array.from({ length: 12 }, (_, i) => ({
+   165→    id: i,
+   166→    x: `${(i * 8.3) % 100}%`,
+   167→    y: `${(i * 13.7) % 100}%`,
+   168→    size: i % 3 === 0 ? 6 : i % 2 === 0 ? 4 : 3,
+   169→    delay: i * 0.4,
+   170→    duration: 6 + (i % 4),
+   171→  }));
+   172→
+   173→  return (
+   174→    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+   175→      {particles.map((p) => (
+   176→        <motion.div
+   177→          key={p.id}
+   178→          className="absolute rounded-full"
+   179→          style={{
+   180→            left: p.x,
+   181→            top: p.y,
+   182→            width: p.size,
+   183→            height: p.size,
+   184→            background: color,
+   185→            opacity: 0.15,
+   186→          }}
+   187→          animate={{
+   188→            y: [0, -30, 0],
+   189→            opacity: [0.1, 0.25, 0.1],
+   190→          }}
+   191→          transition={{
+   192→            duration: p.duration,
+   193→            delay: p.delay,
+   194→            repeat: Infinity,
+   195→            ease: 'easeInOut',
+   196→          }}
+   197→        />
+   198→      ))}
+   199→    </div>
+   200→  );
+   201→}
+   202→
+   203→/* ══════════════════════════════════════════════
+   204→   LOGIN PAGE COMPONENT
+   205→   ══════════════════════════════════════════════ */
+   206→export default function LoginPage({ variant }: { variant: LoginVariant }) {
+   207→  const config = CONFIGS[variant];
+   208→  const router = useRouter();
+   209→  const { user, login, loading: authLoading, isAgency, isSuperAdmin } = useAuth();
+   210→
+   211→  const [email, setEmail] = useState('');
+   212→  const [password, setPassword] = useState('');
+   213→  const [showPassword, setShowPassword] = useState(false);
+   214→  const [error, setError] = useState('');
+   215→  const [loading, setLoading] = useState(false);
+   216→  const [rememberMe, setRememberMe] = useState(false);
+   217→  const [focusedField, setFocusedField] = useState<string | null>(null);
+   218→
+   219→  // Auto-init demo users on first visit (idempotent) — dev only
+   220→  useEffect(() => {
+   221→    if (process.env.NODE_ENV === 'development') {
+   222→      fetch('/api/init-demo').catch(() => {});
+   223→    }
+   224→  }, []);
+   225→
+   226→  // Redirect if already logged in
+   227→  useEffect(() => {
+   228→    if (authLoading) return;
+   229→    if (user) {
+   230→      if (variant === 'agence' && isAgency) {
+   231→        router.replace(config.redirectPath);
+   232→      } else if (variant === 'superadmin' && isSuperAdmin) {
+   233→        router.replace(config.redirectPath);
+   234→      } else if (variant === 'busgo' && (user.role === 'admin' || user.role === 'agent' || user.role === 'superadmin')) {
+   235→        router.replace(config.redirectPath);
+   236→      }
+   237→    }
+   238→  }, [user, authLoading, isAgency, isSuperAdmin, variant, router, config.redirectPath]);
+   239→
+   240→  const handleSubmit = async (e: React.FormEvent) => {
+   241→    e.preventDefault();
+   242→    setError('');
+   243→    setLoading(true);
+   244→
+   245→    try {
+   246→      const response = await fetch('/api/auth/login', {
+   247→        method: 'POST',
+   248→        headers: { 'Content-Type': 'application/json' },
+   249→        body: JSON.stringify({ email, password, role: config.role }),
+   250→      });
+   251→
+   252→      const data = await response.json();
+   253→
+   254→      if (response.ok && data.success) {
+   255→        login(data.user);
+   256→        router.push(config.redirectPath);
+   257→      } else {
+   258→        setError(data.error || 'Identifiants incorrects');
+   259→      }
+   260→    } catch {
+   261→      setError('Erreur de connexion. Veuillez réessayer.');
+   262→    } finally {
+   263→      setLoading(false);
+   264→    }
+   265→  };
+   266→
+   267→  const fillDemo = () => {
+   268→    setEmail(config.demoEmail);
+   269→    setPassword(config.demoPassword);
+   270→  };
+   271→
+   272→  const isAgence = variant === 'agence';
+   273→
+   274→  return (
+   275→    <div className="min-h-screen flex bg-[#0B1120] overflow-hidden">
+   276→      {/* ─── LEFT: Visual Hero Panel ─── */}
+   277→      <div className="relative hidden lg:flex lg:w-[54%] xl:w-[58%] min-h-screen overflow-hidden">
+   278→        {/* Background image */}
+   279→        <Image
+   280→          src="/images/login-bg.png"
+   281→          alt="SmarticketS"
+   282→          fill
+   283→          className="object-cover scale-105"
+   284→          priority
+   285→          sizes="58vw"
+   286→        />
+   287→
+   288→        {/* Multi-layer gradient overlay */}
+   289→        <div className="absolute inset-0 bg-gradient-to-br from-[#0B1120]/95 via-[#0B1120]/75 to-[#0B1120]/50" />
+   290→        <div className="absolute inset-0 bg-gradient-to-t from-[#0B1120] via-transparent to-[#0B1120]/40" />
+   291→
+   292→        {/* Animated gradient orbs */}
+   293→        <motion.div
+   294→          className="absolute -top-20 -right-20 w-[500px] h-[500px] rounded-full opacity-[0.15] blur-[120px]"
+   295→          style={{ background: isAgence ? '#FF6B35' : '#FF1D8D' }}
+   296→          animate={{ scale: [1, 1.15, 1], opacity: [0.1, 0.2, 0.1] }}
+   297→          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+   298→        />
+   299→        <motion.div
+   300→          className="absolute -bottom-32 -left-20 w-[400px] h-[400px] rounded-full opacity-[0.12] blur-[100px]"
+   301→          style={{ background: isAgence ? '#FF1D8D' : '#7c3aed' }}
+   302→          animate={{ scale: [1, 1.1, 1], opacity: [0.08, 0.15, 0.08] }}
+   303→          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+   304→        />
+   305→
+   306→        {/* Floating particles */}
+   307→        <FloatingParticles color={isAgence ? '#FF6B35' : '#FF1D8D'} />
+   308→
+   309→        {/* Geometric grid lines (decorative) */}
+   310→        <div className="absolute inset-0 opacity-[0.03]" style={{
+   311→          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+   312→          backgroundSize: '60px 60px',
+   313→        }} />
+   314→
+   315→        {/* Content */}
+   316→        <motion.div
+   317→          className="relative z-10 h-full flex flex-col p-10 xl:p-14"
+   318→          initial="hidden"
+   319→          animate="visible"
+   320→          variants={stagger}
+   321→        >
+   322→          {/* Logo */}
+   323→          <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3">
+   324→            <Link href="/" className="flex items-center gap-3 group">
+   325→              <motion.div
+   326→                whileHover={{ scale: 1.05, rotate: -3 }}
+   327→                transition={{ type: 'spring', stiffness: 400 }}
+   328→              >
+   329→                <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-8 w-auto" />
+   330→              </motion.div>
+   331→              <div>
+   332→                <span className="block text-[11px] text-white/40 font-medium tracking-[0.2em] uppercase mt-0.5">
+   333→                  {isAgence ? 'Espace Pro' : 'Administration'}
+   334→                </span>
+   335→              </div>
+   336→            </Link>
+   337→          </motion.div>
+   338→
+   339→          {/* Spacer */}
+   340→          <div className="flex-1" />
+   341→
+   342→          {/* Bottom content */}
+   343→          <div>
+   344→            {/* Accent badge */}
+   345→            <motion.div variants={fadeUp} custom={1} className="mb-6">
+   346→              <span className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full text-xs font-bold tracking-[0.15em] uppercase backdrop-blur-xl border bg-gradient-to-r ${
+   347→                isAgence
+   348→                  ? 'from-[#FF6B35]/20 to-[#FF1D8D]/20 border-[#FF6B35]/20 text-[#FF6B35]'
+   349→                  : 'from-[#FF1D8D]/20 to-[#7c3aed]/20 border-[#FF1D8D]/20 text-[#FF1D8D]'
+   350→              }`}>
+   351→                {isAgence ? <Building2 className="w-3.5 h-3.5" /> : <Shield className="w-3.5 h-3.5" />}
+   352→                {isAgence ? 'Espace Transporteur' : 'Espace Admin'}
+   353→              </span>
+   354→            </motion.div>
+   355→
+   356→            {/* Title & subtitle */}
+   357→            <motion.h2
+   358→              variants={fadeUp}
+   359→              custom={2}
+   360→              className="text-3xl xl:text-[42px] font-extrabold text-white mb-5 leading-[1.15] max-w-xl tracking-tight"
+   361→            >
+   362→              {config.leftTitle}
+   363→            </motion.h2>
+   364→            <motion.p variants={fadeUp} custom={3} className="text-white/50 text-base xl:text-lg leading-relaxed max-w-md mb-10">
+   365→              {config.leftSubtitle}
+   366→            </motion.p>
+   367→
+   368→            {/* Feature cards */}
+   369→            <motion.div variants={fadeUp} custom={4} className="grid grid-cols-2 gap-3.5 max-w-lg">
+   370→              {config.features.map((feat, idx) => (
+   371→                <motion.div
+   372→                  key={feat.title}
+   373→                  initial={{ opacity: 0, y: 20 }}
+   374→                  animate={{ opacity: 1, y: 0 }}
+   375→                  transition={{ delay: 0.5 + idx * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+   376→                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+   377→                  className="group relative bg-white/[0.05] backdrop-blur-md rounded-2xl px-5 py-4.5 border border-white/[0.06] hover:bg-white/[0.1] hover:border-white/[0.12] transition-all duration-300"
+   378→                >
+   379→                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${
+   380→                    isAgence
+   381→                      ? 'bg-[#FF6B35]/15 group-hover:bg-[#FF6B35]/25'
+   382→                      : 'bg-[#FF1D8D]/15 group-hover:bg-[#FF1D8D]/25'
+   383→                  } transition-colors duration-300`}>
+   384→                    <feat.icon className={`w-4.5 h-4.5 ${
+   385→                      isAgence ? 'text-[#FF6B35]/70' : 'text-[#FF1D8D]/70'
+   386→                    } group-hover:brightness-125 transition-all`} />
+   387→                  </div>
+   388→                  <p className="text-white text-sm font-bold leading-tight">{feat.title}</p>
+   389→                  <p className="text-white/35 text-xs mt-1 leading-snug">{feat.desc}</p>
+   390→                </motion.div>
+   391→              ))}
+   392→            </motion.div>
+   393→
+   394→            {/* Divider tagline */}
+   395→            <motion.div variants={fadeUp} custom={6} className="mt-10 flex items-center gap-4">
+   396→              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+   397→              <span className="text-[10px] text-white/25 font-semibold tracking-[0.25em] uppercase">{config.leftTagline}</span>
+   398→              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+   399→            </motion.div>
+   400→          </div>
+   401→        </motion.div>
+   402→      </div>
+   403→
+   404→      {/* ─── RIGHT: Form Panel ─── */}
+   405→      <div className="w-full lg:w-[46%] xl:w-[42%] min-h-screen flex items-center justify-center relative overflow-hidden">
+   406→        {/* Background */}
+   407→        <div className="absolute inset-0 bg-gradient-to-b from-white via-[#FAFBFF] to-white" />
+   408→
+   409→        {/* Subtle pattern */}
+   410→        <div className="absolute inset-0 opacity-[0.015]" style={{
+   411→          backgroundImage: `radial-gradient(circle, #000 1px, transparent 1px)`,
+   412→          backgroundSize: '24px 24px',
+   413→        }} />
+   414→
+   415→        {/* Decorative orbs */}
+   416→        <div className="absolute top-20 right-0 w-80 h-80 rounded-full opacity-20 blur-[100px] pointer-events-none"
+   417→          style={{ background: isAgence ? '#FF6B35' : '#FF1D8D' }}
+   418→        />
+   419→        <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full opacity-15 blur-[80px] pointer-events-none"
+   420→          style={{ background: isAgence ? '#FF1D8D' : '#7c3aed' }}
+   421→        />
+   422→
+   423→        {/* Content */}
+   424→        <motion.div
+   425→          className="w-full max-w-[420px] relative z-10 px-6 sm:px-8"
+   426→          initial="hidden"
+   427→          animate="visible"
+   428→          variants={stagger}
+   429→        >
+   430→          {/* Mobile Logo */}
+   431→          <motion.div variants={fadeUp} custom={0} className="lg:hidden flex flex-col items-center mb-10">
+   432→            <motion.div
+   433→              whileHover={{ scale: 1.05 }}
+   434→              className="mb-4"
+   435→            >
+   436→              <Image src="/logo-full.png" alt="SmarticketS" width={374} height={135} className="h-10 w-auto" />
+   437→            </motion.div>
+   438→          </motion.div>
+   439→
+   440→          {/* Desktop: Role badge */}
+   441→          <motion.div variants={fadeUp} custom={0} className="hidden lg:flex items-center gap-2.5 mb-8">
+   442→            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${config.accentGradient} flex items-center justify-center shadow-sm ${config.accentShadow}`}>
+   443→              {isAgence ? <Building2 className="w-4 h-4 text-white" /> : <Shield className="w-4 h-4 text-white" />}
+   444→            </div>
+   445→            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+   446→              {isAgence ? 'Espace Transporteur' : 'Espace Admin'}
+   447→            </span>
+   448→          </motion.div>
+   449→
+   450→          {/* Title */}
+   451→          <motion.div variants={fadeUp} custom={1} className="mb-8">
+   452→            <h1 className="text-[28px] sm:text-[32px] font-extrabold text-slate-900 tracking-tight mb-2.5 leading-tight">
+   453→              {config.title}
+   454→            </h1>
+   455→            <p className="text-slate-400 text-[15px] leading-relaxed">{config.subtitle}</p>
+   456→          </motion.div>
+   457→
+   458→          {/* Error */}
+   459→          <AnimatePresence>
+   460→            {error && (
+   461→              <motion.div
+   462→                initial={{ opacity: 0, y: -12, scale: 0.95 }}
+   463→                animate={{ opacity: 1, y: 0, scale: 1 }}
+   464→                exit={{ opacity: 0, y: -12, scale: 0.95 }}
+   465→                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+   466→                className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200/60 text-red-700 rounded-2xl text-sm flex items-center gap-3"
+   467→              >
+   468→                <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+   469→                  <span className="text-sm">⚠️</span>
+   470→                </div>
+   471→                <span className="font-medium">{error}</span>
+   472→              </motion.div>
+   473→            )}
+   474→          </AnimatePresence>
+   475→
+   476→          {/* Form */}
+   477→          <motion.form
+   478→            variants={stagger}
+   479→            onSubmit={handleSubmit}
+   480→            className="space-y-5"
+   481→          >
+   482→            {/* Email field */}
+   483→            <motion.div variants={fadeUp} custom={2}>
+   484→              <label className="block text-[13px] font-semibold text-slate-600 mb-2 tracking-wide">
+   485→                Adresse email
+   486→              </label>
+   487→              <div className={`relative rounded-xl border-2 transition-all duration-300 overflow-hidden ${
+   488→                focusedField === 'email'
+   489→                  ? `border-[${isAgence ? '#FF6B35' : '#FF1D8D'}] shadow-lg ${config.accentShadow} ring-4 ${config.accentShadow.replace('shadow', 'ring')}/10`
+   490→                  : 'border-slate-200/80 hover:border-slate-300'
+   491→              }`}
+   492→                style={focusedField === 'email' ? { borderColor: isAgence ? '#FF6B35' : '#FF1D8D' } : {}}
+   493→              >
+   494→                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors duration-200">
+   495→                  <Mail className="w-[18px] h-[18px]" />
+   496→                </div>
+   497→                <input
+   498→                  type="email"
+   499→                  value={email}
+   500→                  onChange={(e) => setEmail(e.target.value)}
+   501→                  onFocus={() => setFocusedField('email')}
+   502→                  onBlur={() => setFocusedField(null)}
+   503→                  className="w-full pl-11 pr-4 py-4 bg-white/50 text-slate-900 placeholder-slate-400 focus:outline-none text-sm font-medium"
+   504→                  placeholder={variant === 'agence' ? 'vous@agence.com' : 'admin@smartickets.com'}
+   505→                  required
+   506→                />
+   507→              </div>
+   508→            </motion.div>
+   509→
+   510→            {/* Password field */}
+   511→            <motion.div variants={fadeUp} custom={3}>
+   512→              <label className="block text-[13px] font-semibold text-slate-600 mb-2 tracking-wide">
+   513→                Mot de passe
+   514→              </label>
+   515→              <div className={`relative rounded-xl border-2 transition-all duration-300 overflow-hidden ${
+   516→                focusedField === 'password'
+   517→                  ? 'border-slate-300'
+   518→                  : 'border-slate-200/80 hover:border-slate-300'
+   519→              }`}
+   520→                style={focusedField === 'password' ? { borderColor: isAgence ? '#FF6B35' : '#FF1D8D' } : {}}
+   521→              >
+   522→                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+   523→                  <Lock className="w-[18px] h-[18px]" />
+   524→                </div>
+   525→                <input
+   526→                  type={showPassword ? 'text' : 'password'}
+   527→                  value={password}
+   528→                  onChange={(e) => setPassword(e.target.value)}
+   529→                  onFocus={() => setFocusedField('password')}
+   530→                  onBlur={() => setFocusedField(null)}
+   531→                  className="w-full pl-11 pr-12 py-4 bg-white/50 text-slate-900 placeholder-slate-400 focus:outline-none text-sm font-medium"
+   532→                  placeholder="••••••••"
+   533→                  required
+   534→                />
+   535→                <button
+   536→                  type="button"
+   537→                  onClick={() => setShowPassword(!showPassword)}
+   538→                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100"
+   539→                  tabIndex={-1}
+   540→                >
+   541→                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+   542→                </button>
+   543→              </div>
+   544→            </motion.div>
+   545→
+   546→            {/* Remember / Forgot */}
+   547→            <motion.div variants={fadeUp} custom={4} className="flex items-center justify-between pt-1">
+   548→              <label className="flex items-center cursor-pointer gap-2.5 group">
+   549→                <div className="relative">
+   550→                  <input
+   551→                    type="checkbox"
+   552→                    checked={rememberMe}
+   553→                    onChange={(e) => setRememberMe(e.target.checked)}
+   554→                    className={`peer h-[18px] w-[18px] rounded-md border-2 border-slate-300 appearance-none cursor-pointer checked:border-transparent checked:bg-gradient-to-br ${config.accentGradient} transition-all duration-200`}
+   555→                  />
+   556→                  <svg className="absolute left-[3px] top-[3px] w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+   557→                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+   558→                  </svg>
+   559→                </div>
+   560→                <span className="text-[13px] text-slate-500 group-hover:text-slate-700 transition-colors">Se souvenir de moi</span>
+   561→              </label>
+   562→              <Link
+   563→                href="/forgot-password"
+   564→                className={`text-[13px] font-semibold ${config.accentText} hover:underline transition-colors`}
+   565→              >
+   566→                Mot de passe oublié ?
+   567→              </Link>
+   568→            </motion.div>
+   569→
+   570→            {/* Submit button */}
+   571→            <motion.div variants={fadeUp} custom={5} className="pt-2">
+   572→              <motion.button
+   573→                type="submit"
+   574→                disabled={loading}
+   575→                whileHover={!loading ? { scale: 1.01, y: -1 } : {}}
+   576→                whileTap={!loading ? { scale: 0.99 } : {}}
+   577→                className={`w-full bg-gradient-to-r ${config.accentGradient} text-white font-bold py-4 px-4 rounded-xl transition-all duration-300 shadow-lg ${config.accentShadow} disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 text-[15px] hover:shadow-xl cursor-pointer`}
+   578→              >
+   579→                {loading ? (
+   580→                  <>
+   581→                    <Loader2 className="w-5 h-5 animate-spin" />
+   582→                    Connexion en cours...
+   583→                  </>
+   584→                ) : (
+   585→                  <>
+   586→                    Se connecter
+   587→                    <ArrowRight className="w-5 h-5" />
+   588→                  </>
+   589→                )}
+   590→              </motion.button>
+   591→            </motion.div>
+   592→          </motion.form>
+   593→
+   594→          {/* Demo Account Card */}
+   595→          <motion.div
+   596→            variants={fadeUp}
+   597→            custom={6}
+   598→            className="mt-7 p-4 bg-slate-50/80 backdrop-blur-sm rounded-xl border border-slate-100 hover:border-slate-200 transition-colors"
+   599→          >
+   600→            <div className="flex items-center justify-between mb-3">
+   601→              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] flex items-center gap-2">
+   602→                <div className="w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center">
+   603→                  <Zap className="w-3 h-3 text-amber-500" />
+   604→                </div>
+   605→                Compte démo
+   606→              </h3>
+   607→              <button
+   608→                type="button"
+   609→                onClick={fillDemo}
+   610→                className={`text-xs font-bold ${config.accentText} hover:underline transition-colors flex items-center gap-1 cursor-pointer`}
+   611→              >
+   612→                Auto-remplir
+   613→                <ArrowRight className="w-3 h-3" />
+   614→              </button>
+   615→            </div>
+   616→            <div className="flex items-center gap-3 flex-wrap">
+   617→              <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-[11px] font-bold ${
+   618→                isAgence
+   619→                  ? 'bg-orange-100 text-orange-700'
+   620→                  : 'bg-[#FF1D8D]/10 text-[#FF1D8D]'
+   621→              }`}>
+   622→                {config.demoLabel}
+   623→              </span>
+   624→              <span className="text-[11px] text-slate-400 font-mono leading-relaxed">
+   625→                {config.demoEmail} / {config.demoPassword}
+   626→              </span>
+   627→            </div>
+   628→          </motion.div>
+   629→
+   630→          {/* Switch role — 3 links: SuperAdmin, Transporteur, BusGo */}
+   631→          <motion.div variants={fadeUp} custom={7} className="mt-6 text-center">
+   632→            <p className="text-[13px] text-slate-400 mb-2">Changer d&apos;espace :</p>
+   633→            <div className="flex items-center justify-center gap-3 flex-wrap">
+   634→              {variant !== 'superadmin' && (
+   635→                <Link
+   636→                  href="/admin/connexion"
+   637→                  className="text-[13px] font-bold text-[#FF1D8D] hover:underline transition-colors"
+   638→                >
+   639→                  SuperAdmin
+   640→                </Link>
+   641→              )}
+   642→              {variant !== 'agence' && (
+   643→                <Link
+   644→                  href="/agence/connexion"
+   645→                  className="text-[13px] font-bold text-[#FF6B35] hover:underline transition-colors"
+   646→                >
+   647→                  Transporteur
+   648→                </Link>
+   649→              )}
+   650→              {variant !== 'busgo' && (
+   651→                <Link
+   652→                  href="/busgo/connexion"
+   653→                  className="text-[13px] font-bold text-[#F59E0B] hover:underline transition-colors"
+   654→                >
+   655→                  BusGo
+   656→                </Link>
+   657→              )}
+   658→            </div>
+   659→          </motion.div>
+   660→
+   661→          {/* Footer */}
+   662→          <motion.div variants={fadeUp} custom={8} className="mt-10 pt-6 border-t border-slate-100 text-center">
+   663→            <p className="text-[11px] text-slate-400">
+   664→              © {new Date().getFullYear()} SmarticketS — Tous droits réservés
+   665→            </p>
+   666→          </motion.div>
+   667→        </motion.div>
+   668→      </div>
+   669→    </div>
+   670→  );
+   671→}
+   672→
