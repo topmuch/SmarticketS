@@ -80,6 +80,10 @@ function handleRestPush(req: IncomingMessage, res: ServerResponse) {
         io.to(`station:${slug}`).emit(event, payload);
       }
 
+      // FIX (audit #2): always also emit to passengers room so PWA passager
+      // receives real-time updates via use-passenger-tts-alerts hook
+      io.to('passengers').emit(event, payload);
+
       console.log(`[KioskService] 🔔 ${ts()} | REST PUSH → slug=${slug} | event=${event}`);
       jsonRes(res, 200, { success: true, event, slug, timestamp: Date.now() });
     } catch {

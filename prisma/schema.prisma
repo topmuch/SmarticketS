@@ -959,6 +959,7 @@ model BusGoSponsoredOffer {
   title           String
   description     String
   imageUrl        String?
+  videoUrl        String?  // MP4 video ad (optional, alternative to image)
   partnerName     String
   actionUrl       String   // wa.me link, website, or tel:
   actionLabel     String   @default("Voir") // "Voir", "WhatsApp", "Réserver"

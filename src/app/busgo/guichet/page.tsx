@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Ticket, Plus, Loader2, Bus, MapPin, QrCode, CheckCircle2, Copy } from 'lucide-react';
+import { Ticket, Plus, Loader2, Bus, MapPin, QrCode, CheckCircle2, Copy, MessageCircle, Share2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BusGoGuichetOnboarding } from '@/components/busgo/guichet-onboarding';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -167,6 +167,57 @@ export default function BusGoGuichetPage() {
                 Vendre un autre
               </Button>
             </div>
+
+            {/* FIX: partage WhatsApp du billet */}
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  if (!qrResult) return;
+                  const ticketUrl = `${window.location.origin}${qrResult.installUrl}`;
+                  const waText = encodeURIComponent(
+                    `🎫 Votre billet BusGo\n\n` +
+                    `Passager: ${qrResult.ticket.passengerName}\n` +
+                    `Siège: ${qrResult.ticket.seatNumber}\n` +
+                    `Code: ${qrResult.ticket.controlCode}\n` +
+                    `Ticket papier: ${qrResult.ticket.paperTicketNumber}\n\n` +
+                    `📱 Installez l'app BusGo en scannant ce lien:\n${ticketUrl}`
+                  );
+                  window.open(`https://wa.me/?text=${waText}`, '_blank');
+                  toast.success('Ouverture WhatsApp...');
+                }}
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Partager par WhatsApp
+              </Button>
+              {typeof navigator !== 'undefined' && navigator.share && (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    if (!qrResult) return;
+                    navigator.share({
+                      title: 'Billet BusGo',
+                      text: `Billet ${qrResult.ticket.passengerName} - Siège ${qrResult.ticket.seatNumber}`,
+                      url: `${window.location.origin}${qrResult.installUrl}`,
+                    }).catch(() => {});
+                  }}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Partager...
+                </Button>
+              )}
+            </div>
+
+            {/* Partage direct par SMS si numéro de téléphone fourni */}
+            {qrResult.ticket.passengerName && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-sm">
+                <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">💬 Envoyer le billet au passager</p>
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  Le passager n'a plus son QR code ? Partagez le lien WhatsApp ci-dessus — il pourra réinstaller sa PWA et récupérer son billet.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

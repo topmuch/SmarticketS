@@ -127,16 +127,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Audit log
-    await db.systemLog.create({
-      data: {
-        level: 'info',
-        action: 'busgo_compagnie_created',
-        message: `Compagnie BusGo "${name}" créée avec admin ${adminEmail}`,
-        userId: session.id,
-        tenantId: agency.id,
-      },
-    });
+    // FIX (audit): db.systemLog.create() used fields (action, userId, tenantId) that
+    // don't exist on SystemLog model (which has level, message, source, metadata).
+    // This caused a Prisma error → 500. Switched to db.auditLog.create() which has
+    // the right fields (action, entity, entityId, userId, details).
+    try {
+      await db.auditLog.create({
+        data: {
+          action: 'BUSGO_COMPAGNIE_CREATED',
+          entity: 'Agency',
+          entityId: agency.id,
+          details: `Compagnie BusGo "${name}" créée avec admin ${adminEmail}`,
+          userId: session.userId || undefined,
+        },
+      });
+    } catch {
+      // Audit log failure is non-fatal
+    }
 
     return NextResponse.json({
       success: true,

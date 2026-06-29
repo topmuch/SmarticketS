@@ -110,8 +110,8 @@ export async function POST(request: NextRequest) {
             url: `/pwa-passager/?action=ticket`,
           },
           actions: [
+            { action: 'listen', title: '🔊 Écouter' },
             { action: 'open', title: '🎫 Voir mon billet' },
-            { action: 'dismiss', title: 'Fermer' },
           ],
         });
       } catch (pushErr) {

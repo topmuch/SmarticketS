@@ -296,8 +296,7 @@ export function LiveBoard({ stationSlug, ticketId, alertsCount = 0 }: LiveBoardP
         <TripDetailModal trip={selectedTrip} onClose={() => setSelectedTrip(null)} />
       )}
 
-      {/* --- Bottom navigation --- */}
-      <BottomNav active="board" ticketId={ticketId} alertsCount={alertsCount} />
+      {/* BottomNav is now mounted globally via PwaPassagerNavWrapper in layout.tsx */}
     </div>
   );
 }

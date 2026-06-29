@@ -84,4 +84,18 @@ node scripts/migrate-db.js 2>/dev/null || true
 
 # ─── 3. Start the Next.js server ──────────────────────────────────────────
 echo "✅ Starting Next.js server on port ${PORT:-3000}..."
-exec node .next/standalone/server.js
+
+# FIX: pass all env vars explicitly to the node process
+# (Docker doesn't always inherit `export` vars to exec'd processes)
+exec env \
+  NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+  JWT_SECRET="$JWT_SECRET" \
+  JWT_REFRESH_SECRET="$JWT_REFRESH_SECRET" \
+  QR_HMAC_SECRET="$QR_HMAC_SECRET" \
+  ENCRYPTION_KEY="$ENCRYPTION_KEY" \
+  DATABASE_URL="$DATABASE_URL" \
+  NODE_ENV=production \
+  PORT="${PORT:-3000}" \
+  HOSTNAME="0.0.0.0" \
+  KIOSK_SERVICE_URL="${KIOSK_SERVICE_URL:-http://localhost:3004}" \
+  node .next/standalone/server.js

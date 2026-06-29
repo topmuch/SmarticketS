@@ -20,6 +20,7 @@ import {
   Bus, Ticket, Clock, Phone, MapPin, ScanLine, Volume2, VolumeX,
   AlertCircle, CheckCircle2, User, Loader2, Timer, Bell, Settings,
   MessageCircle, HelpCircle, Download, Wallet, Navigation, Star,
+  Share2, Copy, QrCode,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { QRCodeSVG } from 'qrcode.react';
 import { BusGoSWRegistration } from '@/components/busgo/pwa-sw-registration';
 import { OfferList, useSponsoredOffers } from '@/components/busgo/offer-card';
+import { usePassengerTtsAlerts } from '@/hooks/use-passenger-tts-alerts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -119,6 +121,16 @@ function DashboardInner() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { offers: sponsoredOffers } = useSponsoredOffers('passenger');
   const [welcomeShown, setWelcomeShown] = useState(false);
+
+  // FIX: écouter les events kiosk en temps réel pour les annonces vocales TTS
+  // (boarding, departed, delay, cancel) + ding-dong avant chaque annonce
+  const passengerTicketId = typeof window !== 'undefined' ? localStorage.getItem('busgo_ticket_id') : null;
+  const passengerDepartureId = data?.departure?.id || (typeof window !== 'undefined' ? localStorage.getItem('busgo_departure_id') : null);
+  usePassengerTtsAlerts({
+    ticketId: passengerTicketId,
+    departureId: passengerDepartureId,
+    enabled: !!passengerTicketId,
+  });
 
   const fetchData = useCallback(async () => {
     const ticketId = localStorage.getItem('busgo_ticket_id');
@@ -238,15 +250,33 @@ function DashboardInner() {
               });
             }
 
-            // TTS
-            if ('speechSynthesis' in window) {
-              window.speechSynthesis.cancel();
-              const u = new SpeechSynthesisUtterance(notif.ttsText);
-              u.lang = 'fr-FR';
-              u.rate = 0.9;
-              u.volume = 1.0;
-              window.speechSynthesis.speak(u);
-            }
+            // FIX: play ding-dong BEFORE the welcome TTS
+            import('@/lib/audioSystem')
+              .then(({ playDingDong }) => {
+                try { playDingDong(); } catch { /* non-fatal */ }
+                // Wait 1.5s for ding-dong, then speak
+                setTimeout(() => {
+                  if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(notif.ttsText);
+                    u.lang = 'fr-FR';
+                    u.rate = 0.9;
+                    u.volume = 1.0;
+                    window.speechSynthesis.speak(u);
+                  }
+                }, 1500);
+              })
+              .catch(() => {
+                // Fallback: speak without ding-dong if audioSystem fails to load
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                  const u = new SpeechSynthesisUtterance(notif.ttsText);
+                  u.lang = 'fr-FR';
+                  u.rate = 0.9;
+                  u.volume = 1.0;
+                  window.speechSynthesis.speak(u);
+                }
+              });
 
             // Toast
             toast.success(notif.messageText);
@@ -379,18 +409,31 @@ function DashboardInner() {
           </Card>
         )}
 
-        {/* QR Code du billet */}
+        {/* QR Code du billet + Partage WhatsApp */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Ticket className="h-4 w-4 text-amber-600" />
-              Mon billet
+              <QrCode className="h-4 w-4 text-amber-600" />
+              Mon billet QR Code
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-3">
+            {/* QR Code */}
             <div className="bg-white p-3 rounded-xl inline-block border-2 border-amber-200">
-              <QRCodeSVG value={data.ticket.controlCode} size={140} level="M" />
+              <QRCodeSVG
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/pwa-passager/install?data=${btoa(JSON.stringify({
+                  t: data.ticket.id,
+                  n: data.ticket.passengerName,
+                  s: data.ticket.seatNumber,
+                  d: data.departure.destination,
+                  c: data.ticket.controlCode,
+                }))}`}
+                size={160}
+                level="M"
+              />
             </div>
+
+            {/* Infos billet */}
             <div className="grid grid-cols-2 gap-2 text-sm text-left">
               <div><span className="text-muted-foreground">N° ticket:</span> <span className="font-mono font-bold">{data.ticket.paperTicketNumber || data.ticket.controlCode}</span></div>
               <div><span className="text-muted-foreground">Siège:</span> <span className="font-bold text-lg text-amber-600">{data.ticket.seatNumber}</span></div>
@@ -398,9 +441,77 @@ function DashboardInner() {
               <div><span className="text-muted-foreground">Ligne:</span> <span className="font-medium">{data.departure.lineNumber}</span></div>
               <div><span className="text-muted-foreground">Départ:</span> <span className="font-medium">{new Date(data.departure.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
               {data.departure.platform && <div><span className="text-muted-foreground">Quai:</span> <span className="font-medium">{data.departure.platform}</span></div>}
-              {data.route?.price && <div><span className="text-muted-foreground">Prix:</span> <span className="font-medium">{data.route.price.toLocaleString('fr-FR')} FCFA</span></div>}
-              {data.route?.durationMinutes && <div><span className="text-muted-foreground">Durée:</span> <span className="font-medium">{data.route.durationMinutes} min</span></div>}
             </div>
+
+            {/* Code de contrôle */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+              <p className="text-xs text-muted-foreground">Code de contrôle</p>
+              <p className="font-mono font-bold text-amber-700 text-lg tracking-wider">{data.ticket.controlCode}</p>
+            </div>
+
+            {/* Boutons de partage */}
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Button
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  const ticketUrl = `${window.location.origin}/pwa-passager/install?data=${btoa(JSON.stringify({
+                    t: data.ticket.id,
+                    n: data.ticket.passengerName,
+                    s: data.ticket.seatNumber,
+                    d: data.departure.destination,
+                    c: data.ticket.controlCode,
+                  }))}`;
+                  const waText = encodeURIComponent(`🎫 Mon billet BusGo\n\nPassager: ${data.ticket.passengerName}\nSiège: ${data.ticket.seatNumber}\nDestination: ${data.departure.destination}\nDépart: ${new Date(data.departure.scheduledTime).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}\nCode: ${data.ticket.controlCode}\n\nLien du billet: ${ticketUrl}`);
+                  window.open(`https://wa.me/?text=${waText}`, '_blank');
+                }}
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Partager WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                onClick={() => {
+                  const ticketUrl = `${window.location.origin}/pwa-passager/install?data=${btoa(JSON.stringify({
+                    t: data.ticket.id,
+                    n: data.ticket.passengerName,
+                    s: data.ticket.seatNumber,
+                    d: data.departure.destination,
+                    c: data.ticket.controlCode,
+                  }))}`;
+                  navigator.clipboard.writeText(ticketUrl);
+                  toast.success('Lien du billet copié !');
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copier le lien
+              </Button>
+            </div>
+
+            {/* Bouton partage natif (si disponible) */}
+            {typeof navigator !== 'undefined' && navigator.share && (
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground"
+                onClick={() => {
+                  navigator.share({
+                    title: 'Mon billet BusGo',
+                    text: `Billet ${data.ticket.passengerName} - Siège ${data.ticket.seatNumber} - ${data.departure.destination}`,
+                    url: `${window.location.origin}/pwa-passager/install?data=${btoa(JSON.stringify({
+                      t: data.ticket.id,
+                      n: data.ticket.passengerName,
+                      s: data.ticket.seatNumber,
+                      d: data.departure.destination,
+                      c: data.ticket.controlCode,
+                    }))}`,
+                  }).catch(() => {});
+                }}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Partager...
+              </Button>
+            )}
+
             {data.ticket.ticketStatus === 'BOARDED' && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-sm text-emerald-700 flex items-center justify-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />

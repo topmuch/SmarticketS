@@ -2505,3 +2505,197 @@ Stage Summary:
   - src/components/pwa-passenger/LiveBoard.tsx — added fixed Sidebar (220px, light teal), KPI cards row (4 colored), white trip-list card with sticky grouped headers, preserved useLiveTrips + useLiveBoardStore + TripDetailModal integration
 - Color palette applied: teal #10B981 (primary), orange #F97316 (brand/boarding), blue #3B82F6 (info), pink #EC4899 (alerts/delays), light teal #F0FDF4 (sidebar bg), gray-800/500/200 (text/borders), green #22C55E (success), red #EF4444 (delays).
 - Responsive: sidebar hidden on mobile (hidden md:flex), bottom nav hidden on desktop (flex md:hidden), KPI grid 2-col on mobile / 4-col on md+, search input compact on mobile.
+
+---
+Task ID: LOGIN-REDESIGN
+Agent: Frontend Styling Expert
+Task: Redesign 3 login pages with distinct multicolor themes
+
+Work Log:
+- Read worklog tail for prior context (FitNexus PWA redesign using Tailwind color palette conventions).
+- Inspected existing /home/z/my-project/src/components/auth/LoginPage.tsx (671 lines) — single shared component driven by `variant` prop ('superadmin' | 'agence' | 'busgo') with CONFIGS object; previously used a single dark navy left panel + image background for both superadmin and agence, with pink/orange accent classes hardcoded via `isAgence` ternaries.
+- Verified useAuth() hook shape in src/contexts/AuthContext.tsx (user, login, loading, isAgency, isSuperAdmin).
+- Completely rewrote LoginPage.tsx (now 795 lines) with split-screen layout and 3 distinct, immediately-recognizable color themes:
+  · SuperAdmin → Purple/Violet: panelGradient `from-violet-600 via-purple-600 to-indigo-700`, button `from-violet-600 to-indigo-600`, accent `text-violet-600`, orbs `#A78BFA` + `#4F46E5`, main icon Shield, vibe "Sécurité & Pouvoir".
+  · Agence → Teal/Cyan: panelGradient `from-teal-500 via-cyan-600 to-sky-700`, button `from-teal-600 to-cyan-600`, accent `text-teal-600`, orbs `#2DD4BF` + `#0891B2`, main icon Truck, vibe "Transport & Logistique".
+  · BusGo → Orange/Amber: panelGradient `from-orange-500 via-amber-500 to-red-500`, button `from-orange-500 to-amber-500`, accent `text-orange-600`, orbs `#FB923C` + `#D97706`, main icon Bus, vibe "Transport de voyageurs".
+- Refactored CONFIGS to replace hardcoded ternaries with explicit per-variant Tailwind class strings (panelGradient, buttonGradient, buttonShadow, accentText, accentBorder, accentRing, accentBgSoft, accentTextSoft, accentBgHover, iconGradient, checkboxGradient) so JIT sees them statically. Inline-style hexes used only for orb backgrounds.
+- Left panel (hidden lg:flex lg:w-[55%]): full-height variant gradient bg + 2 animated blurred orbs (8s scale loop, 2s stagger delay) + subtle white grid pattern (opacity 8%); logo (brightness-0 invert for white), role tagline; bottom content = vibe badge + 4xl/5xl bold white headline + lg white/70 subtitle + 2x2 feature cards (white/10 backdrop-blur, white/15 border, hover y-4 lift) + divider tagline + switch link to other login.
+- Right panel (w-full lg:w-[45%], bg-white): centered max-w-[420px] card; mobile-only header with Home link back to "/" + logo; form title block = 48px gradient icon tile + 2xl bold slate-800 title + subtitle; error alert (red-50/red-200 with AlertCircle icon); email input (Mail icon, pl-10 pr-4 py-3, rounded-xl border-slate-200 bg-slate-50, focus adds accentBorder + ring-2 accentRing + bg-white); password input (Lock icon + show/hide Eye/EyeOff button); "Se souvenir de moi" gradient-checkbox + "Mot de passe oublié ?" link in accentText; submit button = full-width rounded-xl py-3 font-semibold gradient text-white + shadow + whileHover scale 1.01 / whileTap scale 0.95 + loading state (Loader2 spinner + "Connexion...").
+- Collapsible demo section (chevron-down header, AnimatePresence height animation): shows demo email + masked password (• chars) + accent-soft demoLabel badge + full-width "Auto-remplir" gradient button (fillDemo) + "Connexion rapide" links to the other 2 login variants (each link tinted with its own variant color: violet for SuperAdmin, teal for Transporteur, orange for BusGo).
+- Always-visible bottom "Changer d'espace" switch row (3 colored links, current variant hidden) + copyright footer.
+- Removed FloatingParticles component and its usage entirely (per spec).
+- Removed unused imports (Building2, CheckCircle, Package — Building2 replaced by Truck for agence main icon). Added new imports: Truck, ChevronDown, Home, Sparkles, AlertCircle.
+- Preserved ALL existing logic: `variant` prop typing, full CONFIGS shape (demoEmail/demoPassword/role/redirectPath/switchHref etc.), useAuth() destructure (user, login, loading, isAgency, isSuperAdmin), dev-only /api/init-demo ping, redirect useEffect for the 3 variants, handleSubmit (POST /api/auth/login + login(data.user) + router.push), fillDemo, setError, rememberMe state, showPassword toggle, focusedField state for input ring.
+- Verified `bunx tsc --noEmit` → 0 errors in src/components/auth/LoginPage.tsx (only pre-existing errors remain in unrelated API routes / layouts / pwa-passager pages).
+- Verified `bunx eslint src/components/auth/LoginPage.tsx` → exit 0, clean.
+
+Stage Summary:
+- 1 file modified: src/components/auth/LoginPage.tsx (671 → 795 lines, complete rewrite).
+- 3 distinct color themes applied: SuperAdmin = purple/violet (#7C3AED/#4F46E5/#A78BFA), Agence = teal/cyan (#0D9488/#0891B2/#2DD4BF), BusGo = orange/amber (#EA580C/#D97706/#FB923C).
+- Layout: split screen 55/45 — left desktop-only gradient panel with animated orbs + 4 feature badges + tagline + switch link; right always-visible white form panel with icon-titled form, email/password inputs with focus rings, gradient submit button, collapsible demo section with auto-fill + quick-login links, mobile back-to-home link.
+- All variant logic preserved (useAuth, handleSubmit, fillDemo, redirect useEffect, error/remember/showPassword state); FloatingParticles removed; lucide-react icons used throughout (Shield/Truck/Bus for main icon, Mail/Lock/Eye/EyeOff for inputs, AlertCircle for errors, Sparkles + ChevronDown for demo card, Home for mobile back, ArrowRight for submit).
+- TypeScript + ESLint clean on the modified file.
+
+---
+Task ID: AUDIT-VOCAL-NOTIF
+Agent: Audit Agent
+Task: Audit all vocal notifications end-to-end (RESEARCH ONLY — no file modifications)
+
+Work Log:
+- Read worklog.md tail (last 40 lines) — context: prior AUDIT-PWA-FIX task (8/10 score) and FitNexus redesign
+- Read all 7 hook/lib files: use-passenger-tts-alerts.ts, use-agent-vocal-alerts.ts, use-vocal-alerts.ts, audioSystem.ts (1645 lines), ding-dong-base64.ts, push-service.ts, use-kiosk-socket.ts
+- Read all 4 page files: pwa-passager/page.tsx (home), pwa-passager/ticket/page.tsx, pwa-passager/install/page.tsx, busgo/layout.tsx, busgo/embarquement/[departureId]/page.tsx
+- Read kiosk-service/index.ts (622 lines) — verified broadcastTo() vs handleRestPush() asymmetry
+- Read public/sw-busgo-passenger.js (233 lines) — verified push event + notificationclick handler
+- Read pwa-sw-registration.tsx (60 lines) — verified TTS_SPEAK message handler
+- Read 3 API routes: busgo/trajets/[departureId]/route.ts (PATCH), busgo/embarquement/retard/route.ts, cron/departure-reminders/route.ts
+- Read vocal-settings-panel.tsx + voix/page.tsx — verified "Tester les annonces" button uses old useVocalAlerts hook
+- Cross-checked event name contracts: useKioskSocket emits `'join'` vs kiosk-service listens for `'join:station'` → MISMATCH
+- Cross-checked push action contracts: SW checks `action === 'listen'` but all API routes send `action: 'open'` → MISMATCH
+- Cross-checked stationSlug in cron route: prisma query selects `agency: { id, name }` (no slug) and doesn't include `originStation` → stationSlug always undefined → passenger:missing emit is dead code
+- Cross-checked kiosk-service REST handler: `handleRestPush` with `broadcast: false` only emits to `station:slug` room, NOT to `passengers` room → passengers never receive Socket.io events from server-side routes
+
+## SUMMARY TABLE — All Vocal Notifications
+
+| # | Notification | Trigger | Kiosk event emitted? | Push sent? | TTS played? | Ding-dong? | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | PWA: Boarding started | PATCH /api/busgo/trajets/[id] action=start-boarding | ✅ kiosk:boarding (REST → station room ONLY, passengers NOT reached) | ✅ push with ttsMessage | ⚠️ Only if user taps "Voir mon billet" (no "Écouter" action) → no TTS | ❌ No ding-dong on passenger side (hook dead) | ❌ BROKEN |
+| 2 | PWA: Bus departed | PATCH action=depart | ✅ kiosk:departed (REST → station room ONLY) | ✅ push with ttsMessage | ⚠️ Same as #1 — no listen action | ❌ No ding-dong | ❌ BROKEN |
+| 3 | PWA: Delay notice | PATCH action=delay | ✅ kiosk:delay (REST → station room ONLY) | ✅ push with ttsMessage | ⚠️ Same as #1 | ❌ No ding-dong | ❌ BROKEN |
+| 4 | PWA: Cancellation | PATCH action=cancel | ✅ kiosk:cancelled (REST → station room ONLY) | ✅ push with ttsMessage | ⚠️ Same as #1 | ❌ No ding-dong | ❌ BROKEN |
+| 5 | PWA: Client delay +5min | POST /api/busgo/embarquement/retard | ❌ NO kiosk event emitted | ⚠️ Push sent but NO ttsMessage in payload (only type+ticketId) | ❌ No TTS (no message to speak) | ❌ No ding-dong | ❌ BROKEN |
+| 6 | PWA: H-1h reminder | cron departure-reminders reminder_1h | ❌ No kiosk event | ✅ push with ttsMessage | ⚠️ Same as #1 — no listen action | ❌ No ding-dong | ❌ BROKEN |
+| 7 | PWA: H-45min bags | cron bags_45min | ❌ No kiosk event | ✅ push with ttsMessage | ⚠️ Same as #1 | ❌ No ding-dong | ❌ BROKEN |
+| 8 | PWA: H-30min boarding | cron boarding_30min | ❌ No kiosk event | ✅ push with ttsMessage | ⚠️ Same as #1 | ❌ No ding-dong | ❌ BROKEN |
+| 9 | PWA: H-5min departure | cron departure_5min | ❌ No kiosk event | ✅ push with ttsMessage | ⚠️ Same as #1 | ❌ No ding-dong | ❌ BROKEN |
+| 10 | PWA: Welcome (install) | install/page.tsx handleConfirmPhone | N/A | N/A | ✅ Inline TTS in handleConfirmPhone (no ding-dong) | ❌ No ding-dong | ⚠️ PARTIAL (welcome=1 redirect to wrong page) |
+| 11 | PWA: Cold-open TTS (push tap) | SW notificationclick action=listen | N/A | N/A | ✅ via ?tts=1 URL param OR TTS_SPEAK postMessage | ❌ No ding-dong | ⚠️ PARTIAL (works only if action='listen' but API routes send 'open') |
+| 12 | Agent: Missing passenger (T-5min) | cron departure_5min → REST /api/push/:slug event=passenger:missing | ⚠️ Emitted but stationSlug is undefined → emit silently skipped | N/A (push is to passenger) | ⚠️ Only via polling fallback in embarquement page (no dedup, repeats every 10s) | ⚠️ Via polling fallback (VocalManager → ding-dong → 3s → TTS) | ❌ BROKEN (socket path) / ⚠️ PARTIAL (polling) |
+| 13 | Agent: Tester les annonces | voix/page.tsx → VocalSettingsPanel → useVocalAlerts.testVoice() | N/A | N/A | ✅ speak() called immediately | ⚠️ playDingDong() called but NOT awaited → ding-dong + TTS overlap (race condition) | ⚠️ PARTIAL |
+| 14 | Agent: Custom announcement | layout useKioskSocket onEvent → announceCustom | Listens for 'announcement' event (NEVER emitted by any route) | N/A | ❌ Event never fires | N/A | ❌ BROKEN (dead code) |
+
+## PER-NOTIFICATION DETAILED ANALYSIS
+
+### 1-4. PWA Passenger TTS Alerts (use-passenger-tts-alerts.ts)
+**Hook is properly mounted** on `/pwa-passager/ticket/page.tsx` (lines 128-132) with ticketId + departureId from localStorage.
+**Hook logic is correct**: subscribes via `subscribe_passenger`, listens for 5 kiosk events, filters by departureId, plays ding-dong, waits 1.5s, speaks TTS, shows visual Notification.
+**Socket connection is correct**: `io('/?XTransformPort=3004', { path: '/socket.io/', transports: ['websocket','polling'], tryAllTransports: true })`.
+**Kiosk-service handler is correct**: `subscribe_passenger` joins `passengers` room (line 198-210).
+**CRITICAL BREAK**: kiosk-service's `broadcastTo()` (called from socket-message path) DOES broadcast to `passengers` room (line 39). BUT the API routes use the REST endpoint `/api/push/:slug` which goes through `handleRestPush()` (line 50-89) — and with `broadcast: false` it emits ONLY to `station:${slug}` room, NOT to `passengers`. All 3 API routes use `broadcast: false`.
+**Result**: passenger TTS hook listens for events that NEVER ARRIVE. The hook is essentially dead code on the server-triggered path. Only SW push + "Écouter" tap can trigger passenger TTS — and that's also broken (see #11).
+
+### 2. PWA Welcome TTS on install
+**Inline TTS in install/page.tsx** (lines 113-122) plays welcome message immediately after `handleConfirmPhone` succeeds — text: "Bonjour {name}. Bienvenue. Votre billet est confirmé. Embarquement prévu à {time}. Votre siège est le numéro {seat}." ✅ Works.
+**No ding-dong before welcome** — design choice, minor inconsistency.
+**Redirect bug**: install redirects to `/pwa-passager?welcome=1` (line 180), but `welcome=1` is only handled on `/pwa-passager/ticket/page.tsx` (line 234), NOT on `/pwa-passager/page.tsx` (home page). The home page only handles `?tts=1` (cold-open). So the second-stage welcome (fetch from notifications/log + toast + repeated TTS) NEVER fires.
+
+### 3. PWA Cold-open TTS from push
+**Both pages handle `?tts=1&ttsMessage=...`**: home page (lines 36-55) and ticket page (lines 218-232). ✅ Correct.
+**pwa-sw-registration.tsx** handles `TTS_SPEAK` postMessage (lines 28-49). ✅ Correct.
+**SW notificationclick** (lines 194-219): if action === 'listen' && ttsMessage → postMessage or open with ?tts=1. ✅ Correct logic.
+**CRITICAL BREAK**: SW checks `action === 'listen'`, but the API routes (trajets PATCH line 309-312, notifications/send line 112-115, cron departure-reminders line 192-195) all send `actions: [{ action: 'open', title: '🎫 Voir mon billet' }, { action: 'dismiss', title: 'Fermer' }]`. There is NO 'listen' action in any API route. The "🔊 Écouter" button defined in the SW (line 162) is OVERRIDDEN by the API route's actions array. So the TTS_SPEAK code path is unreachable from any server-triggered push.
+
+### 4. Agent BusGo Vocal Alerts (use-agent-vocal-alerts.ts)
+**Hook is properly mounted** in `/busgo/layout.tsx` (line 98). ✅
+**Hook logic is correct**: fetches `/api/busgo/voix` for dingDongUrl, calls `setCustomDingDongUrl()`, preloads voices, unlocks AudioContext on first gesture, uses VocalManager.enqueue() which properly sequences ding-dong → 3s wait → TTS (via speakAnnouncement).
+**6 announce functions**: announceBoarding, announceImminent, announceDelay, announceDepartedAfterDelay, announceMissingPassenger, announceCustom. ✅
+**CRITICAL BREAK**: layout's `useKioskSocket` (line 100-111) connects with correct path `/socket.io/` + `query: { XTransformPort: '3004' }`. On connect, it emits `socket.emit('join', { station: stationSlug })` (use-kiosk-socket.ts line 104). But kiosk-service only handles `socket.on('join:station', ...)` (index.ts line 177). **Event name mismatch** — the join is silently ignored, agent never joins any station room, agent never receives `passenger:missing` events from REST /api/push/:slug (which emits to `station:slug` room only).
+**TypeScript bug**: layout passes `'high'` and `'normal'` strings to `announceCustom(text, priority)` — but priority is typed as `AnnouncementPriority` enum (LOW=1, NORMAL=5, HIGH=8, URGENT=10). Runtime: queue still processes but priority sort is unstable (NaN comparisons).
+
+### 5. Agent Missing Passenger Announcement
+**Polling fallback** in embarquement/[departureId]/page.tsx (lines 93-113) calls `announceMissingPassenger(p.passengerName, p.seatNumber)` for each ACTIVE ticket without validatedAt, when 5 ≥ minutesUntilDeparture ≥ -2.
+**BUG**: `announceMissingPassenger` in use-agent-vocal-alerts.ts (line 223-228) calls `speak(text, URGENT)` which calls `manager.enqueue(text, URGENT, undefined, undefined)` — passes `undefined` as departureKey, so NO dedup. The audioSystem's `announcedSet` is never populated. The announcement repeats every 10s (polling interval) for the same passenger. Annoying UX.
+**Socket path is broken** (see #4) — the cron's `passenger:missing` event never reaches the agent. So only the polling fallback works.
+
+### 6. Agent "Tester les annonces" button
+**Button is on VocalSettingsPanel** (vocal-settings-panel.tsx line 105-113), mounted in /busgo/voix/page.tsx (line 367).
+**Uses `useVocalAlerts`** (OLD hook, NOT useAgentVocalAlerts). The `testVoice` function (use-vocal-alerts.ts line 281-295) calls `playDingDong()` then immediately calls `speak(...)` — no await. **Race condition**: ding-dong (3s chime) and TTS speak simultaneously, overlapping audio.
+**The old hook is NOT connected to any socket** — its `handleSocketEvent` is exported but never wired up. The old hook is purely for config + testVoice. So the toggles in VocalSettingsPanel don't affect the actual announcements (which use useAgentVocalAlerts' separate config).
+
+### 7. Ding-dong system (audioSystem.ts)
+**3-level chain implemented correctly** (lines 337-359):
+- Level 1: `_customDingDongUrl` → `playCustomAudio()` (line 343-351) — falls back to level 2 on error
+- Level 2: `playBase64DingDong()` (line 354-358) — uses `DING_DONG_DATA_URI` from ding-dong-base64.ts (HAS_HARDCODED_DING_DONG=true) — falls back to level 3 on decode error
+- Level 3: `playSynthesizedDingDong()` (line 441-460) — 880Hz/660Hz sine waves via Web Audio API
+**`setCustomDingDongUrl()` is called** in useAgentVocalAlerts (line 122) after fetching `/api/busgo/voix`. ✅
+**AudioContext user-gesture unlock** implemented in useAgentVocalAlerts (lines 139-181): listens for first click/touch/keydown, calls `playDingDong()` + silent `speechSynthesis.speak('')` to unlock. ✅
+**Caveat**: passenger TTS hook does NOT have AudioContext unlock. On mobile, ding-dong may not play for background Socket.io events without prior user gesture. Usually OK because PWA is opened by tap.
+
+### 8. SW Push → TTS relay
+**SW push handler** (lines 123-178): shows notification with `sound`, `vibrate`, `actions: [{listen}, {dismiss}]`, `data.ttsMessage`. ✅
+**SW notificationclick** (lines 183-223): if action === 'listen' → postMessage TTS_SPEAK OR open with ?tts=1. ✅ Logic correct.
+**pwa-sw-registration.tsx** (lines 28-49): handles TTS_SPEAK messages, speaks via speechSynthesis. ✅
+**CRITICAL BREAK**: API routes OVERRIDE the SW's `actions` array with their own `[{action:'open'}, {action:'dismiss'}]` — no 'listen' action. So the TTS_SPEAK code path is unreachable.
+
+### 9. Kiosk-service broadcast to passengers
+**`broadcastTo()` (line 26-40)**: when called from a socket-message handler, DOES emit to `passengers` room (line 39). ✅
+**`handleRestPush()` (line 50-89)**: when called from REST `/api/push/:slug`, emits to `station:slug` room (or `io.emit` if `broadcast: true`). **Does NOT emit to `passengers` room when `broadcast: false`**. ✗
+**`subscribe_passenger` handler** (line 198-210): joins `passengers` room. ✅
+**All 3 API routes** (PATCH trajets, retard, cron) use REST with `broadcast: false` → passengers excluded.
+**kiosk event handlers** (kiosk:boarding, kiosk:departed, kiosk:delay, kiosk:cancelled, kiosk:imminent) all include `departureId` in the payload. ✅
+
+### 10. API routes that trigger notifications
+- **PATCH /api/busgo/trajets/[departureId]**: emits kiosk event ✅ + sends push ✅ with ttsMessage ✅. BUT uses `broadcast: false` → passengers excluded from socket. AND push actions use `'open'` not `'listen'` → TTS unreachable.
+- **POST /api/busgo/embarquement/retard**: ❌ NO kiosk event emitted (only DB update + push). Push payload is missing `ttsMessage` (only `type` + `ticketId` in data). Push actions missing 'listen'.
+- **POST /api/cron/departure-reminders**: emits `passenger:missing` only for departure_5min type. **CRITICAL**: `stationSlug = departure.originStation?.slug || departure.agency?.slug` is ALWAYS undefined because the prisma query (lines 71-80) selects `agency: { id, name }` (no slug) and doesn't include `originStation`. So the `if (stationSlug)` check (line 212) always fails → emit silently skipped. Push is sent correctly with ttsMessage. Push actions missing 'listen'.
+
+## BROKEN LINKS LIST (ranked by severity)
+
+1. **CRITICAL** — useKioskSocket emits `'join'` (line 104) but kiosk-service listens for `'join:station'` (line 177). Agent never joins station room → never receives `passenger:missing` events via socket. (Fix: change to `socket.emit('join:station', { slug: stationSlug, role: 'agent' })`)
+
+2. **CRITICAL** — cron departure-reminders `stationSlug` always undefined (prisma query at lines 71-80 doesn't select `agency.slug` or include `originStation`). The `passenger:missing` emit at line 214 is dead code. (Fix: add `originStation: { select: { slug: true } }` to include, and `agency: { select: { id: true, name: true, slug: true } }`)
+
+3. **CRITICAL** — kiosk-service `handleRestPush` with `broadcast: false` only emits to `station:slug` room, NOT to `passengers` room. All 3 API routes use `broadcast: false`. Passengers never receive Socket.io events from server-side routes. (Fix: in `handleRestPush`, after `io.to('station:slug').emit(...)`, also call `io.to('passengers').emit(...)`)
+
+4. **CRITICAL** — SW checks `action === 'listen'` to trigger TTS_SPEAK, but ALL API routes (trajets PATCH line 309, notifications/send line 112, cron line 192) send `actions: [{ action: 'open' }, { action: 'dismiss' }]` — no 'listen' action. The "🔊 Écouter" button never appears in push notifications. (Fix: change API routes to `actions: [{ action: 'listen', title: '🔊 Écouter' }, { action: 'open', title: '🎫 Voir mon billet' }, { action: 'dismiss', title: 'Fermer' }]`)
+
+5. **CRITICAL** — `/api/busgo/embarquement/retard` (retard route) emits NO kiosk event AND its push payload has no `ttsMessage` (line 81-86 only sets `data: { type, ticketId }`). Passenger never hears the delay announcement. (Fix: emit `kiosk:delay` via kiosk-service, and add `ttsMessage: delayMessage` to push data)
+
+6. **MAJOR** — `announceMissingPassenger` in use-agent-vocal-alerts.ts (line 223) calls `speak(text, URGENT)` without departureKey → no dedup. Polling fallback repeats announcement every 10s. (Fix: pass `departureKey: \`missing:${ticketId}\`` to enqueue, OR call `isAlreadyAnnounced()` check before speak)
+
+7. **MAJOR** — layout.tsx passes string priorities `'high'` and `'normal'` to `announceCustom()` (lines 106, 108) but the parameter is typed `AnnouncementPriority` (numeric enum). TypeScript error; runtime priority sort unstable. (Fix: import AnnouncementPriority and use `AnnouncementPriority.HIGH` / `AnnouncementPriority.NORMAL`)
+
+8. **MAJOR** — install page redirects to `/pwa-passager?welcome=1` (line 180) but home page only handles `?tts=1`, not `?welcome=1`. The ticket-page welcome flow (fetch notifications/log + toast + TTS) is unreachable. (Fix: redirect to `/pwa-passager/ticket?welcome=1` instead, OR add welcome handling to home page)
+
+9. **MAJOR** — `testVoice` in use-vocal-alerts.ts (line 281) calls `playDingDong()` then immediately `speak()` without await. Ding-dong (3s) and TTS overlap. (Fix: use `VocalManager.enqueue()` which properly sequences ding-dong → 3s wait → TTS, OR `await new Promise(r => setTimeout(r, 3000))` between playDingDong and speak)
+
+10. **MAJOR** — layout's `useKioskSocket` onEvent handler (lines 103-110) only handles `passenger:missing` and `announcement` events. The `announcement` event is NEVER emitted by any route or socket handler — dead code. Other events (departure:status, departure:delay, ticket:validated, passenger:boarded) are listened by useKioskSocket but not acted on.
+
+11. **MINOR** — `kiosk:imminent` event is never emitted by any route or handler. The passenger TTS hook listens for it (line 29) but it never fires. Dead event.
+
+12. **MINOR** — passenger TTS hook has no AudioContext user-gesture unlock (unlike useAgentVocalAlerts). On mobile, first Socket.io event may not play ding-dong if no prior gesture. Usually OK because PWA is opened by tap.
+
+13. **MINOR** — passenger TTS hook waits 1.5s between ding-dong and TTS (line 74), but agent's VocalManager waits 3s. Inconsistent timing. The 1.5s may be too short for the 3s base64 ding-dong MP3.
+
+14. **MINOR** — install page welcome TTS plays without preceding ding-dong. Design choice, but inconsistent with other TTS messages.
+
+## TOP 5 FIXES NEEDED
+
+1. **Fix useKioskSocket join event name** (`'join'` → `'join:station'`) + adjust payload (`{slug, role}` instead of `{station}`). Without this, agent receives ZERO socket events from server-side routes.
+
+2. **Fix kiosk-service `handleRestPush` to also broadcast to `passengers` room** when `broadcast: false` (or add a new `includePassengers: true` flag). Without this, the passenger TTS hook is completely dead — passengers only get push (and even push TTS is broken).
+
+3. **Fix cron departure-reminders prisma query** to include `originStation: { select: { slug: true } }` and select `agency.slug`. Without this, the `passenger:missing` emit is dead code (stationSlug always undefined).
+
+4. **Add 'listen' action to ALL push payloads** (trajets PATCH, retard, cron, notifications/send). Without this, the "🔊 Écouter" button never appears and the SW's TTS_SPEAK code path is unreachable from server-triggered pushes.
+
+5. **Fix retard route** to (a) emit `kiosk:delay` event to kiosk-service, (b) include `ttsMessage: delayMessage` in push data. Without this, passenger never hears the +5min delay announcement neither via socket nor via push tap.
+
+## OBSERVATIONS (not bugs, but worth noting)
+
+- The `useVocalAlerts` (old hook) is still used by VocalSettingsPanel for testVoice + config sliders, but its config is NOT the same as useAgentVocalAlerts' config (`busgo-vocal-config` vs `agent-vocal-config` localStorage keys). So changing volume in VocalSettingsPanel doesn't affect actual agent announcements. Two parallel config systems.
+- The ding-dong system itself is solid — 3-level fallback chain works correctly. The bug is in how it's triggered (or not triggered) by the broken socket/push paths.
+- The VocalManager queue system is well-designed (priority, dedup, P1 interrupt, repetition). The issue is that announcements never reach the queue because the upstream socket/push paths are broken.
+- The SW push handler correctly handles `requireInteraction`, `vibrate`, `sound`, `tag` — the static audio (sound) works even when screen is locked. The dynamic TTS is the only broken part.
+
+Stage Summary:
+- 14 vocal notification paths audited end-to-end
+- **0 paths fully working end-to-end** — every path has at least one broken link
+- 5 CRITICAL bugs blocking the entire vocal notification system
+- 6 MAJOR bugs degrading UX or causing repeated/missing announcements
+- 3 MINOR bugs (timing, dead events, missing unlock)
+- Root cause: the system was architected for Socket.io real-time TTS, but multiple contract mismatches between layers (event names, action names, room broadcasts, payload fields) break every link in the chain
+- The fix is mostly mechanical (rename events, add fields, include rooms in broadcasts) — no architectural redesign needed
+- Estimated effort: ~2-3 hours to fix all 5 CRITICAL + 6 MAJOR bugs
+- After fixes, all 14 paths should work end-to-end

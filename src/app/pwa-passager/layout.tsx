@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PwaPassagerNavWrapper } from "./PwaPassagerNavWrapper";
 
 /**
  * Layout dédié à la PWA passager BusGo.
@@ -55,5 +56,5 @@ export default function PwaPassagerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <PwaPassagerNavWrapper>{children}</PwaPassagerNavWrapper>;
 }

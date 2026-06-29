@@ -110,16 +110,25 @@ function InstallForm() {
         localStorage.setItem('busgo_control_code', data.ticket.controlCode);
       }
 
-      // Play welcome TTS message immediately
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const welcomeText = `Bonjour ${data.ticket.passengerName}. Bienvenue. Votre billet est confirmé. Embarquement prévu à ${new Date(data.departure.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}. Votre siège est le numéro ${data.ticket.seatNumber}.`;
-        const utterance = new SpeechSynthesisUtterance(welcomeText);
-        utterance.lang = 'fr-FR';
-        utterance.rate = 0.9;
-        utterance.volume = 1.0;
-        window.speechSynthesis.speak(utterance);
-      }
+      // FIX: play ding-dong BEFORE the welcome TTS message
+      // (was missing — passenger heard TTS but no ding-dong chime)
+      try {
+        const { playDingDong } = await import('@/lib/audioSystem');
+        playDingDong();
+      } catch { /* ding-dong failure is non-fatal */ }
+
+      // Wait 1.5s for ding-dong to finish, then speak welcome message
+      setTimeout(() => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const welcomeText = `Bonjour ${data.ticket.passengerName}. Bienvenue. Votre billet est confirmé. Embarquement prévu à ${new Date(data.departure.scheduledTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}. Votre siège est le numéro ${data.ticket.seatNumber}.`;
+          const utterance = new SpeechSynthesisUtterance(welcomeText);
+          utterance.lang = 'fr-FR';
+          utterance.rate = 0.9;
+          utterance.volume = 1.0;
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 1500);
       setTicketId(data.ticket.id);
       setDepartureId(data.departure.id);
       setStep(2); // Go to notifications step
@@ -177,7 +186,8 @@ function InstallForm() {
       setDeferredPrompt(null);
     }
     // Redirect to dashboard regardless
-    router.push('/pwa-passager?welcome=1');
+    // FIX (audit #8): redirect to /ticket page (not home) since welcome=1 is handled there
+    router.push('/pwa-passager/ticket?welcome=1');
   };
 
   const steps = ['Bienvenue', 'Téléphone', 'Notifications', 'Installation'];
@@ -312,13 +322,13 @@ function InstallForm() {
                   <Smartphone className="h-4 w-4 mr-2" /> Installer l'app
                 </Button>
               ) : (
-                <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/pwa-passager?welcome=1')}>
+                <Button className="flex-1 bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/pwa-passager/ticket?welcome=1')}>
                   Aller au dashboard <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
             </div>
             {deferredPrompt && (
-              <button onClick={() => router.push('/pwa-passager?welcome=1')} className="text-xs text-muted-foreground hover:underline">
+              <button onClick={() => router.push('/pwa-passager/ticket?welcome=1')} className="text-xs text-muted-foreground hover:underline">
                 Continuer sans installer
               </button>
             )}
