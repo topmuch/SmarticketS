@@ -23,11 +23,14 @@
  *   - The whole modal renders nothing on the server (guarded by `mounted`).
  */
 
-import 'leaflet/dist/leaflet.css';
+// FIX: load leaflet CSS dynamically only on client (avoids prerender crash)
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('leaflet/dist/leaflet.css');
+}
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
-import type { DivIcon } from 'leaflet';
 import {
   X,
   MapPin,

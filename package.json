@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "NODE_OPTIONS='--max-old-space-size=2048' next build --webpack && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cp -r prisma .next/standalone/prisma && cp -r node_modules/.prisma .next/standalone/node_modules/.prisma && cp -r node_modules/@prisma .next/standalone/node_modules/@prisma && mkdir -p .next/standalone/node_modules/bcryptjs && cp -r node_modules/bcryptjs/* .next/standalone/node_modules/bcryptjs/ && mkdir -p .next/standalone/node_modules/web-push && cp -r node_modules/web-push/* .next/standalone/node_modules/web-push/",
+    "build": "NODE_OPTIONS='--max-old-space-size=2048' NEXT_WORKER_COUNT=2 next build --webpack && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cp -r prisma .next/standalone/prisma && cp -r node_modules/.prisma .next/standalone/node_modules/.prisma && cp -r node_modules/@prisma .next/standalone/node_modules/@prisma && mkdir -p .next/standalone/node_modules/bcryptjs && cp -r node_modules/bcryptjs/* .next/standalone/node_modules/bcryptjs/ && mkdir -p .next/standalone/node_modules/web-push && cp -r node_modules/web-push/* .next/standalone/node_modules/web-push/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push",
